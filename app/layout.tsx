@@ -31,6 +31,9 @@ export const metadata: Metadata = {
   },
 };
 
+import { FloatingNav } from "@/components/nav/FloatingNav";
+import { SignatureFooter } from "@/components/footer/SignatureFooter";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,12 +44,14 @@ export default function RootLayout({
       lang="en"
       className={`${fredoka.variable} ${nunito.variable} ${caveat.variable} antialiased`}
     >
-      <body className="min-h-screen flex flex-col font-body">
+      <body className="min-h-screen flex flex-col font-body pb-24 md:pb-0 md:pl-24">
         <PwaRegister />
         <MergeClient />
         <MotionConfig reducedMotion="user">
           <AmbientAudioProvider>
             {children}
+            <SignatureFooter />
+            <FloatingNav />
           </AmbientAudioProvider>
         </MotionConfig>
       </body>

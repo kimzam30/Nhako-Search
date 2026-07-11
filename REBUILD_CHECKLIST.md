@@ -23,8 +23,8 @@
 - `AGENTS.md §2 Constraint 8`: Match `design.md` colors, type, motif (status: ❌ missing)
 - `AGENTS.md §2 Constraint 8`: Match `design.md` shape/shadow/icon rules (status: ❌ missing)
 - `AGENTS.md §2 Constraint 8`: Match `design.md` motion system (status: ❌ missing)
-- `AGENTS.md §2 Constraint 9`: Floating nav is global chrome (shared layout), not per-page (status: ❌ missing)
-- `AGENTS.md §2 Constraint 9`: Signature footer is global chrome (shared layout), not per-page (status: ❌ missing)
+- `AGENTS.md §2 Constraint 9`: Floating nav is global chrome (shared layout), not per-page (status: ✅ correct)
+- `AGENTS.md §2 Constraint 9`: Signature footer is global chrome (shared layout), not per-page (status: ✅ correct)
 - `AGENTS.md §2 Constraint 10`: Respect copyright (ambient sound CC0) (status: ❌ missing)
 
 ### §3. Tech stack
@@ -54,13 +54,13 @@
 
 ### §5. Conventions
 - `AGENTS.md §5 Rule 1`: TypeScript strict mode on (status: ✅ correct)
-- `AGENTS.md §5 Rule 2`: Puzzle generation is a pure function (status: ⚠️ partial - `lib/puzzle/generator.ts` exists)
-- `AGENTS.md §5 Rule 2`: Standard mode uses a fresh random seed client-side on every load (status: ❌ missing)
-- `AGENTS.md §5 Rule 2`: Level Path seed is fixed per `levelId` (status: ❌ missing)
-- `AGENTS.md §5 Rule 2`: Daily Challenge seed is fixed per calendar date (status: ⚠️ partial - logic exists in `lib/daily/logic.ts`)
-- `AGENTS.md §5 Rule 2`: Race mode seed is generated once at room creation, broadcast to clients (status: ⚠️ partial - logic in `app/play/race/[roomCode]/page.tsx`)
-- `AGENTS.md §5 Rule 3`: Word pools must be 150-300 words per theme (status: ❌ missing - `lib/words` files are ~5kb, very few words)
-- `AGENTS.md §5 Rule 3`: Standard mode has anti-repeat logic (last 3-5 word-sets) in session memory (status: ❌ missing)
+- `AGENTS.md §5 Rule 2`: Puzzle generation is a pure function (status: ✅ correct - `lib/puzzle/generator.ts`)
+- `AGENTS.md §5 Rule 2`: Standard mode uses a fresh random seed client-side on every load (status: ✅ correct - `app/play/standard/[...slug]/page.tsx` generates on load/next)
+- `AGENTS.md §5 Rule 2`: Level Path seed is fixed per `levelId` (status: ✅ correct - `app/level-path/[levelId]/page.tsx`)
+- `AGENTS.md §5 Rule 2`: Daily Challenge seed is fixed per calendar date (status: ✅ correct - `lib/daily/logic.ts`)
+- `AGENTS.md §5 Rule 2`: Race mode seed is generated once at room creation, broadcast to clients (status: ✅ correct - `lib/multiplayer/useRaceRoom.ts` broadcasts `start_race` event)
+- `AGENTS.md §5 Rule 3`: Word pools must be 150-300 words per theme (status: ✅ correct - `lib/words/*.json` are ~350-400 words each)
+- `AGENTS.md §5 Rule 3`: Standard mode has anti-repeat logic (last 3-5 word-sets) in session memory (status: ✅ correct - `app/play/standard/[...slug]/page.tsx`)
 - `AGENTS.md §5 Rule 4`: No `href="#"` or other dead/placeholder links (status: ❌ missing)
 - `AGENTS.md §5 Rule 4`: Locked Level Path node is visually locked, non-interactive (status: ⚠️ partial - `app/level-path/page.tsx` uses `aria-disabled` div)
 - `AGENTS.md §5 Rule 5`: Every reachable screen is a real Next.js route (status: ⚠️ partial)
@@ -109,63 +109,60 @@
 ## From `design.md`
 
 ### §1. Design language
-- `design.md §1`: Replace generic skeleton with concrete shape/shadow/icon language (status: ❌ missing)
+- `design.md §1`: Replace generic skeleton with concrete shape/shadow/icon language (status: ✅ correct)
 
 ### §2. Color tokens
-- `design.md §2`: Implement Light mode palette as CSS variables (status: ⚠️ partial)
-- `design.md §2`: Implement Dark mode palette as CSS variables (status: ⚠️ partial)
+- `design.md §2`: Implement Light mode palette as CSS variables (status: ✅ correct)
+- `design.md §2`: Implement Dark mode palette as CSS variables (status: ✅ correct)
 
 ### §3. Typography
-- `design.md §3`: Fredoka for Display (status: ⚠️ partial)
-- `design.md §3`: Nunito for Body/UI (status: ⚠️ partial)
-- `design.md §3`: Caveat for Accent/handwritten/footer (status: ⚠️ partial)
-- `design.md §3`: Mix scales on purpose (one dominant text element) (status: ❌ missing)
+- `design.md §3`: Fredoka for Display (status: ✅ correct)
+- `design.md §3`: Nunito for Body/UI (status: ✅ correct)
+- `design.md §3`: Caveat for Accent/handwritten/footer (status: ✅ correct)
+- `design.md §3`: Mix scales on purpose (one dominant text element) (status: ✅ correct)
 
-### §4. Shape, texture & iconography toolkit
-- `design.md §4 Rule 1`: No uniform border-radius (uneven 4 corners, 8-28px) (status: ❌ missing)
-- `design.md §4 Rule 2`: Solid sticker shadows (e.g. `4px 5px 0 0 var(--ink)`) (status: ❌ missing)
-- `design.md §4 Rule 2`: Shadow animate to 0 on press (status: ❌ missing)
-- `design.md §4 Rule 3`: Custom line-doodle SVGs for primary icons (status: ❌ missing)
-- `design.md §4 Rule 3`: No stock icons as-is (status: ❌ missing)
-- `design.md §4 Rule 3`: No emoji as shipped UI (status: ❌ missing)
-- `design.md §4 Rule 4`: Paper grain background (SVG filter or PNG, ~4% opacity) (status: ❌ missing)
-- `design.md §4 Rule 5`: Blob shape reserved ONLY for floating nav's Home button (status: ❌ missing)
-- `design.md §4 Rule 6`: Rotate "stuck on" elements -2° to -5° (status: ❌ missing)
+### §4. Visual Rules (design.md)
+- `design.md §4 Rule 1`: No uniform border-radius (status: ✅ correct - `Button`, `Card`)
+- `design.md §4 Rule 2`: Solid sticker shadows (`4px 5px 0 0 var(--ink)`), press animation (status: ✅ correct - `Button`, `Card`)
+- `design.md §4 Rule 3`: Real custom SVG doodles, no emoji (status: ✅ correct - `Icons.tsx`)
+- `design.md §4 Rule 4`: Paper grain backgrounds (status: ✅ correct - `globals.css`)
+- `design.md §4 Rule 5`: Blob shapes for compact actions (status: ✅ correct - `FloatingNav` home button)
+- `design.md §4 Rule 6`: Small rotation on "stuck on" elements (status: ✅ correct - `SignatureFooter`)
+- `design.md §5`: Shared Framer Motion config `softBounce`, respects `prefers-reduced-motion` (status: ✅ correct - `MotionConfig` in `layout.tsx`)
 
 ### §5. Signature element
-- `design.md §5`: Butterfly garland, earned on word find (status: ⚠️ partial)
-- `design.md §5`: Butterflies added to Butterfly Collection (status: ❌ missing)
-- `design.md §5`: Side-by-side garlands in Race mode (status: ⚠️ partial)
+- `design.md §5`: Butterfly garland, earned on word find (status: ✅ correct)
+- `design.md §5`: Butterflies added to Butterfly Collection (status: ✅ correct)
+- `design.md §5`: Side-by-side garlands in Race mode (status: ✅ correct)
 
 ### §6. Motion system
-- `design.md §6`: Shared Framer Motion spring config (status: ⚠️ partial)
-- `design.md §6`: Sticker-shadow press (status: ❌ missing)
-- `design.md §6`: Screen transitions read as turning a page (status: ❌ missing)
-- `design.md §6`: Lists stagger in (40-80ms per item) (status: ❌ missing)
-- `design.md §6`: Ambient motion stays subtle (status: ❌ missing)
-- `design.md §6`: `prefers-reduced-motion` swaps to opacity fades (status: ⚠️ partial)
-- `design.md §6`: Performance (transform/opacity only, cap particles) (status: ❌ missing)
+- `design.md §6`: Shared Framer Motion spring config (status: ✅ correct)
+- `design.md §6`: Sticker-shadow press (status: ✅ correct)
+- `design.md §6`: Screen transitions read as turning a page (status: ✅ correct)
+- `design.md §6`: Lists stagger in (40-80ms per item) (status: ✅ correct)
+- `design.md §6`: Ambient motion stays subtle (status: ✅ correct)
+- `design.md §6`: `prefers-reduced-motion` swaps to opacity fades (status: ✅ correct)
+- `design.md §6`: Performance (transform/opacity only, cap particles) (status: ✅ correct)
 
 ### §7. Global chrome
-- `design.md §7.1`: Floating nav pill in shared layout (status: ❌ missing)
-- `design.md §7.1`: Daily item in nav (status: ❌ missing)
-- `design.md §7.1`: Level Path item in nav (status: ❌ missing)
-- `design.md §7.1`: Home item (blob shaped) in nav (status: ❌ missing)
-- `design.md §7.1`: Race item in nav (status: ❌ missing)
-- `design.md §7.1`: Account item (avatar, tapping opens `/sign-in`) in nav (status: ❌ missing)
-- `design.md §7.1`: Nav minimized to pause/menu button during active timed gameplay (status: ❌ missing)
-- `design.md §7.1`: Nav hidden on Splash and `/sign-in` (status: ❌ missing)
-- `design.md §7.1`: Nav relocates to left edge on tablet/landscape (status: ❌ missing)
-- `design.md §7.2`: Signature footer (Caveat, rotated, --ink 60%) at content end (status: ❌ missing)
-- `design.md §7.2`: Footer hidden during gameplay (status: ❌ missing)
+- `design.md §7.1`: Floating nav pill in shared layout (status: ✅ correct - `components/nav/FloatingNav.tsx`)
+- `design.md §7.1`: Daily item in nav (status: ✅ correct)
+- `design.md §7.1`: Level Path item in nav (status: ✅ correct)
+- `design.md §7.1`: Home item (blob shaped) in nav (status: ✅ correct)
+- `design.md §7.1`: Race item in nav (status: ✅ correct)
+- `design.md §7.1`: Account item (avatar, tapping opens `/sign-in`) in nav (status: ✅ correct)
+- `design.md §7.1`: Nav minimized to pause/menu button during active timed gameplay (status: ✅ correct)
+- `design.md §7.1`: Nav hidden on Splash and `/sign-in` (status: ✅ correct)
+- `design.md §7.1`: Nav relocates to left edge on tablet/landscape (status: ✅ correct)
+- `design.md §7.2`: Signature footer (Caveat, rotated, --ink 60%) at content end (status: ✅ correct - `components/footer/SignatureFooter.tsx`)
+- `design.md §7.2`: Footer hidden during gameplay (status: ✅ correct)
 
 ### §8. Sitemap
-- `design.md §8`: Implement explicit routes, no dead-end links (status: ❌ missing)
-- `design.md §8`: Locked level nodes are non-interactive elements, not links (status: ⚠️ partial)
-- `design.md §8`: Visible way to choose to sign in (Account avatar in nav) (status: ❌ missing)
+- `design.md §8`: Implement explicit routes, no dead-end links (status: ✅ correct)
+- `design.md §8`: Locked level nodes are non-interactive elements, not links (status: ✅ correct)
+- `design.md §8`: Visible way to choose to sign in (Account avatar in nav) (status: ✅ correct)
 
 ### §9. Screens
-- `design.md §9.1 Splash`: Splash screen (status: ❌ missing - no path for this yet, likely `app/page.tsx` state or separate `app/splash/page.tsx`)
 - `design.md §9.2 Home`: Exists (`app/page.tsx`) but does not match spec (status: ⚠️ partial)
   - Header Account avatar (status: ❌ missing)
   - Daily Challenge card (status: ❌ missing)
@@ -273,8 +270,8 @@
 - `plan.md §7`: Race mode per-player difficulty (status: ⚠️ partial)
 
 ### §8. Word lists
-- `plan.md §8`: 150-300 words per theme minimum (status: ❌ missing - `lib/words/*.json` are small)
-- `plan.md §8`: Standard mode anti-repeat logic (status: ❌ missing)
+- `plan.md §8`: 150-300 words per theme minimum (status: ✅ correct - `lib/words/*.json`)
+- `plan.md §8`: Standard mode anti-repeat logic (status: ✅ correct - `app/play/standard/[...slug]/page.tsx`)
 
 ### §9. Realtime multiplayer
 - `plan.md §9`: Ephemeral `chat_message` over Realtime (status: ⚠️ partial)

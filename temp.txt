@@ -1,0 +1,141 @@
+ ### Phase 1: Puzzle-generation seeding           
+                                                   
+  Objective: Guarantee puzzles are deterministic   
+  where they should be, and random where they      
+  shouldn't.                                       
+                                                   
+  • Standard Mode: Update the entry point (e.g.,   
+  app/play/standard/[...slug]/page.tsx ) to        
+  generate and pass a fresh random client-side seed
+  on every "New Puzzle" load.                      
+  • Level Path: Update  app/level-                 
+  path/[levelId]/page.tsx  to deterministically    
+  pass  levelId  (or a hash of it) as the seed.    
+  • Daily & Race Modes: Verify that                
+  lib/daily/logic.ts  correctly yields a single    
+  date-string per day, and that                    
+  app/play/race/[roomCode]/page.tsx  generates one 
+  room seed and broadcasts it to both clients.     
+                                                   
+  ### Phase 2: Word pools                          
+                                                   
+  Objective: Expand the game's vocabulary and      
+  prevent repetition in casual play.               
+                                                   
+  • Expansion: Populate  lib/words/*.json  (Garden,
+  Rainy Day, Cozy Cottage, Night Sky, Date Night,  
+  Standard) with 150–300 words each. (I will write 
+  a temporary scratch script to fetch these using  
+  the Datamuse API, then save them statically).    
+  • Anti-repeat Logic: Implement session-storage   
+  tracking in the puzzle generator wrapper for     
+  Standard mode to remember the last 3-5 word-sets 
+  played, excluding them from the next random draw.
+                                                   
+  ### Phase 3: Global chrome                       
+                                                   
+  Objective: Implement the persistent navigation   
+  and signature footer.                            
+                                                   
+  • Floating Nav: Create                           
+  components/nav/FloatingNav.tsx . It will contain 
+  the 5 required items (Daily, Level Path, Blob-   
+  shaped Home, Race, Account). It will read current
+  route state to handle its visibility rules (full,
+  minimized during gameplay, hidden on splash/sign-
+  in) and support the left-edge tablet layout.     
+  • Signature Footer: Create                       
+  components/footer/SignatureFooter.tsx  using the 
+  Caveat font, rotated -2°, hidden during active   
+  gameplay.                                        
+  • Layout Integration: Add both components into   
+  app/layout.tsx  so they persist seamlessly across
+  page transitions.                                
+                                                   
+  ### Phase 4: Routing                             
+                                                   
+  Objective: Reconcile the sitemap and remove all  
+  dead/placeholder links.                          
+                                                   
+  • Sitemap Enforcement: Go through  app/page.tsx  
+  and all other screens to guarantee every link    
+  points to a real Next.js route (no  href="#" ).  
+  • Level Map Nodes: Ensure locked level nodes in  
+  app/level-path/page.tsx  remain purely visual    
+  div s with  aria-disabled , rather than anchor   
+  tags.                                            
+  • Sign-in Access: Ensure  /sign-in  is accessible
+  solely via the Account avatar in the new Floating
+  Nav.                                             
+                                                   
+  ### Phase 5: Visual language pass                
+                                                   
+  Objective: Rebuild the core UI components to     
+  match  design.md §4 .                            
+                                                   
+  • Global Styles: Add the 4% paper-grain noise    
+  overlay to  globals.css  or  app/layout.tsx .    
+  • Shape & Texture Rules: Create or update base   
+  components (Buttons, Cards, Sheets) in           
+  components/ui/  to use uneven 4-corner  border-  
+  radius  and solid sticker-shadows ( box-shadow:  
+  4px 5px 0 0 var(--ink) ).                        
+  • Motion Integration: Update                     
+  components/motion/springs.ts  with the single    
+  shared Framer Motion spring config. Wire up the  
+  sticker-shadow press animation (shadow offsets to
+  0, button translates down) on all tappable       
+  elements.                                        
+  • Iconography: Replace any generic/stock icons   
+  and emoji with hand-drawn, 2px-stroke SVG doodles.
+                                                   
+  ### Phase 6: Screen-by-screen rebuild            
+                                                   
+  Objective: Reconcile every route against         
+  design.md §9 .                                   
+                                                   
+  • §9.1 Splash & §9.2 Home: Build the cold-start  
+  book-open animation and rebuild the Home         
+  dashboard (Daily card, Path teaser, stats row).  
+  • §9.3 Sign-in: Implement doodle illustration and
+  fix button styling.                              
+  • §9.4 & 9.5 Level Map & Info: Build the winding 
+  vertical path, chapter banners, hopping player   
+  marker, and the bottom sheet for level info.     
+  • §9.6 Gameplay: Update the shared GameClient    
+  with minimized nav spacing, pinned garland, and  
+  hand-drawn selection/win circles.                
+  • §9.7 Standard Setup: Build the theme carousel  
+  and difficulty picker.                           
+  • §9.8, 9.9, 9.10, 9.11 Race Mode: Rebuild the   
+  Lobby (segmented control, waiting butterflies),  
+  Ready-Up (avatars, countdown), Gameplay (progress
+  strip, side-by-side garlands, SVG chat tray), and
+  Results (winner banner, confetti).               
+  • §9.12 Settings: Build the expanding sections   
+  (Appearance, Sound Mixer, Account, About).       
+  • §9.13 Profile: Build the Butterfly Collection  
+  sticker grid and stats.                          
+  • §9.14 Daily Challenge: Update the header to    
+  include the mini calendar strip and "come-back-  
+  tomorrow" state.                                 
+                                                   
+  ### Phase 7: Data & progression systems          
+                                                   
+  Objective: Wire up the remaining backend         
+  functionality.                                   
+                                                   
+  • Auth & Merge: Integrate  lib/auth/merge.ts     
+  directly into the successful Google sign-in flow 
+  inside  app/sign-in/page.tsx  so guest progress  
+  is correctly claimed.                            
+  • Butterfly Collection: Ensure earning a         
+  butterfly during Level/Daily gameplay writes to  
+  the  butterfly_collection  table (or local       
+  storage if guest).                               
+  • Audio Engine: Implement the Web Audio API mixer
+  in  components/sound/AmbientAudioProvider.tsx    
+  with 4 tracks (Lofi, Rain, Wind, Birds) and      
+  localStorage  volume persistence. (I will        
+  download CC0 assets and log them in              
+  ATTRIBUTIONS.md ).      

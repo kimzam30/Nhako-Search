@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
+import { Button } from '@/components/ui/Button';
 
 export default function RaceLobbyPage() {
+  const [mode, setMode] = useState<'join' | 'create'>('join');
   const [roomCode, setRoomCode] = useState('');
   const router = useRouter();
 
@@ -15,54 +17,68 @@ export default function RaceLobbyPage() {
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (roomCode.trim()) {
+    if (roomCode.trim().length === 4) {
       router.push(`/play/race/${roomCode.trim().toUpperCase()}`);
     }
   };
 
   return (
-    <div className="flex flex-col flex-1 p-4 bg-background items-center justify-center">
-      <div className="bg-surface p-8 rounded-3xl border-4 border-ink shadow-sm max-w-sm w-full flex flex-col gap-8 text-center">
-        <h1 className="text-3xl font-display text-ink">Race a Friend</h1>
-        
-        <motion.button 
-          whileTap={{ scale: 0.95 }}
-          transition={softBounce}
-          onClick={handleCreate}
-          className="w-full bg-accent text-ink font-body font-bold py-4 px-4 rounded-xl border-2 border-ink shadow-[0_4px_0_var(--ink)] active:translate-y-1 active:shadow-none"
+    <div className="flex flex-col flex-1 p-6 bg-transparent items-center justify-center w-full max-w-sm mx-auto h-screen relative">
+      <h1 className="text-4xl font-display text-ink mb-8">Race a Friend</h1>
+      
+      {/* Segmented Control */}
+      <div className="flex w-full bg-surface border-2 border-ink rounded-[20px] p-1 shadow-[4px_5px_0_0_var(--ink)] mb-8">
+        <button
+          onClick={() => setMode('join')}
+          className={`flex-1 py-3 text-center rounded-xl font-bold font-body transition-colors ${mode === 'join' ? 'bg-accent text-ink shadow-sm' : 'text-ink/60 hover:bg-white/50'}`}
+        >
+          Join Room
+        </button>
+        <button
+          onClick={() => setMode('create')}
+          className={`flex-1 py-3 text-center rounded-xl font-bold font-body transition-colors ${mode === 'create' ? 'bg-accent text-ink shadow-sm' : 'text-ink/60 hover:bg-white/50'}`}
         >
           Create Room
-        </motion.button>
-        
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-ink/20"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-surface text-ink/60 font-body">or join existing</span>
-          </div>
-        </div>
-
-        <form onSubmit={handleJoin} className="flex flex-col gap-4">
-          <input 
-            type="text" 
-            placeholder="Room Code" 
-            value={roomCode}
-            onChange={e => setRoomCode(e.target.value.toUpperCase())}
-            className="w-full bg-background border-2 border-ink p-3 rounded-xl font-display text-center text-2xl tracking-widest text-ink outline-none focus:border-accent"
-            maxLength={4}
-          />
-          <motion.button 
-            whileTap={{ scale: 0.95 }}
-            transition={softBounce}
-            type="submit"
-            disabled={!roomCode}
-            className="w-full bg-surface text-ink font-body font-bold py-3 px-4 rounded-xl border-2 border-ink disabled:opacity-50 disabled:active:translate-y-0 disabled:shadow-none shadow-[0_4px_0_var(--ink)] active:translate-y-1 active:shadow-none"
-          >
-            Join Room
-          </motion.button>
-        </form>
+        </button>
       </div>
+
+      <motion.div 
+        key={mode}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={softBounce}
+        className="w-full flex flex-col items-center gap-6"
+      >
+        {mode === 'join' ? (
+          <form onSubmit={handleJoin} className="flex flex-col gap-6 w-full items-center">
+            <p className="text-ink/80 font-body font-medium text-center">Enter the 4-letter room code from your friend.</p>
+            <input 
+              type="text" 
+              placeholder="CODE" 
+              value={roomCode}
+              onChange={e => setRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4))}
+              className="w-full max-w-[200px] bg-surface border-4 border-ink p-4 rounded-2xl font-display text-center text-4xl tracking-[0.5em] text-ink outline-none focus:border-accent shadow-[4px_5px_0_0_var(--ink)] transition-colors"
+              maxLength={4}
+            />
+            <Button 
+              type="submit" 
+              disabled={roomCode.length !== 4} 
+              fullWidth 
+              variant="primary"
+              className={roomCode.length !== 4 ? 'opacity-50' : ''}
+            >
+              Join Race
+            </Button>
+          </form>
+        ) : (
+          <div className="flex flex-col items-center gap-6 w-full">
+            <p className="text-ink/80 font-body font-medium text-center">Create a new room and invite your friend.</p>
+            <Button onClick={handleCreate} fullWidth variant="primary" className="py-6 text-xl">
+              Start New Room
+            </Button>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

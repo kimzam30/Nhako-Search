@@ -1,21 +1,38 @@
 'use client';
 import { GameClient } from '@/components/game/GameClient';
 import { useEffect, useState } from 'react';
-import standardWords from '@/lib/words/standard.json';
 import { useParams } from 'next/navigation';
+import standardWords from '@/lib/words/standard.json';
+import gardenWords from '@/lib/words/garden.json';
+import rainyDayWords from '@/lib/words/rainy-day.json';
+import cozyCottageWords from '@/lib/words/cozy-cottage.json';
+import nightSkyWords from '@/lib/words/night-sky.json';
+import dateNightWords from '@/lib/words/date-night.json';
+
+const THEME_MAP: Record<string, any> = {
+  'standard': standardWords,
+  'garden': gardenWords,
+  'rainy-day': rainyDayWords,
+  'cozy-cottage': cozyCottageWords,
+  'night-sky': nightSkyWords,
+  'date-night': dateNightWords
+};
 
 export default function StandardPlayPage() {
   const params = useParams();
-  const diff = (params.slug?.[0] as 'easy' | 'medium' | 'hard') || 'easy';
+  const theme = (params.slug?.[0] as string) || 'standard';
+  const diff = (params.slug?.[1] as 'easy' | 'medium' | 'hard') || 'easy';
+  
   const [seed, setSeed] = useState<string>('');
   const [words, setWords] = useState<string[]>([]);
 
   const generateNew = () => {
     const wordCount = diff === 'easy' ? 6 : diff === 'medium' ? 8 : 10;
-    const pool = (standardWords as any)[diff] || standardWords.easy;
+    const themeData = THEME_MAP[theme] || THEME_MAP.standard;
+    const pool = themeData[diff] || themeData.easy;
     
     // Read recent from session storage
-    const recentJson = sessionStorage.getItem('nhako_recent_words') || '[]';
+    const recentJson = sessionStorage.getItem(`nhako_recent_${theme}_${diff}`) || '[]';
     let recentWords: string[] = [];
     try { recentWords = JSON.parse(recentJson); } catch (e) {}
 
@@ -28,8 +45,8 @@ export default function StandardPlayPage() {
     const selected = shuffled.slice(0, wordCount);
 
     // Save back to session storage
-    const newRecent = [...recentWords, ...selected].slice(-30); // keep last 30 words (approx 3-5 sets)
-    sessionStorage.setItem('nhako_recent_words', JSON.stringify(newRecent));
+    const newRecent = [...recentWords, ...selected].slice(-30);
+    sessionStorage.setItem(`nhako_recent_${theme}_${diff}`, JSON.stringify(newRecent));
 
     setSeed(Math.random().toString(36).substring(2));
     setWords(selected);
@@ -37,14 +54,14 @@ export default function StandardPlayPage() {
 
   useEffect(() => {
     generateNew();
-  }, [diff]);
+  }, [theme, diff]);
 
   if (!seed || words.length === 0) return null;
 
   return (
-    <div className="flex flex-col flex-1 p-4 bg-background items-center justify-center">
-      <div className="w-full flex justify-between items-center mb-6 max-w-lg">
-        <h1 className="text-2xl font-display text-ink capitalize">Standard Mode - {diff}</h1>
+    <div className="flex flex-col flex-1 p-4 bg-background items-center justify-center w-full mt-12">
+      <div className="w-full flex justify-center items-center mb-6 max-w-lg absolute top-6">
+        <h1 className="text-xl font-display text-ink/60 bg-surface px-4 py-1 rounded-full border-2 border-ink shadow-sm capitalize">{theme.replace('-', ' ')} - {diff}</h1>
       </div>
       <GameClient words={words} difficulty={diff} seedStr={seed} onNext={generateNew} />
     </div>

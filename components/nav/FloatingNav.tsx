@@ -1,0 +1,110 @@
+'use client';
+import { usePathname, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { softBounce } from '@/components/motion/springs';
+import Link from 'next/link';
+import { FlameSvg, MapSvg, HomeSvg, RaceSvg, UserSvg, PauseSvg } from '@/components/ui/Icons';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/multiplayer/supabase';
+
+export function FloatingNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [sessionUser, setSessionUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setSessionUser(data?.user || null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+      setSessionUser(session?.user || null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  if (!pathname) return null;
+
+  const isHidden = pathname === '/sign-in';
+  
+  // Rule for active gameplay: Standard and Level play matches, Race play matches (but not lobby/ready/results)
+  // Standard setup isn't active play, so standard setup should show full nav. Wait, standard has [...slug].
+  // Let's assume standard gameplay is always active timed for simplicity, or we check if there's an active timer.
+  // design.md §7.1: "Minimized to a single small pause/menu button (top-left) during active, timed Level gameplay and Race gameplay."
+  // For now, let's look at paths:
+  const isLevelGameplay = pathname.startsWith('/level-path/') && pathname !== '/level-path';
+  const isRaceGameplay = pathname.match(/^\/play\/race\/[^\/]+$/) && !pathname.endsWith('/lobby') && !pathname.endsWith('/ready') && !pathname.endsWith('/results');
+  const isDailyGameplay = pathname === '/daily'; // Wait, daily could be "already played" state. We'll refine this when we build the daily screen, but for now we'll check it roughly. Or we can have a context for "is active gameplay".
+  // Let's use a simpler check: if it's race gameplay or level gameplay.
+  const isStandardGameplay = pathname.startsWith('/play/standard/');
+
+  // For this step, we will use a global event or context later if needed, but path based works for Race/Level.
+  const isMinimized = isLevelGameplay || isRaceGameplay || isStandardGameplay;
+
+  if (isHidden) return null;
+
+  if (isMinimized) {
+    return (
+      <div className="fixed top-4 left-4 z-50">
+        <motion.button
+          whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
+          transition={softBounce}
+          onClick={() => {
+            if (window.confirm("Leave this puzzle? Your current attempt won't be saved.")) {
+              router.push('/');
+            }
+          }}
+          className="w-12 h-12 bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-tl-[16px] rounded-tr-[8px] rounded-br-[14px] rounded-bl-[10px] flex items-center justify-center text-ink"
+        >
+          <PauseSvg className="w-6 h-6" />
+        </motion.button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-6 md:-translate-x-0">
+      <div className="flex md:flex-col items-center justify-center gap-2 bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]">
+        <NavLink href="/daily" icon={<FlameSvg className="w-6 h-6" />} isActive={pathname.startsWith('/daily')} />
+        <NavLink href="/level-path" icon={<MapSvg className="w-6 h-6" />} isActive={pathname.startsWith('/level-path')} />
+        
+        <Link href="/" className="relative group">
+          <motion.div 
+            whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
+            transition={softBounce}
+            className={`w-14 h-14 -my-4 md:-mx-4 md:my-0 flex items-center justify-center bg-accent border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] text-ink z-10 relative
+            `}
+            style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
+          >
+            <HomeSvg className="w-7 h-7" />
+          </motion.div>
+        </Link>
+        
+        <NavLink href="/play/race/lobby" icon={<RaceSvg className="w-6 h-6" />} isActive={pathname.startsWith('/play/race')} />
+        
+        <Link href={sessionUser ? '/profile' : '/sign-in'} className="relative group">
+          <motion.div
+            whileTap={{ scale: 0.9 }}
+            className={`w-10 h-10 rounded-full border-2 border-ink flex items-center justify-center overflow-hidden bg-surface ${pathname.startsWith('/profile') || pathname === '/sign-in' ? 'bg-accent-soft' : ''}`}
+          >
+            {sessionUser?.user_metadata?.avatar_url ? (
+              <img src={sessionUser.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <UserSvg className="w-5 h-5 text-ink/70" />
+            )}
+          </motion.div>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function NavLink({ href, icon, isActive }: { href: string, icon: React.ReactNode, isActive: boolean }) {
+  return (
+    <Link href={href}>
+      <motion.div 
+        whileTap={{ scale: 0.9 }}
+        className={`w-12 h-12 flex items-center justify-center rounded-2xl ${isActive ? 'bg-accent-soft text-ink' : 'text-ink/60 hover:text-ink hover:bg-surface'}`}
+      >
+        {icon}
+      </motion.div>
+    </Link>
+  );
+}

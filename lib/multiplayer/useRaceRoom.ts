@@ -40,16 +40,16 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
           else isA = true; // they are A, we are B
           
           const key = isA ? 'playerA' : 'playerB';
-          const newState = { ...prev, [key]: payload.state };
-          
-          // Start condition
-          if (newState.status === 'lobby' && newState.playerA?.ready && newState.playerB?.ready) {
-             newState.status = 'playing';
-             newState.startTime = Date.now() + 3000;
-             newState.seedStr = roomCode + newState.startTime;
-          }
-          return newState;
+          return { ...prev, [key]: payload.state };
         });
+      })
+      .on('broadcast', { event: 'start_race' }, (payload) => {
+        setRaceState(prev => ({
+          ...prev,
+          status: 'playing',
+          startTime: payload.startTime,
+          seedStr: payload.seedStr
+        }));
       })
       .on('broadcast', { event: 'chat' }, (payload) => {
         setChatMessages(prev => [...prev, { id: Math.random().toString(), text: payload.text, sender: payload.sender, time: Date.now() }]);
@@ -93,9 +93,18 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
       
       const newState = { ...prev, [key]: myState };
       if (newState.status === 'lobby' && newState.playerA?.ready && newState.playerB?.ready) {
-         newState.status = 'playing';
-         newState.startTime = Date.now() + 3000;
-         newState.seedStr = roomCode + newState.startTime;
+         if (isA) {
+           const seedStr = Math.random().toString(36).substring(2);
+           const startTime = Date.now() + 3000;
+           channelRef.current?.send({
+             type: 'broadcast',
+             event: 'start_race',
+             payload: { startTime, seedStr }
+           });
+           newState.status = 'playing';
+           newState.startTime = startTime;
+           newState.seedStr = seedStr;
+         }
       }
       return newState;
     });
