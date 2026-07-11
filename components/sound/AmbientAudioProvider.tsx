@@ -1,5 +1,4 @@
 'use client';
-
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 type AudioVolumes = {
@@ -32,78 +31,132 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
   const [volumes, setVolumes] = useState<AudioVolumes>(defaultVolumes);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null);
+  const gainsRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'>, GainNode | null>>({
+    lofi: null,
+    rain: null,
+    wind: null,
+    birds: null,
+  });
   
-  const tracksRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'>, HTMLAudioElement | null>>({
+  // We keep track of the source nodes in case we need to stop them on unmount
+  const sourcesRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'>, AudioBufferSourceNode | null>>({
     lofi: null,
     rain: null,
     wind: null,
     birds: null,
   });
 
+  // Load saved volumes on mount
   useEffect(() => {
-    // Load from local storage
     const saved = localStorage.getItem('nhako_audio_volumes');
     if (saved) {
       try {
         setVolumes(JSON.parse(saved));
       } catch (e) {}
     }
-    
-    // Initialize audio elements
-    const createTrack = (src: string) => {
-      const audio = new Audio(src);
-      audio.loop = true;
-      return audio;
-    };
-
-    tracksRef.current.lofi = createTrack('/audio/lofi.mp3');
-    tracksRef.current.rain = createTrack('/audio/rain.mp3');
-    tracksRef.current.wind = createTrack('/audio/wind.mp3');
-    tracksRef.current.birds = createTrack('/audio/birds.mp3');
-    
     setIsReady(true);
     
     return () => {
-      Object.values(tracksRef.current).forEach(audio => {
-        if (audio) {
-          audio.pause();
-          audio.src = '';
-        }
-      });
+      // Cleanup Web Audio API resources on unmount
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(console.error);
+      }
     };
   }, []);
 
-  useEffect(() => {
-    if (!isReady) return;
+  const initAudio = async () => {
+    if (audioCtxRef.current) return;
     
-    // Update volumes on the actual audio elements
-    const masterMult = volumes.master / 100;
+    // Fallback for older Webkit
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
     
-    const applyVolume = (key: keyof typeof tracksRef.current) => {
-      const audio = tracksRef.current[key];
-      if (audio) {
-        audio.volume = (volumes[key] / 100) * masterMult;
-        if (isPlaying && volumes[key] > 0 && audio.paused) {
-          audio.play().catch(e => console.error("Audio play failed:", e));
-        } else if ((!isPlaying || volumes[key] === 0) && !audio.paused) {
-          audio.pause();
-        }
+    const ctx = new AudioContextClass();
+    audioCtxRef.current = ctx;
+
+    const masterGain = ctx.createGain();
+    masterGain.connect(ctx.destination);
+    masterGain.gain.value = volumes.master / 100;
+    masterGainRef.current = masterGain;
+
+    const loadTrack = async (trackName: Exclude<keyof AudioVolumes, 'master'>, url: string) => {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Failed to fetch ${url}`);
+        const arrayBuffer = await resp.arrayBuffer();
+        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = volumes[trackName] / 100;
+        gainNode.connect(masterGain);
+        gainsRef.current[trackName] = gainNode;
+
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.loop = true;
+        source.connect(gainNode);
+        source.start(0);
+        sourcesRef.current[trackName] = source;
+      } catch (err) {
+        console.error(`Failed to load ambient track ${trackName}:`, err);
       }
     };
 
-    applyVolume('lofi');
-    applyVolume('rain');
-    applyVolume('wind');
-    applyVolume('birds');
+    // Load all tracks concurrently
+    await Promise.all([
+      loadTrack('lofi', '/audio/lofi.mp3'),
+      loadTrack('rain', '/audio/rain.mp3'),
+      loadTrack('wind', '/audio/wind.mp3'),
+      loadTrack('birds', '/audio/birds.mp3'),
+    ]);
+  };
+
+  // Update volumes when state changes
+  useEffect(() => {
+    if (!audioCtxRef.current || !masterGainRef.current) return;
+    
+    const now = audioCtxRef.current.currentTime;
+    
+    // Update master volume with a slight ramp to prevent clicks
+    masterGainRef.current.gain.setTargetAtTime(volumes.master / 100, now, 0.05);
+
+    // Update individual track volumes
+    (['lofi', 'rain', 'wind', 'birds'] as const).forEach(track => {
+      const gainNode = gainsRef.current[track];
+      if (gainNode) {
+        gainNode.gain.setTargetAtTime(volumes[track] / 100, now, 0.05);
+      }
+    });
     
     localStorage.setItem('nhako_audio_volumes', JSON.stringify(volumes));
-  }, [volumes, isPlaying, isReady]);
+  }, [volumes]);
+
+  // Handle play/pause state
+  useEffect(() => {
+    if (!audioCtxRef.current) return;
+    
+    if (isPlaying) {
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(console.error);
+      }
+    } else {
+      if (audioCtxRef.current.state === 'running') {
+        audioCtxRef.current.suspend().catch(console.error);
+      }
+    }
+  }, [isPlaying]);
 
   const setVolume = (track: keyof AudioVolumes, value: number) => {
     setVolumes(prev => ({ ...prev, [track]: value }));
   };
 
-  const startAmbience = () => {
+  const startAmbience = async () => {
+    if (!audioCtxRef.current) {
+      await initAudio();
+    }
     setIsPlaying(true);
   };
 

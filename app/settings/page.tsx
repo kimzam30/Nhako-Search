@@ -185,7 +185,7 @@ export default function SettingsPage() {
         {/* About */}
         <Section title="About" defaultOpen={false}>
           <div className="flex flex-col gap-4 text-ink/70 font-body text-sm">
-            <p>Made by kimzam 🌿 for date nights and lazy afternoons.</p>
+            <p>Made by kimzam  for date nights and lazy afternoons.</p>
             <p className="font-bold">Audio Attributions:</p>
             <ul className="list-disc pl-4 space-y-1">
               <li>Lofi Beats - CC0 Public Domain</li>

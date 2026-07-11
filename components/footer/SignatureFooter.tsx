@@ -25,7 +25,7 @@ export function SignatureFooter() {
         className="font-caveat text-xl text-ink"
         style={{ transform: 'rotate(-2deg)' }}
       >
-        a little garden, made by kimzam 🌿
+        a little garden, made by kimzam
       </span>
     </div>
   );

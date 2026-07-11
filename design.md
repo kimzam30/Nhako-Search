@@ -171,7 +171,7 @@ being scannable at a glance.
 
 ### 7.2 The signature footer
 A small handwritten (Caveat) line at the natural end of a page's content — *"a little garden,
-made by kimzam 🌿"* — `--ink` at ~60% opacity, centered, rotated −2° (Rule 6). This is a true
+made by kimzam "* — `--ink` at ~60% opacity, centered, rotated −2° (Rule 6). This is a true
 footer (part of scrollable content), not sticky chrome like the nav — on short-content screens
 with no natural scroll end (Sign-in, Race Ready-Up) it sits statically pinned above the safe
 area. Always leave bottom padding equal to the floating nav's height + margin so the footer never
