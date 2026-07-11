@@ -54,7 +54,7 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
         style={{ gridTemplateColumns: `repeat(${grid.width}, minmax(0, 1fr))` }}
       >
         {/* SVG Overlay for Loops */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1, overflow: 'visible' }}>
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1, overflow: 'visible' }} viewBox="0 0 100 100" preserveAspectRatio="none">
           {/* We use standard turbulence filter for sketchy look */}
           <filter id="sketch">
             <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
@@ -74,10 +74,10 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                x1={`${cx1}%`} y1={`${cy1}%`}
-                x2={`${cx2}%`} y2={`${cy2}%`}
+                x1={cx1} y1={cy1}
+                x2={cx2} y2={cy2}
                 stroke={loop.isFound ? 'var(--found)' : 'var(--accent)'}
-                strokeWidth={`${80 / Math.max(grid.width, grid.height)}%`}
+                strokeWidth={80 / Math.max(grid.width, grid.height)}
                 strokeLinecap="round"
                 className="opacity-40"
                 filter="url(#sketch)"
@@ -97,10 +97,10 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
                  initial={{ pathLength: 0, opacity: 0 }}
                  animate={{ pathLength: 1, opacity: 1 }}
                  transition={{ duration: 0.3 }}
-                 x1={`${cx1}%`} y1={`${cy1}%`}
-                 x2={`${cx2}%`} y2={`${cy2}%`}
+                 x1={cx1} y1={cy1}
+                 x2={cx2} y2={cy2}
                  stroke="var(--ink)"
-                 strokeWidth={`${80 / Math.max(grid.width, grid.height) + 2}%`}
+                 strokeWidth={80 / Math.max(grid.width, grid.height) + 2}
                  strokeLinecap="round"
                  fill="none"
                  className="opacity-20"

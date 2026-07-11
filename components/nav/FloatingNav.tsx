@@ -3,14 +3,17 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import Link from 'next/link';
-import { FlameSvg, MapSvg, HomeSvg, RaceSvg, UserSvg, PauseSvg } from '@/components/ui/Icons';
+import { FlameSvg, MapSvg, HomeSvg, RaceSvg, UserSvg, PauseSvg, VolumeSvg } from '@/components/ui/Icons';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/multiplayer/supabase';
+import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 
 export function FloatingNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [sessionUser, setSessionUser] = useState<any>(null);
+  const [showMixer, setShowMixer] = useState(false);
+  const { volumes, setVolume, isPlaying, startAmbience, stopAmbience } = useAmbientAudio();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSessionUser(data?.user || null));
@@ -61,7 +64,51 @@ export function FloatingNav() {
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-6 md:-translate-x-0">
-      <div className="flex md:flex-col items-center justify-center gap-2 bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]">
+      
+      <AnimatePresence>
+        {showMixer && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-full md:ml-4 md:-translate-x-0 w-64 bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-3xl p-4 flex flex-col gap-4 origin-bottom md:origin-left"
+          >
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-display font-bold text-ink">Mixer</span>
+              <button 
+                onClick={() => isPlaying ? stopAmbience() : startAmbience()}
+                className={`px-3 py-1 text-xs font-bold rounded-full border-2 border-ink shadow-[1px_2px_0_0_var(--ink)] ${isPlaying ? 'bg-accent' : 'bg-background'}`}
+              >
+                {isPlaying ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            
+            {/* Mini Tracks */}
+            {[
+              { id: 'master', label: 'Master', color: 'bg-accent' },
+              { id: 'lofi', label: 'Lofi', color: 'bg-ink/10' },
+              { id: 'rain', label: 'Rain', color: 'bg-ink/10' },
+              { id: 'wind', label: 'Wind', color: 'bg-ink/10' },
+              { id: 'birds', label: 'Birds', color: 'bg-ink/10' }
+            ].map(track => (
+              <div key={track.id} className="flex flex-col gap-1 w-full">
+                <div className="flex justify-between font-body text-ink/80 text-xs font-bold">
+                  <span>{track.label}</span>
+                  <span>{(volumes as any)[track.id]}%</span>
+                </div>
+                <input 
+                  type="range" min="0" max="100" 
+                  value={(volumes as any)[track.id]} 
+                  onChange={(e) => setVolume(track.id as any, parseInt(e.target.value))}
+                  className={`w-full h-2 ${track.color} rounded-full appearance-none cursor-pointer`}
+                />
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex md:flex-col items-center justify-center gap-2 bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)] relative">
         <NavLink href="/daily" icon={<FlameSvg className="w-6 h-6" />} isActive={pathname.startsWith('/daily')} />
         <NavLink href="/level-path" icon={<MapSvg className="w-6 h-6" />} isActive={pathname.startsWith('/level-path')} />
         
@@ -91,6 +138,15 @@ export function FloatingNav() {
             )}
           </motion.div>
         </Link>
+        
+        <button onClick={() => setShowMixer(!showMixer)}>
+          <motion.div 
+            whileTap={{ scale: 0.9 }}
+            className={`w-10 h-10 flex items-center justify-center rounded-2xl ${showMixer ? 'bg-accent-soft text-ink' : 'text-ink/60 hover:text-ink hover:bg-surface'}`}
+          >
+            <VolumeSvg className="w-5 h-5" />
+          </motion.div>
+        </button>
       </div>
     </div>
   );

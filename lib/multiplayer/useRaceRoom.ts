@@ -32,23 +32,24 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
   const [chatMessages, setChatMessages] = useState<{ id: string, text: string, sender: string, time: number }[]>([]);
   const channelRef = useRef<any>(null);
 
-  // Helper to cleanly execute host-elected start events
-  const checkAutoStart = (newState: RaceState, channel: any, currentUserId: string) => {
-    if (newState.status === 'lobby' && newState.playerA?.ready && newState.playerB?.ready) {
+  useEffect(() => {
+    if (raceState.status === 'lobby' && raceState.playerA?.ready && raceState.playerB?.ready) {
       // Host Election: deterministic check to ensure exactly one player broadcasts the start payload
-      const isHost = currentUserId < (newState.playerB?.id || '');
+      const isHost = userId === [raceState.playerA.id, raceState.playerB.id].sort()[0];
       if (isHost) {
         const seedStr = Math.random().toString(36).substring(2);
         const startTime = Date.now() + 3000;
-        channel?.send({ type: 'broadcast', event: 'start_race', payload: { startTime, seedStr } });
+        channelRef.current?.send({ type: 'broadcast', event: 'start_race', payload: { startTime, seedStr } });
         
-        newState.status = 'playing';
-        newState.startTime = startTime;
-        newState.seedStr = seedStr;
+        setRaceState(prev => ({
+          ...prev,
+          status: 'playing',
+          startTime: startTime,
+          seedStr: seedStr
+        }));
       }
     }
-    return newState;
-  };
+  }, [raceState.status, raceState.playerA?.ready, raceState.playerB?.ready, raceState.playerA?.id, raceState.playerB?.id, userId]);
 
   useEffect(() => {
     const channel = supabase.channel(`room:${roomCode}`, {
@@ -73,8 +74,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
 
         setRaceState(prev => {
           if (!otherPlayerState) return prev;
-          const newState = { ...prev, playerB: otherPlayerState };
-          return checkAutoStart(newState, channel, userId);
+          return { ...prev, playerB: otherPlayerState };
         });
       })
       .on('broadcast', { event: 'state_update' }, (payload) => {
@@ -91,7 +91,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
           const key = isA ? 'playerA' : 'playerB';
           const newState = { ...prev, [key]: payload.state };
           
-          return checkAutoStart(newState, channel, userId);
+          return { ...prev, [key]: payload.state };
         });
       })
       .on('broadcast', { event: 'start_race' }, (payload) => {
@@ -138,8 +138,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
         channelRef.current?.track({ online_at: new Date().toISOString(), state: newMyState });
       }
       
-      const newState = { ...prev, [key]: newMyState };
-      return checkAutoStart(newState, channelRef.current, userId);
+      return { ...prev, [key]: newMyState };
     });
   };
 

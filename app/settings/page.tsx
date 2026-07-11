@@ -45,7 +45,18 @@ export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [isGuest, setIsGuest] = useState(false);
-  const [theme, setTheme] = useState('system');
+  const [theme, setThemeState] = useState('system');
+
+  useEffect(() => {
+    setThemeState(localStorage.getItem('nhako_theme') || 'system');
+  }, []);
+
+  const setTheme = (t: string) => {
+    setThemeState(t);
+    localStorage.setItem('nhako_theme', t);
+    const isDark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', isDark);
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {

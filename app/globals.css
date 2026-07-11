@@ -25,16 +25,14 @@
   --gold: #FFD166;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #241326;
-    --surface: #341B3B;
-    --ink: #FFE9F4;
-    --accent: #FF8FC0;
-    --accent-soft: #4A2A52;
-    --found: #6FE3A6;
-    --gold: #C77DFF;
-  }
+:root.dark {
+  --bg: #241326;
+  --surface: #341B3B;
+  --ink: #FFE9F4;
+  --accent: #FF8FC0;
+  --accent-soft: #4A2A52;
+  --found: #6FE3A6;
+  --gold: #C77DFF;
 }
 
 body {

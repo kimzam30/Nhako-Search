@@ -12,10 +12,44 @@ import { mergeGuestProgress } from '@/lib/auth/merge';
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState({ levels: 0, wins: 0, streak: 0 });
 
   useEffect(() => {
     mergeGuestProgress();
-    supabase.auth.getUser().then(({ data }) => setUser(data?.user || null));
+    
+    const fetchStats = async (currentUser: any) => {
+      if (currentUser) {
+        // Logged in
+        const { count: levels } = await supabase.from('level_progress').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+        const { count: wins } = await supabase.from('race_history').select('*', { count: 'exact', head: true }).eq('winner', currentUser.id);
+        
+        // Simple streak fetch: get the most recent daily log
+        const { data: log } = await supabase.from('daily_challenge_log')
+          .select('streak_count')
+          .eq('user_id', currentUser.id)
+          .order('challenge_date', { ascending: false })
+          .limit(1)
+          .single();
+          
+        setStats({
+          levels: levels || 0,
+          wins: wins || 0,
+          streak: log?.streak_count || 0
+        });
+      } else {
+        // Guest mode
+        setStats({
+          levels: parseInt(localStorage.getItem('nhako_guest_levels') || '0'),
+          wins: parseInt(localStorage.getItem('nhako_guest_wins') || '0'),
+          streak: parseInt(localStorage.getItem('nhako_guest_streak') || '0'),
+        });
+      }
+    };
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user || null);
+      fetchStats(data?.user || null);
+    });
     
     if (sessionStorage.getItem('splash_seen')) {
       setShowSplash(false);
@@ -166,15 +200,15 @@ export default function HomePage() {
         {/* Small stats row */}
         <motion.div variants={itemVariants} className="flex justify-between px-2 pt-4 border-t-2 border-ink/10">
           <div className="flex flex-col items-center text-ink">
-            <span className="text-xl font-display font-bold">142</span>
-            <span className="text-xs font-bold uppercase tracking-wider opacity-60">Words</span>
+            <span className="text-xl font-display font-bold">{stats.levels}</span>
+            <span className="text-xs font-bold uppercase tracking-wider opacity-60">Levels</span>
           </div>
           <div className="flex flex-col items-center text-ink">
-            <span className="text-xl font-display font-bold">4</span>
+            <span className="text-xl font-display font-bold">{stats.wins}</span>
             <span className="text-xs font-bold uppercase tracking-wider opacity-60">Wins</span>
           </div>
           <div className="flex flex-col items-center text-ink">
-            <span className="text-xl font-display font-bold">12</span>
+            <span className="text-xl font-display font-bold">{stats.streak}</span>
             <span className="text-xs font-bold uppercase tracking-wider opacity-60">Streak</span>
           </div>
         </motion.div>
