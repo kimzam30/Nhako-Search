@@ -10,7 +10,7 @@ a daily challenge, and a realtime "race" mode where you and your partner each ge
 sized to your own difficulty and see who clears it first. Cartoonish pink/butterfly look, light
 + dark mode, a customizable ambient sound mixer, quick-tap banter chat during races, installable
 to the home screen, and progress that follows you across your phone and tablet. Hosted at
-**nhako.com**. Zero cost, zero ambition to scale — every decision below is made for a two-player
+**search.nhako.com**. Zero cost, zero ambition to scale — every decision below is made for a two-player
 hobby project, not "what would a real startup do."
 
 ## 2. Scope
