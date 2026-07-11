@@ -3,7 +3,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import Link from 'next/link';
-import { FlameSvg, MapSvg, HomeSvg, RaceSvg, UserSvg, PauseSvg, VolumeSvg } from '@/components/ui/Icons';
+import { FlameSvg, MapSvg, HomeSvg, RaceSvg, UserSvg, PauseSvg, VolumeSvg, CloseSvg } from '@/components/ui/Icons';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/multiplayer/supabase';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
@@ -13,6 +13,7 @@ export function FloatingNav() {
   const router = useRouter();
   const [sessionUser, setSessionUser] = useState<any>(null);
   const [showMixer, setShowMixer] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const { volumes, setVolume, isPlaying, startAmbience, stopAmbience } = useAmbientAudio();
 
   useEffect(() => {
@@ -108,45 +109,64 @@ export function FloatingNav() {
         )}
       </AnimatePresence>
 
-      <div className="flex md:flex-col items-center justify-center gap-2 bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)] relative">
-        <NavLink href="/daily" icon={<FlameSvg className="w-6 h-6" />} isActive={pathname.startsWith('/daily')} />
-        <NavLink href="/level-path" icon={<MapSvg className="w-6 h-6" />} isActive={pathname.startsWith('/level-path')} />
+      <div className="flex items-center justify-center gap-2 relative">
         
-        <Link href="/" className="relative group">
-          <motion.div 
-            whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
-            transition={softBounce}
-            className={`w-14 h-14 -my-4 md:-mx-4 md:my-0 flex items-center justify-center bg-accent border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] text-ink z-10 relative
-            `}
-            style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
-          >
-            <HomeSvg className="w-7 h-7" />
-          </motion.div>
-        </Link>
-        
-        <NavLink href="/play/race/lobby" icon={<RaceSvg className="w-6 h-6" />} isActive={pathname.startsWith('/play/race')} />
-        
-        <Link href={sessionUser ? '/profile' : '/sign-in'} className="relative group">
-          <motion.div
-            whileTap={{ scale: 0.9 }}
-            className={`w-10 h-10 rounded-full border-2 border-ink flex items-center justify-center overflow-hidden bg-surface ${pathname.startsWith('/profile') || pathname === '/sign-in' ? 'bg-accent-soft' : ''}`}
-          >
-            {sessionUser?.user_metadata?.avatar_url ? (
-              <img src={sessionUser.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <UserSvg className="w-5 h-5 text-ink/70" />
-            )}
-          </motion.div>
-        </Link>
-        
-        <button onClick={() => setShowMixer(!showMixer)}>
-          <motion.div 
-            whileTap={{ scale: 0.9 }}
-            className={`w-10 h-10 flex items-center justify-center rounded-2xl ${showMixer ? 'bg-accent-soft text-ink' : 'text-ink/60 hover:text-ink hover:bg-surface'}`}
-          >
-            <VolumeSvg className="w-5 h-5" />
-          </motion.div>
-        </button>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div 
+              initial={{ opacity: 0, width: 0, scale: 0.8 }}
+              animate={{ opacity: 1, width: 'auto', scale: 1 }}
+              exit={{ opacity: 0, width: 0, scale: 0.8 }}
+              className="flex items-center gap-2 overflow-hidden bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]"
+            >
+              <Link href="/" className="relative group" onClick={() => setIsOpen(false)}>
+                <motion.div 
+                  whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
+                  transition={softBounce}
+                  className={`w-12 h-12 flex items-center justify-center bg-accent border-2 border-ink shadow-[2px_3px_0_0_var(--ink)] text-ink rounded-2xl`}
+                >
+                  <HomeSvg className="w-6 h-6" />
+                </motion.div>
+              </Link>
+              
+              <Link href={sessionUser ? '/profile' : '/sign-in'} className="relative group" onClick={() => setIsOpen(false)}>
+                <motion.div
+                  whileTap={{ scale: 0.9 }}
+                  className={`w-12 h-12 rounded-2xl border-2 border-ink flex items-center justify-center overflow-hidden bg-surface ${pathname.startsWith('/profile') || pathname === '/sign-in' ? 'bg-accent-soft' : ''}`}
+                >
+                  {sessionUser?.user_metadata?.avatar_url ? (
+                    <img src={sessionUser.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <UserSvg className="w-5 h-5 text-ink/70" />
+                  )}
+                </motion.div>
+              </Link>
+              
+              <button onClick={() => setShowMixer(!showMixer)}>
+                <motion.div 
+                  whileTap={{ scale: 0.9 }}
+                  className={`w-12 h-12 flex items-center justify-center rounded-2xl ${showMixer ? 'bg-accent-soft text-ink' : 'text-ink/60 hover:text-ink hover:bg-surface border-2 border-transparent hover:border-ink/20'}`}
+                >
+                  <VolumeSvg className="w-6 h-6" />
+                </motion.div>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.button 
+          whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
+          onClick={() => { setIsOpen(!isOpen); if (showMixer) setShowMixer(false); }}
+          className="w-14 h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-full text-ink z-20"
+        >
+          {isOpen ? <CloseSvg className="w-6 h-6" /> : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+              <line x1="4" y1="12" x2="20" y2="12"></line>
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="18" x2="20" y2="18"></line>
+            </svg>
+          )}
+        </motion.button>
       </div>
     </div>
   );

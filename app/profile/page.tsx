@@ -5,10 +5,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { ButterflySvg, CloseSvg, StarSvg } from '@/components/ui/Icons';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
   const [collection, setCollection] = useState<any[]>([]);
   const [selectedButterfly, setSelectedButterfly] = useState<any | null>(null);
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('nhako_guest_mode');
+    router.push('/sign-in');
+  };
 
   useEffect(() => {
     async function loadCollection() {
@@ -101,6 +110,12 @@ export default function ProfilePage() {
             }
           })}
         </div>
+      </div>
+
+      <div className="w-full mt-12 mb-8">
+        <Button onClick={handleSignOut} fullWidth variant="danger" className="bg-red-500/20 text-red-500 border-red-500 hover:bg-red-500/30">
+          Sign Out
+        </Button>
       </div>
 
       {/* Detail Modal */}

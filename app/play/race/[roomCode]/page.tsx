@@ -10,6 +10,7 @@ import { supabase } from '@/lib/multiplayer/supabase';
 import { ChatSvg, ButterflySvg } from '@/components/ui/Icons';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { ChatToast } from '@/components/multiplayer/ChatToast';
 
 const QUICK_BANTER = ["GG!", "😤", "So close!", "Nice find!", "🦋", "Hurry up!"];
 
@@ -42,7 +43,7 @@ export default function RaceRoomPage() {
 
 function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: string, activeUserName: string, roomCode: string }) {
   const router = useRouter();
-  const { raceState, updateMyState, chatMessages, sendChat } = useRaceRoom(roomCode, activeUserId, activeUserName);
+  const { raceState, updateMyState, chatMessages, sendChat, startRaceAsLeader } = useRaceRoom(roomCode, activeUserId, activeUserName);
   const [showChatTray, setShowChatTray] = useState(false);
   const [now, setNow] = useState(Date.now());
 
@@ -55,8 +56,6 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
   const them = raceState.playerA?.id === activeUserId ? raceState.playerB : raceState.playerA;
 
   const handleDifficulty = (diff: string) => updateMyState({ difficulty: diff });
-  const handleReady = () => updateMyState({ ready: !me?.ready });
-  
   const raceWords = ['GARDEN', 'BUTTERFLY', 'BREEZE', 'NATURE', 'SUNSET', 'CLOUDS', 'FLOWER', 'SPRING', 'BLOSSOM', 'MEADOW'].slice(0, me?.difficulty === 'easy' ? 6 : me?.difficulty === 'medium' ? 8 : 10);
 
   const isFinished = (me?.progress === me?.total && (me?.total ?? 0) > 0) || (them?.progress === them?.total && (them?.total ?? 0) > 0);
@@ -88,21 +87,28 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
               {['easy', 'medium', 'hard'].map(d => (
                 <button 
                   key={d} 
-                  onClick={() => handleDifficulty(d)}
-                  className={`py-2 rounded-xl border-2 capitalize font-body font-bold w-full transition-colors ${me?.difficulty === d ? 'bg-accent border-ink text-ink shadow-[0_2px_0_var(--ink)]' : 'bg-surface border-ink/30 text-ink/70'}`}
+                  onClick={() => me?.isLeader && handleDifficulty(d)}
+                  disabled={!me?.isLeader}
+                  className={`py-2 rounded-xl border-2 capitalize font-body font-bold w-full transition-colors ${me?.difficulty === d ? 'bg-accent border-ink text-ink shadow-[0_2px_0_var(--ink)]' : 'bg-surface border-ink/30 text-ink/70'} ${!me?.isLeader ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {d}
                 </button>
               ))}
             </div>
-            <Button 
-              variant={me?.ready ? "secondary" : "primary"} 
-              fullWidth 
-              onClick={handleReady}
-              className="mt-4"
-            >
-              {me?.ready ? 'Ready!' : 'Ready Up'}
-            </Button>
+            {me?.isLeader ? (
+              <Button 
+                variant="primary" 
+                fullWidth 
+                onClick={startRaceAsLeader}
+                className="mt-4"
+              >
+                Start Race
+              </Button>
+            ) : (
+              <div className="mt-4 py-3 font-bold font-body text-ink/70 border-2 border-ink/20 rounded-xl bg-surface">
+                Waiting for Leader...
+              </div>
+            )}
           </Card>
           
           <Card className="flex-1 flex flex-col gap-4 text-center items-center justify-center py-8 bg-surface/50 opacity-80">
@@ -110,8 +116,8 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
             {them ? (
               <>
                 <p className="font-body text-ink font-bold capitalize bg-surface border-2 border-ink px-4 py-2 rounded-xl w-full">Diff: {them.difficulty}</p>
-                <div className={`w-full py-4 rounded-xl border-2 font-display text-xl ${them.ready ? 'bg-[#7FCB9C] border-ink text-ink shadow-[0_2px_0_var(--ink)]' : 'bg-surface border-ink/30 text-ink/50'}`}>
-                  {them.ready ? 'READY!' : 'Selecting...'}
+                <div className={`w-full py-4 rounded-xl border-2 font-display text-xl bg-surface border-ink/30 text-ink/50`}>
+                  {them.isLeader ? 'LEADER' : 'GUEST'}
                 </div>
               </>
             ) : (
@@ -211,21 +217,7 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
          </div>
        </div>
 
-       <div className="absolute inset-0 pointer-events-none z-20 flex flex-col justify-end p-4 mb-24 gap-2">
-         <AnimatePresence>
-           {chatMessages.slice(-4).map(msg => (
-             <motion.div
-               key={msg.id}
-               initial={{ opacity: 0, x: msg.sender === activeUserId ? 20 : -20, scale: 0.8 }}
-               animate={{ opacity: 1, x: 0, scale: 1 }}
-               exit={{ opacity: 0 }}
-               className={`w-fit max-w-[70%] px-4 py-2 rounded-[20px] border-2 border-ink font-body text-ink font-bold shadow-[2px_3px_0_0_var(--ink)] ${msg.sender === activeUserId ? 'self-end bg-accent rounded-br-none' : 'self-start bg-surface rounded-bl-none'}`}
-             >
-               {msg.text}
-             </motion.div>
-           ))}
-         </AnimatePresence>
-       </div>
+       <ChatToast messages={chatMessages} activeUserId={activeUserId} partnerName={them?.name || 'Partner'} />
 
        <div className="pt-32 pb-24 overflow-y-auto w-full h-full">
          <GameClient 

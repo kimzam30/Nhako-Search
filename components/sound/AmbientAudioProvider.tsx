@@ -41,6 +41,9 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
     birds: null,
   });
   
+  const thunderGainRef = useRef<GainNode | null>(null);
+  const thunderBufferRef = useRef<AudioBuffer | null>(null);
+  
   // We keep track of the source nodes in case we need to stop them on unmount
   const sourcesRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'>, AudioBufferSourceNode | null>>({
     lofi: null,
@@ -105,12 +108,23 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
       }
     };
 
+    const thunderGain = ctx.createGain();
+    thunderGain.gain.value = volumes.rain / 100;
+    thunderGain.connect(masterGain);
+    thunderGainRef.current = thunderGain;
+
     // Load all tracks concurrently
     await Promise.all([
-      loadTrack('lofi', '/audio/lofi.mp3'),
+      loadTrack('lofi', '/audio/lofi-deep.mp3'),
       loadTrack('rain', '/audio/rain.mp3'),
       loadTrack('wind', '/audio/wind.mp3'),
       loadTrack('birds', '/audio/birds.mp3'),
+      (async () => {
+        try {
+          const resp = await fetch('/audio/thunder.mp3');
+          if (resp.ok) thunderBufferRef.current = await ctx.decodeAudioData(await resp.arrayBuffer());
+        } catch (e) { console.error('Failed to load thunder'); }
+      })()
     ]);
   };
 
@@ -131,6 +145,10 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
       }
     });
     
+    if (thunderGainRef.current) {
+      thunderGainRef.current.gain.setTargetAtTime(volumes.rain / 100, now, 0.05);
+    }
+    
     localStorage.setItem('nhako_audio_volumes', JSON.stringify(volumes));
   }, [volumes]);
 
@@ -147,6 +165,29 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
         audioCtxRef.current.suspend().catch(console.error);
       }
     }
+  }, [isPlaying]);
+
+  // Thunder random interval
+  useEffect(() => {
+    if (!isPlaying) return;
+    let timeoutId: NodeJS.Timeout;
+
+    const playThunder = () => {
+      if (audioCtxRef.current && thunderBufferRef.current && thunderGainRef.current) {
+         const source = audioCtxRef.current.createBufferSource();
+         source.buffer = thunderBufferRef.current;
+         source.connect(thunderGainRef.current);
+         source.start(0);
+      }
+      
+      const nextInterval = Math.random() * 30000 + 15000;
+      timeoutId = setTimeout(playThunder, nextInterval);
+    };
+
+    const initialInterval = Math.random() * 20000 + 10000;
+    timeoutId = setTimeout(playThunder, initialInterval);
+
+    return () => clearTimeout(timeoutId);
   }, [isPlaying]);
 
   const setVolume = (track: keyof AudioVolumes, value: number) => {

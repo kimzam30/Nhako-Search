@@ -5,7 +5,7 @@ export interface PlayerState {
   id: string;
   name: string;
   difficulty: string;
-  ready: boolean;
+  isLeader: boolean;
   progress: number;
   total: number;
 }
@@ -20,36 +20,21 @@ export interface RaceState {
 }
 
 export function useRaceRoom(roomCode: string, userId: string, userName: string) {
+  const isLeader = typeof window !== 'undefined' ? sessionStorage.getItem('is_leader_' + roomCode) === 'true' : false;
+
   const [raceState, setRaceState] = useState<RaceState>({ 
     status: 'lobby',
-    playerA: { id: userId, name: userName, difficulty: 'medium', ready: false, progress: 0, total: 8 }
+    playerA: { id: userId, name: userName, difficulty: 'medium', isLeader, progress: 0, total: 8 }
   });
   
   const myStateRef = useRef<PlayerState>({ 
-    id: userId, name: userName, difficulty: 'medium', ready: false, progress: 0, total: 8 
+    id: userId, name: userName, difficulty: 'medium', isLeader, progress: 0, total: 8 
   });
   
   const [chatMessages, setChatMessages] = useState<{ id: string, text: string, sender: string, time: number }[]>([]);
   const channelRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (raceState.status === 'lobby' && raceState.playerA?.ready && raceState.playerB?.ready) {
-      // Host Election: deterministic check to ensure exactly one player broadcasts the start payload
-      const isHost = userId === [raceState.playerA.id, raceState.playerB.id].sort()[0];
-      if (isHost) {
-        const seedStr = Math.random().toString(36).substring(2);
-        const startTime = Date.now() + 3000;
-        channelRef.current?.send({ type: 'broadcast', event: 'start_race', payload: { startTime, seedStr } });
-        
-        setRaceState(prev => ({
-          ...prev,
-          status: 'playing',
-          startTime: startTime,
-          seedStr: seedStr
-        }));
-      }
-    }
-  }, [raceState.status, raceState.playerA?.ready, raceState.playerB?.ready, raceState.playerA?.id, raceState.playerB?.id, userId]);
+  // The old host election effect is removed. Leader triggers start manually.
 
   useEffect(() => {
     const channel = supabase.channel(`room:${roomCode}`, {
@@ -104,7 +89,11 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
         }));
       })
       .on('broadcast', { event: 'chat' }, (payload) => {
-        setChatMessages(prev => [...prev, { id: Math.random().toString(), text: payload.text, sender: payload.sender, time: Date.now() }]);
+        const id = Math.random().toString();
+        setChatMessages(prev => [...prev, { id, text: payload.text, sender: payload.sender, time: Date.now() }]);
+        setTimeout(() => {
+          setChatMessages(prev => prev.filter(m => m.id !== id));
+        }, 3000);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -148,8 +137,26 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
       event: 'chat',
       payload: { text, sender: userId }
     });
-    setChatMessages(prev => [...prev, { id: Math.random().toString(), text, sender: userId, time: Date.now() }]);
+    const id = Math.random().toString();
+    setChatMessages(prev => [...prev, { id, text, sender: userId, time: Date.now() }]);
+    setTimeout(() => {
+      setChatMessages(prev => prev.filter(m => m.id !== id));
+    }, 3000);
   };
 
-  return { raceState, updateMyState, chatMessages, sendChat };
+  const startRaceAsLeader = () => {
+    if (!isLeader) return;
+    const seedStr = Math.random().toString(36).substring(2);
+    const startTime = Date.now() + 3000;
+    channelRef.current?.send({ type: 'broadcast', event: 'start_race', payload: { startTime, seedStr } });
+    
+    setRaceState(prev => ({
+      ...prev,
+      status: 'playing',
+      startTime: startTime,
+      seedStr: seedStr
+    }));
+  };
+
+  return { raceState, updateMyState, chatMessages, sendChat, startRaceAsLeader };
 }

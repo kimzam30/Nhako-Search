@@ -12,6 +12,7 @@ export default function RaceLobbyPage() {
 
   const handleCreate = () => {
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+    sessionStorage.setItem('is_leader_' + code, 'true');
     router.push(`/play/race/${code}`);
   };
 
