@@ -12,29 +12,75 @@
 
 # testing
 /coverage
+/.nyc_output
+cypress/videos/
+cypress/screenshots/
 
-# next.js
+# next.js and build
 /.next/
 /out/
 /build
+/dist
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# debug and logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 .pnpm-debug.log*
 
-# env files
+# env files and secrets (CRITICAL FOR SECURITY)
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*
+*.pem
+*.key
+*.cert
+*.pfx
+*.p12
+*.crt
+id_rsa
+id_rsa.pub
+secrets.json
+config/local.json
 
-# vercel
+# OS metadata
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Optional caches
+.npm
+.eslintcache
+.stylelintcache
+
+# deployments and platform configs
 .vercel
+.netlify
+.serverless
+
+# databases
+*.sqlite
+*.sqlite3
+*.db
+dump.rdb
 
 # typescript
 *.tsbuildinfo
