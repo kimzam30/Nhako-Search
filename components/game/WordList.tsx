@@ -9,8 +9,7 @@ interface Props {
 
 export function WordList({ words }: Props) {
   return (
-    <div className="flex flex-row overflow-x-auto whitespace-nowrap gap-3 mt-4 mb-6 w-full px-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-      {/* For Webkit scrollbar hiding, it can be handled globally or we just use inline if possible, but scrollbarWidth: none covers Firefox. Let's add a global class if needed, or rely on standard tailwind hide-scrollbar if configured. For now inline is fine. */}
+    <div className="flex flex-wrap justify-center gap-2 mt-4 mb-6 w-full px-4">
       {words.map((w, i) => (
         <motion.div
           key={w.word}

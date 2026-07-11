@@ -40,28 +40,22 @@ export function FloatingNav() {
   const isStandardGameplay = pathname.startsWith('/play/standard/');
 
   // For this step, we will use a global event or context later if needed, but path based works for Race/Level.
+  // Determine if we're in active gameplay to intercept navigation
   const isMinimized = isLevelGameplay || isRaceGameplay || isStandardGameplay;
 
-  if (isHidden) return null;
+  const handleNav = (e: React.MouseEvent, href: string) => {
+    if (isMinimized && href !== pathname) {
+      e.preventDefault();
+      if (window.confirm("Leave this puzzle? Your current attempt won't be saved.")) {
+        setIsOpen(false);
+        router.push(href);
+      }
+    } else {
+      setIsOpen(false);
+    }
+  };
 
-  if (isMinimized) {
-    return (
-      <div className="fixed top-4 left-4 z-50">
-        <motion.button
-          whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
-          transition={softBounce}
-          onClick={() => {
-            if (window.confirm("Leave this puzzle? Your current attempt won't be saved.")) {
-              router.push('/');
-            }
-          }}
-          className="w-12 h-12 bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-tl-[16px] rounded-tr-[8px] rounded-br-[14px] rounded-bl-[10px] flex items-center justify-center text-ink"
-        >
-          <PauseSvg className="w-6 h-6" />
-        </motion.button>
-      </div>
-    );
-  }
+  if (isHidden) return null;
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-6 md:-translate-x-0 z-50">
@@ -119,10 +113,10 @@ export function FloatingNav() {
               exit={{ opacity: 0, scale: 0.8 }}
               className="flex flex-row md:flex-col items-center gap-2 overflow-hidden bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]"
             >
-              <NavLink href="/daily" icon={<FlameSvg className="w-6 h-6" />} isActive={pathname.startsWith('/daily')} onClick={() => setIsOpen(false)} />
-              <NavLink href="/level-path" icon={<MapSvg className="w-6 h-6" />} isActive={pathname.startsWith('/level-path')} onClick={() => setIsOpen(false)} />
+              <NavLink href="/daily" icon={<FlameSvg className="w-6 h-6" />} isActive={pathname.startsWith('/daily')} onClick={(e) => handleNav(e, '/daily')} />
+              <NavLink href="/level-path" icon={<MapSvg className="w-6 h-6" />} isActive={pathname.startsWith('/level-path')} onClick={(e) => handleNav(e, '/level-path')} />
 
-              <Link href="/" className="relative group" onClick={() => setIsOpen(false)}>
+              <a href="/" onClick={(e) => handleNav(e, '/')} className="relative group">
                 <motion.div 
                   whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
                   transition={softBounce}
@@ -131,11 +125,11 @@ export function FloatingNav() {
                 >
                   <HomeSvg className="w-7 h-7" />
                 </motion.div>
-              </Link>
+              </a>
               
-              <NavLink href="/play/race/lobby" icon={<RaceSvg className="w-6 h-6" />} isActive={pathname.startsWith('/play/race')} onClick={() => setIsOpen(false)} />
+              <NavLink href="/play/race/lobby" icon={<RaceSvg className="w-6 h-6" />} isActive={pathname.startsWith('/play/race')} onClick={(e) => handleNav(e, '/play/race/lobby')} />
               
-              <Link href={sessionUser ? '/profile' : '/sign-in'} className="relative group" onClick={() => setIsOpen(false)}>
+              <a href={sessionUser ? '/profile' : '/sign-in'} onClick={(e) => handleNav(e, sessionUser ? '/profile' : '/sign-in')} className="relative group">
                 <motion.div
                   whileTap={{ scale: 0.9 }}
                   className={`w-12 h-12 rounded-2xl border-2 border-ink flex items-center justify-center overflow-hidden bg-surface ${pathname.startsWith('/profile') || pathname === '/sign-in' ? 'bg-accent-soft' : ''}`}
@@ -146,7 +140,7 @@ export function FloatingNav() {
                     <UserSvg className="w-5 h-5 text-ink/70" />
                   )}
                 </motion.div>
-              </Link>
+              </a>
               
               <button onClick={() => setShowMixer(!showMixer)}>
                 <motion.div 
@@ -163,17 +157,14 @@ export function FloatingNav() {
         <motion.button 
           whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
           onClick={() => { setIsOpen(!isOpen); if (showMixer) setShowMixer(false); }}
-          className={`h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-[28px] text-ink z-20 ${isOpen ? 'w-14' : 'px-6 gap-2 bg-surface'}`}
+          className={`w-14 h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-full text-ink z-20`}
         >
           {isOpen ? <CloseSvg className="w-6 h-6" /> : (
-            <>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-                <line x1="4" y1="12" x2="20" y2="12"></line>
-                <line x1="4" y1="6" x2="20" y2="6"></line>
-                <line x1="4" y1="18" x2="20" y2="18"></line>
-              </svg>
-              <span className="font-body font-bold text-sm tracking-widest uppercase">Menu</span>
-            </>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+              <line x1="4" y1="12" x2="20" y2="12"></line>
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="18" x2="20" y2="18"></line>
+            </svg>
           )}
         </motion.button>
       </div>
@@ -181,15 +172,15 @@ export function FloatingNav() {
   );
 }
 
-function NavLink({ href, icon, isActive, onClick }: { href: string, icon: React.ReactNode, isActive: boolean, onClick?: () => void }) {
+function NavLink({ href, icon, isActive, onClick }: { href: string, icon: React.ReactNode, isActive: boolean, onClick: (e: React.MouseEvent) => void }) {
   return (
-    <Link href={href} onClick={onClick}>
+    <a href={href} onClick={onClick}>
       <motion.div 
         whileTap={{ scale: 0.9 }}
         className={`w-12 h-12 flex items-center justify-center rounded-2xl ${isActive ? 'bg-accent-soft text-ink' : 'text-ink/60 hover:text-ink hover:bg-surface'}`}
       >
         {icon}
       </motion.div>
-    </Link>
+    </a>
   );
 }

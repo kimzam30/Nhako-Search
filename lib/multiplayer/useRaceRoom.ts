@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/multiplayer/supabase';
+import { useRouter } from 'next/navigation';
 
 export interface PlayerState {
   id: string;
@@ -20,6 +21,7 @@ export interface RaceState {
 }
 
 export function useRaceRoom(roomCode: string, userId: string, userName: string) {
+  const router = useRouter();
   const isLeader = typeof window !== 'undefined' ? sessionStorage.getItem('is_leader_' + roomCode) === 'true' : false;
 
   const [raceState, setRaceState] = useState<RaceState>({ 
@@ -48,19 +50,37 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
         
         // Extract the other player's state from the Presence object
         let otherPlayerState: PlayerState | undefined;
+        let leaderIsPresent = false;
+
         for (const [key, presences] of Object.entries(state)) {
-          if (key !== userId && presences.length > 0) {
+          if (presences.length > 0) {
             const presenceData = presences[0] as any;
             if (presenceData.state) {
-              otherPlayerState = presenceData.state;
+              if (key !== userId) {
+                otherPlayerState = presenceData.state;
+              }
+              if (presenceData.state.isLeader) {
+                leaderIsPresent = true;
+              }
             }
           }
         }
 
         setRaceState(prev => {
+          // If we are a guest, and we've already joined (so we've seen the other player or we are in a lobby),
+          // and the leader is no longer present, kick us.
+          if (!isLeader && !leaderIsPresent && prev.playerB) {
+            router.push('/play/race/lobby');
+            return prev;
+          }
           if (!otherPlayerState) return prev;
           return { ...prev, playerB: otherPlayerState };
         });
+      })
+      .on('broadcast', { event: 'room_closed' }, () => {
+        if (!isLeader) {
+          router.push('/play/race/lobby');
+        }
       })
       .on('broadcast', { event: 'state_update' }, (payload) => {
         // Fast dual-sync receiver for instant UI updates
@@ -103,9 +123,12 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
       });
 
     return () => {
+      if (isLeader) {
+        channel.send({ type: 'broadcast', event: 'room_closed', payload: {} });
+      }
       supabase.removeChannel(channel);
     };
-  }, [roomCode, userId, userName]);
+  }, [roomCode, userId, userName, isLeader, router]);
 
   useEffect(() => {
     if (raceState.status === 'countdown' && raceState.startTime) {

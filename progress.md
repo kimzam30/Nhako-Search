@@ -1,16 +1,19 @@
 # Progress
 
-## 1. Vector Math (Grid Highlighting)
+## 1. Universal Collapsible Navbar Revert
 Status: Complete
 
-## 2. Adaptive & Collapsible Navbar
+## 2. Universal Pause/Menu Integration
 Status: Complete
 
-## 3. Hard Mode Grid UI Fix
+## 3. Grid Math & Word List Wrapping
 Status: Complete
 
-## 4. Dynamic Profile Data Audit
+## 4. Multiplayer Sync & Teardown
 Status: Complete
 
-## 5. Theme Selection UI Hint
+## 5. Chat Toast Rendering
+Status: Complete
+
+## 6. Theme Scroll Hint
 Status: Complete
