@@ -47,7 +47,12 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         }).catch(() => {
-          // Return cached or offline fallback if needed
+          // Return cached or offline fallback to prevent TypeError
+          return new Response('Network error occurred. You may be offline.', { 
+            status: 503, 
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'text/plain' }
+          });
         });
         return cachedResponse || fetchedResponse;
       });
