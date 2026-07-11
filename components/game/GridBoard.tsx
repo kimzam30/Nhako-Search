@@ -58,8 +58,6 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
             <LetterCell 
               key={idx}
               cell={cell}
-              isSelected={false} // Selection is now handled by SVG loop
-              isFound={false}    // Found is now handled by SVG loop
               onPointerDown={onPointerDown}
               onPointerEnter={onPointerEnter}
             />

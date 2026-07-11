@@ -3,7 +3,7 @@ import { supabase } from '@/lib/multiplayer/supabase';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
-import { ButterflySvg, CloseSvg } from '@/components/ui/Icons';
+import { ButterflySvg, CloseSvg, StarSvg } from '@/components/ui/Icons';
 import { Card } from '@/components/ui/Card';
 
 export default function ProfilePage() {

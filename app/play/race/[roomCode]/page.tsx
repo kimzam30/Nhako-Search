@@ -59,9 +59,21 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
   
   const raceWords = ['GARDEN', 'BUTTERFLY', 'BREEZE', 'NATURE', 'SUNSET', 'CLOUDS', 'FLOWER', 'SPRING', 'BLOSSOM', 'MEADOW'].slice(0, me?.difficulty === 'easy' ? 6 : me?.difficulty === 'medium' ? 8 : 10);
 
-  // Check for finished state
-  const isFinished = (me?.progress === me?.total && me?.total > 0) || (them?.progress === them?.total && them?.total > 0);
+  const isFinished = (me?.progress === me?.total && (me?.total ?? 0) > 0) || (them?.progress === them?.total && (them?.total ?? 0) > 0);
   const winner = isFinished ? (me?.progress === me?.total ? 'me' : 'them') : null;
+
+  useEffect(() => {
+    if (isFinished && me && them) {
+      // Only let playerA trigger the save to prevent duplicates
+      const isPlayerA = raceState.playerA?.id === activeUserId;
+      if (isPlayerA) {
+         import('@/lib/multiplayer/history').then(({ saveRaceHistory }) => {
+            const winnerId = winner === 'me' ? activeUserId : them.id;
+            saveRaceHistory(activeUserId, them.id, winnerId, me.difficulty, them.difficulty);
+         });
+      }
+    }
+  }, [isFinished, me, them, activeUserId, raceState.playerA, winner]);
 
   if (raceState.status === 'lobby') {
     return (

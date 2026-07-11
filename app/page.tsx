@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ButterflySvg, UserSvg, FlameSvg, MapSvg, RaceSvg } from '@/components/ui/Icons';
 import { supabase } from '@/lib/multiplayer/supabase';
+import { mergeGuestProgress } from '@/lib/auth/merge';
 
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    mergeGuestProgress();
     supabase.auth.getUser().then(({ data }) => setUser(data?.user || null));
     
     if (sessionStorage.getItem('splash_seen')) {
