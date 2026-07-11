@@ -13,7 +13,11 @@ export function useGameLogic(words: string[], difficulty: Difficulty, seedStr: s
     const dx = currentCell.x - startCell.x;
     const dy = currentCell.y - startCell.y;
     
-    if (dx !== 0 && dy !== 0 && Math.abs(dx) !== Math.abs(dy)) return [];
+    const isHorizontal = dy === 0 && dx !== 0;
+    const isVertical = dx === 0 && dy !== 0;
+    const isDiagonal = Math.abs(dx) === Math.abs(dy) && dx !== 0;
+    
+    if (!isHorizontal && !isVertical && !isDiagonal) return [];
     
     const steps = Math.max(Math.abs(dx), Math.abs(dy));
     const stepX = dx === 0 ? 0 : dx / steps;

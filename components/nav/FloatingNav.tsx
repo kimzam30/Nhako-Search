@@ -64,7 +64,7 @@ export function FloatingNav() {
   }
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-6 md:-translate-x-0 z-50">
       
       <AnimatePresence>
         {showMixer && (
@@ -109,25 +109,31 @@ export function FloatingNav() {
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-center gap-2 relative">
+      <div className="flex flex-row md:flex-col items-center justify-center gap-2 relative">
         
         <AnimatePresence>
           {isOpen && (
             <motion.div 
-              initial={{ opacity: 0, width: 0, scale: 0.8 }}
-              animate={{ opacity: 1, width: 'auto', scale: 1 }}
-              exit={{ opacity: 0, width: 0, scale: 0.8 }}
-              className="flex items-center gap-2 overflow-hidden bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="flex flex-row md:flex-col items-center gap-2 overflow-hidden bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]"
             >
+              <NavLink href="/daily" icon={<FlameSvg className="w-6 h-6" />} isActive={pathname.startsWith('/daily')} onClick={() => setIsOpen(false)} />
+              <NavLink href="/level-path" icon={<MapSvg className="w-6 h-6" />} isActive={pathname.startsWith('/level-path')} onClick={() => setIsOpen(false)} />
+
               <Link href="/" className="relative group" onClick={() => setIsOpen(false)}>
                 <motion.div 
                   whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
                   transition={softBounce}
-                  className={`w-12 h-12 flex items-center justify-center bg-accent border-2 border-ink shadow-[2px_3px_0_0_var(--ink)] text-ink rounded-2xl`}
+                  className={`w-14 h-14 -mx-1 md:-my-1 md:mx-0 flex items-center justify-center bg-accent border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] text-ink z-10 relative`}
+                  style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
                 >
-                  <HomeSvg className="w-6 h-6" />
+                  <HomeSvg className="w-7 h-7" />
                 </motion.div>
               </Link>
+              
+              <NavLink href="/play/race/lobby" icon={<RaceSvg className="w-6 h-6" />} isActive={pathname.startsWith('/play/race')} onClick={() => setIsOpen(false)} />
               
               <Link href={sessionUser ? '/profile' : '/sign-in'} className="relative group" onClick={() => setIsOpen(false)}>
                 <motion.div
@@ -175,9 +181,9 @@ export function FloatingNav() {
   );
 }
 
-function NavLink({ href, icon, isActive }: { href: string, icon: React.ReactNode, isActive: boolean }) {
+function NavLink({ href, icon, isActive, onClick }: { href: string, icon: React.ReactNode, isActive: boolean, onClick?: () => void }) {
   return (
-    <Link href={href}>
+    <Link href={href} onClick={onClick}>
       <motion.div 
         whileTap={{ scale: 0.9 }}
         className={`w-12 h-12 flex items-center justify-center rounded-2xl ${isActive ? 'bg-accent-soft text-ink' : 'text-ink/60 hover:text-ink hover:bg-surface'}`}

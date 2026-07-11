@@ -95,16 +95,33 @@ export default function SettingsPage() {
       <div className="w-full flex flex-col">
         {/* Appearance */}
         <Section title="Appearance" defaultOpen={false}>
-          <div className="flex flex-col gap-4">
-            {['Light', 'Dark', 'System'].map(t => (
-              <button 
-                key={t}
-                onClick={() => setTheme(t.toLowerCase())}
-                className={`py-3 px-4 rounded-xl font-body font-bold border-2 transition-all ${theme === t.toLowerCase() ? 'bg-accent border-ink shadow-[2px_3px_0_0_var(--ink)]' : 'bg-background border-ink/20 text-ink/70'}`}
+          <div className="flex flex-col gap-2 relative">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-sm font-bold text-ink/70">Select Theme</span>
+              <motion.span 
+                animate={{ opacity: [0.4, 0.8, 0.4], x: [0, 4, 0] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                className="text-[10px] font-bold text-ink/50 uppercase tracking-widest"
               >
-                {t} Mode
-              </button>
-            ))}
+                Scroll for more →
+              </motion.span>
+            </div>
+            
+            {/* Scrollable Container */}
+            <div className="flex flex-row gap-4 overflow-x-auto pb-4 snap-x snap-mandatory -mx-6 px-6 hide-scrollbar relative">
+              {['Light', 'Dark', 'System'].map(t => (
+                <button 
+                  key={t}
+                  onClick={() => setTheme(t.toLowerCase())}
+                  className={`snap-center flex-none w-32 py-4 px-4 rounded-xl font-body font-bold border-2 transition-all ${theme === t.toLowerCase() ? 'bg-accent border-ink shadow-[2px_3px_0_0_var(--ink)]' : 'bg-background border-ink/20 text-ink/70'}`}
+                >
+                  {t} Mode
+                </button>
+              ))}
+            </div>
+            
+            {/* Right gradient fade for visual hint */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none" />
           </div>
         </Section>
 

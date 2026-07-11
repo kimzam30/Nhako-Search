@@ -44,7 +44,7 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
 
   return (
     <div 
-      className="bg-surface p-2 sm:p-4 border-2 border-ink flex flex-col touch-none relative shadow-[4px_5px_0_0_var(--ink)] w-full h-full"
+      className="bg-surface p-2 sm:p-4 border-2 border-ink flex flex-col touch-none relative shadow-[4px_5px_0_0_var(--ink)] aspect-square w-full max-w-[450px] mx-auto"
       style={{ borderRadius: '12px 18px 8px 16px' }}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}

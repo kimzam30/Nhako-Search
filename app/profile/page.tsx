@@ -19,18 +19,58 @@ export default function ProfilePage() {
     router.push('/sign-in');
   };
 
+  const [stats, setStats] = useState<{ levels: number, wins: number, streak: number, maxStreak: number, wordsFound: number, racePlayed: number } | null>(null);
+
   useEffect(() => {
-    async function loadCollection() {
-      const { data: user } = await supabase.auth.getUser();
-      if (user.user) {
-        const { data } = await supabase.from('butterfly_collection').select('*').eq('user_id', user.user.id);
-        setCollection(data || []);
+    async function loadData() {
+      const { data: userObj } = await supabase.auth.getUser();
+      const user = userObj.user;
+      
+      if (user) {
+        const { data: coll } = await supabase.from('butterfly_collection').select('*').eq('user_id', user.id);
+        setCollection(coll || []);
+        
+        const { count: levels } = await supabase.from('level_progress').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+        const { count: wins } = await supabase.from('race_history').select('*', { count: 'exact', head: true }).eq('winner', user.id);
+        const { count: played } = await supabase.from('race_history').select('*', { count: 'exact', head: true }).or(`player_a.eq.${user.id},player_b.eq.${user.id}`);
+        
+        const { data: logs } = await supabase.from('daily_challenge_log')
+          .select('streak_count')
+          .eq('user_id', user.id)
+          .order('challenge_date', { ascending: false });
+          
+        const maxStreak = logs && logs.length > 0 ? Math.max(0, ...logs.map(l => l.streak_count)) : 0;
+        const currentStreak = logs && logs.length > 0 ? logs[0].streak_count : 0;
+        
+        setStats({
+          levels: levels || 0,
+          wins: wins || 0,
+          racePlayed: played || 0,
+          streak: currentStreak,
+          maxStreak: maxStreak,
+          wordsFound: (levels || 0) * 8
+        });
       } else {
         const saved = JSON.parse(localStorage.getItem('nhako_collection') || '[]');
         setCollection(saved);
+        
+        const levels = parseInt(localStorage.getItem('nhako_guest_levels') || '0');
+        const wins = parseInt(localStorage.getItem('nhako_guest_wins') || '0');
+        const played = parseInt(localStorage.getItem('nhako_guest_race_played') || '0');
+        const streak = parseInt(localStorage.getItem('nhako_guest_streak') || '0');
+        const maxStreak = parseInt(localStorage.getItem('nhako_guest_max_streak') || '0');
+        
+        setStats({
+          levels,
+          wins,
+          racePlayed: played,
+          streak,
+          maxStreak,
+          wordsFound: levels * 8
+        });
       }
     }
-    loadCollection();
+    loadData();
   }, []);
 
   const totalSlots = 30; // 30 possible slots for the album
@@ -44,21 +84,21 @@ export default function ProfilePage() {
       <Card className="w-full mb-8 bg-surface">
         <div className="grid grid-cols-2 gap-y-6 gap-x-4">
           <div className="flex flex-col">
-            <span className="text-3xl font-display font-bold text-ink">12</span>
+            {stats === null ? <div className="animate-pulse bg-ink/10 h-9 w-16 rounded mb-1" /> : <span className="text-3xl font-display font-bold text-ink">{stats.levels}</span>}
             <span className="text-xs font-bold uppercase tracking-widest text-ink/60">Levels Done</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-3xl font-display font-bold text-ink">142</span>
+            {stats === null ? <div className="animate-pulse bg-ink/10 h-9 w-16 rounded mb-1" /> : <span className="text-3xl font-display font-bold text-ink">{stats.wordsFound}</span>}
             <span className="text-xs font-bold uppercase tracking-widest text-ink/60">Words Found</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-3xl font-display font-bold text-ink">4-1</span>
+            {stats === null ? <div className="animate-pulse bg-ink/10 h-9 w-16 rounded mb-1" /> : <span className="text-3xl font-display font-bold text-ink">{stats.wins}-{stats.racePlayed - stats.wins}</span>}
             <span className="text-xs font-bold uppercase tracking-widest text-ink/60">Race Record</span>
           </div>
           <div className="flex flex-col">
             <div className="flex items-end gap-2">
-              <span className="text-3xl font-display font-bold text-ink">12</span>
-              <span className="text-sm font-display font-bold text-ink/40 pb-1">/ 15 best</span>
+              {stats === null ? <div className="animate-pulse bg-ink/10 h-9 w-12 rounded mb-1" /> : <span className="text-3xl font-display font-bold text-ink">{stats.streak}</span>}
+              <span className="text-sm font-display font-bold text-ink/40 pb-1">/ {stats ? stats.maxStreak : '-'} best</span>
             </div>
             <span className="text-xs font-bold uppercase tracking-widest text-ink/60">Current Streak</span>
           </div>
@@ -144,7 +184,7 @@ export default function ProfilePage() {
               </button>
               <ButterflySvg className="w-20 h-20 text-accent mb-6" />
               <h3 className="text-2xl font-display text-ink mb-2">Monarch</h3>
-              <p className="text-ink/70 font-body mb-2">Earned from <strong>{selectedButterfly.earned_from || 'Garden - Level 4'}</strong></p>
+              <p className="text-ink/70 font-body mb-2">Earned from <strong>{selectedButterfly.earned_from || 'Gameplay'}</strong></p>
               <p className="text-ink/50 font-body text-sm">{new Date(selectedButterfly.earned_at || Date.now()).toLocaleDateString()}</p>
             </motion.div>
           </>
