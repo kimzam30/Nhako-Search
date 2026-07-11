@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nhakosearch-v1';
+const CACHE_NAME = 'nhakosearch-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
@@ -37,6 +37,15 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   // Only cache same-origin requests (avoid caching Supabase API or Analytics)
   if (url.origin !== self.location.origin) return;
+
+  // Bypass service worker entirely for Race mode to avoid RSC/navigation 503 issues
+  if (url.pathname.startsWith('/play/race/')) return;
+
+  // Bypass caching for Next.js internal requests (HMR, turbopack, etc)
+  if (url.pathname.startsWith('/_next/')) return;
+
+  // Bypass cache if the browser is requesting a reload (fixes infinite HMR reload loop)
+  if (event.request.cache === 'reload' || event.request.cache === 'no-cache') return;
 
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) => {
