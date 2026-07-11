@@ -135,7 +135,7 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
   }
 
   // Countdown state
-  if (raceState.startTime && now < raceState.startTime) {
+  if (raceState.status === 'countdown' && raceState.startTime) {
     const secsLeft = Math.ceil((raceState.startTime - now) / 1000);
     return (
       <div className="flex flex-col flex-1 bg-background items-center justify-center h-screen w-full">
@@ -193,9 +193,9 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
   const timeElapsed = Math.floor((now - (raceState.startTime || now)) / 1000);
   
   return (
-    <div className="flex flex-col flex-1 bg-background relative w-full h-full overflow-hidden">
+    <div className="flex flex-col bg-background relative w-full h-screen overflow-hidden">
        
-       <div className="flex flex-col w-full max-w-lg mx-auto p-4 absolute top-0 left-0 right-0 z-10 bg-surface border-b-2 border-ink shadow-[0_4px_0_0_var(--ink)]">
+       <div className="flex-none flex flex-col w-full max-w-lg mx-auto p-4 z-10 bg-surface border-b-2 border-ink shadow-[0_4px_0_0_var(--ink)]">
          <div className="flex justify-between items-center mb-4">
            <div className="font-display text-xl text-ink font-bold flex-1">
              {Math.floor(timeElapsed / 60)}:{(timeElapsed % 60).toString().padStart(2, '0')}
@@ -217,9 +217,11 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
          </div>
        </div>
 
-       <ChatToast messages={chatMessages} activeUserId={activeUserId} partnerName={them?.name || 'Partner'} />
+       <div className="absolute top-28 left-0 right-0 z-50 pointer-events-none flex justify-center">
+         <ChatToast messages={chatMessages} activeUserId={activeUserId} partnerName={them?.name || 'Partner'} />
+       </div>
 
-       <div className="pt-32 pb-24 overflow-y-auto w-full h-full">
+       <div className="flex-1 w-full max-w-lg mx-auto min-h-0 pt-4 pb-20 px-2 overflow-hidden">
          <GameClient 
            words={raceWords}
            difficulty={(me?.difficulty as any) || 'medium'}

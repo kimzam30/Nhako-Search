@@ -64,7 +64,7 @@ export function FloatingNav() {
   }
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-6 md:-translate-x-0">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
       
       <AnimatePresence>
         {showMixer && (
@@ -72,7 +72,7 @@ export function FloatingNav() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-full md:ml-4 md:-translate-x-0 w-64 bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-3xl p-4 flex flex-col gap-4 origin-bottom md:origin-left"
+            className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 w-64 bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-3xl p-4 flex flex-col gap-4 origin-bottom"
           >
             <div className="flex justify-between items-center mb-2">
               <span className="font-display font-bold text-ink">Mixer</span>
@@ -157,14 +157,17 @@ export function FloatingNav() {
         <motion.button 
           whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
           onClick={() => { setIsOpen(!isOpen); if (showMixer) setShowMixer(false); }}
-          className="w-14 h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-full text-ink z-20"
+          className={`h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-[28px] text-ink z-20 ${isOpen ? 'w-14' : 'px-6 gap-2 bg-surface'}`}
         >
           {isOpen ? <CloseSvg className="w-6 h-6" /> : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-              <line x1="4" y1="12" x2="20" y2="12"></line>
-              <line x1="4" y1="6" x2="20" y2="6"></line>
-              <line x1="4" y1="18" x2="20" y2="18"></line>
-            </svg>
+            <>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                <line x1="4" y1="12" x2="20" y2="12"></line>
+                <line x1="4" y1="6" x2="20" y2="6"></line>
+                <line x1="4" y1="18" x2="20" y2="18"></line>
+              </svg>
+              <span className="font-body font-bold text-sm tracking-widest uppercase">Menu</span>
+            </>
           )}
         </motion.button>
       </div>

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { ButterflySvg, UserSvg, FlameSvg, MapSvg, RaceSvg } from '@/components/ui/Icons';
 import { supabase } from '@/lib/multiplayer/supabase';
 import { mergeGuestProgress } from '@/lib/auth/merge';
+import { CHAPTERS, LEVELS } from '@/lib/levels/data';
 
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
@@ -149,7 +150,7 @@ export default function HomePage() {
               </div>
               <div className="flex items-center gap-1 bg-surface px-2 py-1 border-2 border-ink rounded-lg" style={{ borderRadius: '8px 12px 10px 8px' }}>
                 <FlameSvg className="w-4 h-4 text-accent" />
-                <span className="font-bold font-body text-ink text-sm">12</span>
+                <span className="font-bold font-body text-ink text-sm">{stats.streak}</span>
               </div>
             </div>
             <Button variant="primary" className="mt-2" onClick={(e) => { e.stopPropagation(); window.location.href='/daily'; }}>Play Now</Button>
@@ -162,7 +163,17 @@ export default function HomePage() {
             <div className="flex justify-between items-start relative z-10">
               <div>
                 <h2 className="text-sm font-bold text-ink/70 uppercase tracking-widest mb-1">Level Path</h2>
-                <h3 className="text-xl font-display text-ink">Garden - Level 4</h3>
+                <h3 className="text-xl font-display text-ink">
+                  {(() => {
+                    const allLevelIds = CHAPTERS.flatMap(c => c.levels);
+                    const nextLevelId = allLevelIds[Math.min(stats.levels, allLevelIds.length - 1)] || allLevelIds[0];
+                    const nextLvl = LEVELS[nextLevelId];
+                    if (!nextLvl) return 'Start Journey';
+                    const chapterIndex = CHAPTERS.findIndex(c => c.name === nextLvl.chapter);
+                    const levelInChapter = CHAPTERS[chapterIndex].levels.indexOf(nextLevelId) + 1;
+                    return `${nextLvl.chapter} - ${levelInChapter}`;
+                  })()}
+                </h3>
               </div>
               <MapSvg className="w-8 h-8 text-ink/30" />
             </div>

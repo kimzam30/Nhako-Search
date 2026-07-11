@@ -44,14 +44,24 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
 
   return (
     <div 
-      className="bg-surface p-4 border-2 border-ink inline-block touch-none relative shadow-[4px_5px_0_0_var(--ink)] mb-4"
+      className="bg-surface p-2 sm:p-4 border-2 border-ink flex flex-col touch-none relative shadow-[4px_5px_0_0_var(--ink)] w-full h-full"
       style={{ borderRadius: '12px 18px 8px 16px' }}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
     >
       <div 
-        className="grid gap-1 sm:gap-2 relative z-10" 
+        className="grid relative z-10 w-full h-full" 
         style={{ gridTemplateColumns: `repeat(${grid.width}, minmax(0, 1fr))` }}
+        onPointerMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width * 100;
+          const y = (e.clientY - rect.top) / rect.height * 100;
+          const cellX = Math.floor(x / (100 / grid.width));
+          const cellY = Math.floor(y / (100 / grid.height));
+          if (cellX >= 0 && cellX < grid.width && cellY >= 0 && cellY < grid.height) {
+            onPointerEnter(grid.cells[cellY][cellX]);
+          }
+        }}
       >
         {/* SVG Overlay for Loops */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1, overflow: 'visible' }} viewBox="0 0 100 100" preserveAspectRatio="none">

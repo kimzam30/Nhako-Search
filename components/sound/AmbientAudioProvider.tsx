@@ -152,19 +152,30 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
     localStorage.setItem('nhako_audio_volumes', JSON.stringify(volumes));
   }, [volumes]);
 
-  // Handle play/pause state
+  // Handle play/pause state and browser autoplay policy
   useEffect(() => {
     if (!audioCtxRef.current) return;
     
-    if (isPlaying) {
-      if (audioCtxRef.current.state === 'suspended') {
+    const tryResume = () => {
+      if (audioCtxRef.current?.state === 'suspended' && isPlaying) {
         audioCtxRef.current.resume().catch(console.error);
       }
+    };
+
+    if (isPlaying) {
+      tryResume();
+      window.addEventListener('pointerdown', tryResume);
+      window.addEventListener('click', tryResume);
     } else {
       if (audioCtxRef.current.state === 'running') {
         audioCtxRef.current.suspend().catch(console.error);
       }
     }
+
+    return () => {
+      window.removeEventListener('pointerdown', tryResume);
+      window.removeEventListener('click', tryResume);
+    };
   }, [isPlaying]);
 
   // Thunder random interval

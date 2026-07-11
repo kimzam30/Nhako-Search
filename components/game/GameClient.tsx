@@ -55,10 +55,22 @@ export function GameClient({ words, difficulty, seedStr = 'daily-seed-123', onCo
   }, [game.foundWords.length, isWon, game.grid.placedWords.length, startTime, onComplete]);
   
   return (
-    <div className="flex flex-col items-center w-full max-w-lg mx-auto pb-10 relative">
-      {!hideGarland && <ButterflyGarland count={game.foundWords.length} total={game.grid.placedWords.length} />}
-      <WordList words={wordListProps} />
-      <GridBoard {...game} />
+    <div className="flex flex-col items-center w-full max-w-lg mx-auto h-full min-h-0 relative">
+      {!hideGarland && (
+        <div className="flex-none w-full mb-4">
+          <ButterflyGarland count={game.foundWords.length} total={game.grid.placedWords.length} />
+        </div>
+      )}
+      <div className="flex-none w-full mb-4">
+        <WordList words={wordListProps} />
+      </div>
+      <div className="flex-1 w-full min-h-0 flex items-center justify-center relative">
+        <div className="w-full h-full max-w-full max-h-full flex items-center justify-center">
+          <div className="aspect-square h-full max-w-full max-h-full relative">
+            <GridBoard {...game} />
+          </div>
+        </div>
+      </div>
 
       {isWon && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">

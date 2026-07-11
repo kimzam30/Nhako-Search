@@ -13,7 +13,7 @@ export interface PlayerState {
 export interface RaceState {
   playerA?: PlayerState;
   playerB?: PlayerState;
-  status: 'lobby' | 'playing' | 'finished';
+  status: 'lobby' | 'countdown' | 'playing' | 'finished';
   startTime?: number;
   seedStr?: string;
   winner?: string;
@@ -83,7 +83,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
         // The non-host receives this to transition to playing mode
         setRaceState(prev => ({
           ...prev,
-          status: 'playing',
+          status: 'countdown',
           startTime: payload.startTime,
           seedStr: payload.seedStr
         }));
@@ -106,6 +106,18 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
       supabase.removeChannel(channel);
     };
   }, [roomCode, userId, userName]);
+
+  useEffect(() => {
+    if (raceState.status === 'countdown' && raceState.startTime) {
+      const interval = setInterval(() => {
+        if (Date.now() >= raceState.startTime!) {
+          setRaceState(prev => ({ ...prev, status: 'playing' }));
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [raceState.status, raceState.startTime]);
 
   const updateMyState = (partialState: Partial<PlayerState>) => {
     const newMyState = { ...myStateRef.current, ...partialState };
@@ -152,7 +164,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
     
     setRaceState(prev => ({
       ...prev,
-      status: 'playing',
+      status: 'countdown',
       startTime: startTime,
       seedStr: seedStr
     }));
