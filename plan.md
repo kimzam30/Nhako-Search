@@ -134,8 +134,18 @@ on Hard while the other plays Easy. The timer is shared; the word list is per-pl
 ## 8. Word lists
 Static JSON under `/lib/words/`, grouped by the same theme names used for Level Path chapters
 (Garden, Rainy Day, Cozy Cottage, Night Sky, Date Night) plus a free "Standard" pool for casual
-play. Worth adding later: a "Your Words" custom list — a text input feeding the same generator,
-for inside jokes and pet names, no backend needed.
+play.
+
+**Minimum pool size: 150–300 words per theme**, tagged with length so Easy/Medium/Hard can
+filter appropriately. The first build shipped with roughly 5–10 words per theme total, which is
+why puzzles felt predictable even before the seeding bug (see `agents.md` §5) made them outright
+static — a pool that small repeats within a couple of sittings no matter how good the RNG is.
+
+**Anti-repeat logic:** in Standard mode, keep the last 3–5 word-sets played in memory (session
+state is enough, no table needed) and exclude those words from the next random draw.
+
+Worth adding later: a "Your Words" custom list — a text input feeding the same generator, for
+inside jokes and pet names, no backend needed.
 
 ## 9. Realtime multiplayer: race sync + banter chat
 - Race state (`player_joined`, `word_found`, `timer_sync`, `game_over`) is broadcast over one

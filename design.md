@@ -66,6 +66,11 @@ timers to manufacture stakes.
 In **Race mode**, both players' garlands sit side by side, growing independently — glancing at
 the top of the screen tells you who's ahead without reading numbers.
 
+**This must be real SVG doodle art, not the 🦋 emoji character.** Emoji reads as a generic
+placeholder no matter how good the surrounding palette is — it's the fastest way to make a
+custom-illustrated app look like a template. Emoji is fine as a throwaway dev placeholder, never
+as shipped UI.
+
 ## 5. Motion system
 This app now leans into fluid, springy motion throughout — not just one signature moment. To
 keep that from becoming noisy or slow, everything shares one set of rules:

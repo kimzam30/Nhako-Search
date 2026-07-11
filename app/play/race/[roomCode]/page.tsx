@@ -8,7 +8,7 @@ import { softBounce } from '@/components/motion/springs';
 import { ButterflyGarland } from '@/components/game/ButterflyGarland';
 import { supabase } from '@/lib/multiplayer/supabase';
 
-const QUICK_BANTER = ["GG!", "😤", "So close!", "Nice find!", "🦋", "Hurry up!"];
+const QUICK_BANTER = ["GG!", "😤", "So close!", "Nice find!", "Let's go!", "Hurry up!"];
 
 export default function RaceRoomPage() {
   const params = useParams();

@@ -5,6 +5,7 @@ import { CHAPTERS, LEVELS } from '@/lib/levels/data';
 import { loadLevelProgress } from '@/lib/levels/progress';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { StarSvg } from '@/components/ui/Icons';
 
 export default function LevelPathPage() {
   const [progress, setProgress] = useState<any[]>([]);
@@ -36,24 +37,36 @@ export default function LevelPathPage() {
                 const stars = getStars(levelId);
                 const isUnlocked = levelIndex === 0 || (previousLevelId && getStars(previousLevelId) > 0);
                 
+                const inner = (
+                  <>
+                    <span className="font-display font-bold text-ink">{levelId.split('-l')[1]}</span>
+                    {stars > 0 && (
+                      <div className="absolute -bottom-2 flex gap-[2px]">
+                        {Array.from({length: stars}).map((_, i) => (
+                          <StarSvg key={i} className="text-gold w-3 h-3" />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+
                 return (
                   <motion.div key={levelId} whileTap={isUnlocked ? { scale: 0.9 } : undefined} transition={softBounce}>
-                    <Link 
-                      href={isUnlocked ? `/level-path/${levelId}` : '#'} 
-                      className={`
-                        w-16 h-16 rounded-full flex flex-col items-center justify-center border-4 relative
-                        ${isUnlocked ? 'bg-accent border-ink shadow-[0_4px_0_var(--ink)] cursor-pointer' : 'bg-surface border-ink/20 opacity-60 pointer-events-none'}
-                      `}
-                    >
-                      <span className="font-display font-bold text-ink">{levelId.split('-l')[1]}</span>
-                      {stars > 0 && (
-                        <div className="absolute -bottom-2 flex text-xs">
-                          {Array.from({length: stars}).map((_, i) => (
-                            <span key={i}>⭐</span>
-                          ))}
-                        </div>
-                      )}
-                    </Link>
+                    {isUnlocked ? (
+                      <Link 
+                        href={`/level-path/${levelId}`} 
+                        className="w-16 h-16 rounded-full flex flex-col items-center justify-center border-4 relative bg-accent border-ink shadow-[0_4px_0_var(--ink)] cursor-pointer"
+                      >
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div 
+                        aria-disabled="true"
+                        className="w-16 h-16 rounded-full flex flex-col items-center justify-center border-4 relative bg-surface border-ink/20 opacity-60 pointer-events-none"
+                      >
+                        {inner}
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}

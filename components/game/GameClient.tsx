@@ -9,6 +9,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import Link from 'next/link';
+import { StarSvg } from '@/components/ui/Icons';
 
 interface Props {
   words: string[];
@@ -69,15 +70,15 @@ export function GameClient({ words, difficulty, seedStr = 'daily-seed-123', onCo
             <h2 className="text-4xl font-display text-ink">Level Complete!</h2>
             <div className="flex gap-2 text-4xl my-4">
               {Array.from({ length: 3 }).map((_, i) => (
-                <motion.span 
+                <motion.div 
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.2 + 0.3, ...softBounce }}
-                  className={i < stars ? '' : 'grayscale opacity-30'}
+                  className={i < stars ? 'text-gold drop-shadow-sm' : 'text-ink/20'}
                 >
-                  ⭐
-                </motion.span>
+                  <StarSvg className="w-10 h-10" filled={i < stars} />
+                </motion.div>
               ))}
             </div>
             

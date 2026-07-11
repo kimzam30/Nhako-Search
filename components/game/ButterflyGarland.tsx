@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { ButterflySvg } from '@/components/ui/Icons';
 import { softBounce } from '@/components/motion/springs';
 
 interface Props {
@@ -22,9 +23,9 @@ export function ButterflyGarland({ count, total }: Props) {
               opacity: isEarned ? 1 : 0.2
             }}
             transition={softBounce}
-            className={`text-2xl ${isEarned ? 'text-accent' : 'text-ink grayscale'}`}
+            className={`flex items-center justify-center ${isEarned ? 'text-accent' : 'text-ink grayscale'}`}
           >
-            🦋
+            <ButterflySvg className="w-6 h-6" />
           </motion.div>
         );
       })}

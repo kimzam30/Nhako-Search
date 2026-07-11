@@ -3,6 +3,7 @@ import { supabase } from '@/lib/multiplayer/supabase';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
+import { ButterflySvg } from '@/components/ui/Icons';
 
 export default function ProfilePage() {
   const [collection, setCollection] = useState<any[]>([]);
@@ -35,7 +36,9 @@ export default function ProfilePage() {
             className="w-16 h-16 rounded-xl bg-surface border-2 border-ink/20 flex flex-col items-center justify-center cursor-pointer hover:bg-accent-soft group"
             title={`Earned from ${b.earned_from} at ${new Date(b.earned_at).toLocaleDateString()}`}
           >
-            <span className="text-3xl group-hover:scale-110 transition-transform">🦋</span>
+            <div className="group-hover:scale-110 transition-transform">
+              <ButterflySvg className="w-8 h-8 text-accent drop-shadow-sm" />
+            </div>
           </motion.div>
         ))}
         

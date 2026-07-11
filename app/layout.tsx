@@ -3,6 +3,7 @@ import { Fredoka, Nunito, Caveat } from "next/font/google";
 import "./globals.css";
 import { AmbientAudioProvider } from "@/components/sound/AmbientAudioProvider";
 import { PwaRegister } from "@/components/PwaRegister";
+import { MotionConfig } from "framer-motion";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -41,9 +42,11 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col font-body">
         <PwaRegister />
-        <AmbientAudioProvider>
-          {children}
-        </AmbientAudioProvider>
+        <MotionConfig reducedMotion="user">
+          <AmbientAudioProvider>
+            {children}
+          </AmbientAudioProvider>
+        </MotionConfig>
       </body>
     </html>
   );
