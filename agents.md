@@ -50,10 +50,14 @@ Follow these on every task, no exceptions:
    a `chat_messages` table or any chat history/logging.
 7. **Mobile and tablet first.** Design and test at phone and tablet breakpoints before desktop.
    Touch interactions (drag/tap-to-select letters) are the primary input method.
-8. **Match `design.md`.** Colors, type, the "butterfly garland → collection" motif, and the
-   motion system in `design.md` §5 — don't substitute a generic UI-kit look or generic easing
-   because it's faster to ship.
-9. **Respect copyright.** Ambient sound assets must be CC0 or explicitly free-for-use, per
+8. **Match `design.md`.** Colors, type, the "butterfly garland → collection" motif, the shape/
+   shadow/icon rules in `design.md` §4, and the motion system in `design.md` §6 — don't
+   substitute a generic UI-kit look or generic easing because it's faster to ship.
+9. **The floating nav and signature footer are global chrome, not per-page decisions.** Per
+   `design.md` §7 and the sitemap in §8, they render from a shared layout, not copy-pasted into
+   each route — a screen missing the nav (outside the explicitly listed exceptions) or the
+   account avatar not being tappable from anywhere is a bug, not a style choice.
+10. **Respect copyright.** Ambient sound assets must be CC0 or explicitly free-for-use, per
    `plan.md` §10. Never bundle a file whose license is unclear.
 
 ## 3. Tech stack (already decided — don't re-litigate)
@@ -90,6 +94,8 @@ Context (settings, sound, auth session) is enough at this scope.
   /game                       grid, letter-cell, word-list, timer
   /level-path                 map, level-node, path-hop animation
   /multiplayer                lobby, room-code entry, race-progress (garlands), chat tray
+  /nav                        FloatingNav (global chrome, see design.md §7.1) + its minimized/pause variant
+  /footer                     SignatureFooter (global chrome, see design.md §7.2)
   /ui                         buttons, cards, doodle borders — themed per design.md
   /sound                      SoundMixer, useAmbientAudio hook
   /motion                     shared spring config, page-transition wrappers
@@ -213,3 +219,23 @@ every table's RLS policy is correctly scoped (§5).
 - [ ] Pressed the browser back and forward buttons through the new screen(s) and confirmed they
       land where a person would expect — not on a blank/loading state or a stray `#` entry
 - [ ] Grepped the diff for emoji used as UI icons/illustration (they should be real SVG assets)
+
+## 10. If you are Antigravity CLI (agy) specifically
+- **Switch off the default model for design/spec-heavy tasks.** Run `/model` and pick Claude
+  Opus 4.8 or Sonnet 4.6 before reconciling `design.md`, `plan.md`, and this file against the
+  codebase — the default Gemini 3.5 Flash is tuned for fast, cheap iteration, not for holding
+  three interlocking spec documents in mind at once. Switch back to Flash afterward for small,
+  self-contained edits.
+- **Run `/planning` before any task that touches more than one screen or system.** Show the plan
+  before writing code — the seed-per-mode table in §5 and the sitemap in `design.md` §8 exist
+  specifically so a misread gets caught at the planning stage, not baked into a few hundred lines.
+- **Turn on `/browser` for any UI work and self-verify before reporting done.** Actually open the
+  built screen and check it against `design.md` §4 (shape/shadow/icon rules) and §9 (per-screen
+  spec) — don't report a screen complete on the strength of the code looking plausible.
+- **When given a bug list, fix exactly what's named** against the referenced section numbers,
+  rather than doing a broad unscoped "improve the UI" pass — this repo's history has a pattern of
+  small named defects (a hardcoded seed, a placeholder `href="#"`, an emoji standing in for
+  SVG art) that a scoped fix catches and a vague one doesn't.
+- **Check the Definition of Done (§9) explicitly before ending a task**, including running the
+  reload-twice puzzle test and the back/forward test yourself — don't leave that verification to
+  the human.

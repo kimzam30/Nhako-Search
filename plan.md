@@ -10,7 +10,7 @@ a daily challenge, and a realtime "race" mode where you and your partner each ge
 sized to your own difficulty and see who clears it first. Cartoonish pink/butterfly look, light
 + dark mode, a customizable ambient sound mixer, quick-tap banter chat during races, installable
 to the home screen, and progress that follows you across your phone and tablet. Hosted at
-**search.nhako.com**. Zero cost, zero ambition to scale — every decision below is made for a two-player
+**nhako.com**. Zero cost, zero ambition to scale — every decision below is made for a two-player
 hobby project, not "what would a real startup do."
 
 ## 2. Scope
@@ -140,6 +140,21 @@ play.
 filter appropriately. The first build shipped with roughly 5–10 words per theme total, which is
 why puzzles felt predictable even before the seeding bug (see `agents.md` §5) made them outright
 static — a pool that small repeats within a couple of sittings no matter how good the RNG is.
+
+**Where to actually get that many words, without hand-typing them:**
+- **For themed pools** (Level Path chapters, Daily Challenge): use the **Datamuse API**
+  (`api.datamuse.com`, free, no key, no signup) as a *content-generation tool during
+  development*, not a runtime dependency. A one-time script hitting
+  `https://api.datamuse.com/words?ml=garden&max=300` returns ~300 words semantically related to
+  "garden" that you skim and paste into the static JSON — turns hours of manual brainstorming
+  into a few minutes of curation per theme. Keep it out of the shipped app (no live API call
+  during gameplay) so puzzles never depend on an external service being up.
+- **For Standard (free-play) mode**, which doesn't need to be thematic: bundle a large
+  permissively-licensed static word list instead of curating one — e.g. the `an-array-of-
+  english-words` npm package (~275,000 English words, MIT license) or a common-words subset like
+  Google's 10,000-most-frequent-English-words list, filtered at build time to a reasonable length
+  range (4–9 letters) and to exclude anything obscure/inappropriate. This alone solves "I keep
+  seeing the same words" for free-play without touching the themed content at all.
 
 **Anti-repeat logic:** in Standard mode, keep the last 3–5 word-sets played in memory (session
 state is enough, no table needed) and exclude those words from the next random draw.

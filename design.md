@@ -1,255 +1,318 @@
 # design.md — NhakoSearch
 
-*Updated: added accounts, level path, daily challenge, in-race chat, and a full motion system —
-this revision adds §5 (Motion System) and §6 (full screen-by-screen walkthrough) and expands the
-signature element to feed a persistent collection.*
+*Rewritten from scratch. Old version was a reasonable palette/type system wearing a generic
+"rounded-card, drop-shadow, Lucide-icon" AI-app skeleton underneath — that skeleton is exactly
+what makes an app feel templated no matter how nice the colors are. This version replaces the
+skeleton itself: a concrete non-generic shape/shadow/icon language (§4), a persistent floating
+nav so home is always one tap away (§7.1), a signature footer (§7.2), an explicit sitemap to
+kill the routing confusion (§8), and every screen respec'd against all of it (§9).*
 
-## 0. Brief, in one line
-A cozy, hand-drawn word-search game two people play together — it should feel like doodling in
-a shared notebook in a garden full of butterflies that remembers your progress, not like a
-generic puzzle-app UI kit.
+## 0. The idea, in one line
+The whole app is **a shared nature journal the two of you keep together** — every screen is a
+page in it, not a "screen" in an app. When a design decision is unclear, the test isn't "what
+would a puzzle app do here," it's "what would this look like as a page in a journal we keep
+together." That single reframe is what should keep this from drifting back into generic
+component-library territory.
 
-## 1. Design language
-**Mood words:** cartoonish, doodled, soft, playful, a little romantic, unhurried, *alive*.
+## 1. Design language: "The Meadow Journal"
+**Mood words:** hand-cut, imperfect-on-purpose, warm, unhurried, a little romantic, alive.
 
-**What to avoid:** flat corporate "puzzle app" UI, stock emoji butterflies, cliché "Comic Sans"
-cartoon fonts, and — now that there's a level path — anything that borrows Candy Crush's
-*pressure* tactics (lives, timers-as-punishment, paywalled skips). Borrow its structure, not its
-psychology.
+**Why the last build read as AI-generated, specifically:** uniform border-radius on every card,
+blurred drop-shadows, default icon-set glyphs, flat solid backgrounds, and emoji standing in for
+illustration. Every one of those is a default you get for free from a component library — which
+is exactly why they all read as "nobody made a decision here." §4 replaces each one with an
+explicit, opinionated alternative. Follow §4 literally; it's the difference this time.
 
 ## 2. Color tokens
+*(unchanged from the previous version — the palette was never the problem)*
 
 ### Light mode — "Paper & Blossom"
 | Token | Hex | Use |
 |---|---|---|
-| `--bg` | `#FFF6F8` | App background — warm blush paper, not pure white |
+| `--bg` | `#FFF6F8` | App background — warm blush paper |
 | `--surface` | `#FFE3ED` | Cards, grid backing, panels |
-| `--ink` | `#4A1942` | Primary text, doodle line art, grid borders — deep plum, like fountain-pen ink |
-| `--accent` | `#FF6FA5` | Primary buttons, active states, selected letters |
-| `--accent-soft` | `#FFC1D9` | Hover states, secondary chips, unselected word-list pills |
-| `--found` | `#7FCB9C` | Found-word circle + strikethrough — deliberately *not* pink, so "found" reads instantly |
-| `--gold` | `#FFD166` | Butterfly wing highlights, sparkles, stars, win-screen confetti |
+| `--ink` | `#4A1942` | Text, line art, borders, sticker-shadows — deep plum ink |
+| `--accent` | `#FF6FA5` | Primary actions, active states, selected letters |
+| `--accent-soft` | `#FFC1D9` | Hover states, secondary chips |
+| `--found` | `#7FCB9C` | Found-word indicator — deliberately not pink |
+| `--gold` | `#FFD166` | Stars, sparkles, highlights |
 
 ### Dark mode — "Night Garden"
 | Token | Hex | Use |
 |---|---|---|
-| `--bg` | `#241326` | App background — twilight plum, not black |
+| `--bg` | `#241326` | Twilight plum background |
 | `--surface` | `#341B3B` | Cards, grid backing |
-| `--ink` | `#FFE9F4` | Primary text, line art on dark |
-| `--accent` | `#FF8FC0` | Primary buttons / active states |
+| `--ink` | `#FFE9F4` | Text, line art, borders, sticker-shadows on dark |
+| `--accent` | `#FF8FC0` | Primary actions |
 | `--accent-soft` | `#4A2A52` | Hover / secondary surfaces |
-| `--found` | `#6FE3A6` | Found-word indicator (brighter mint for dark contrast) |
-| `--gold` | `#C77DFF` | Butterflies/stars glow like fireflies at night instead of gold |
-
-Check both palettes against WCAG AA for body text before shipping.
+| `--found` | `#6FE3A6` | Found-word indicator |
+| `--gold` | `#C77DFF` | Stars/butterflies glow like fireflies instead of gold |
 
 ## 3. Typography
-- **Display / headings — "Fredoka."** Logo, mode titles, timer digits, star counts, win/lose
-  banners, level numbers.
-- **Body / UI — "Nunito."** Everything a player must read to function — buttons, word lists,
-  settings, chat.
-- **Accent / handwritten — "Caveat."** Personality moments only: tooltip call-outs, room-code
-  note, encouragement bubbles. Never load-bearing text.
+- **Display — "Fredoka."** Logo, mode titles, timer digits, level numbers, star counts.
+- **Body/UI — "Nunito."** Anything a player must read to function.
+- **Accent/handwritten — "Caveat."** Personality moments and the footer signature (§7.2) only —
+  never load-bearing text.
+- **Mix scales on purpose.** A screen with one giant Fredoka number and small tight Nunito
+  labels reads as designed; a screen where everything is comfortably medium-sized reads as a
+  template default. Every primary screen should have one clearly dominant text element.
 
-## 4. Signature element: the Butterfly Garland → the Collection
-Instead of a generic checklist + "6/10 found" counter, finding a word releases a small
-hand-drawn butterfly that flutters up and lands on a **garland** at the top of the screen. Each
-butterfly is a slightly different doodle (wing pattern/color pulled from the palette), so it
-feels *collected*, not mechanical.
+## 4. Shape, texture & iconography toolkit
+This is the part that actually prevents the generic look. Treat every rule as literal, not a
+vibe.
 
-What's new this round: every unique butterfly you ever earn — across level play, standard play,
-daily challenges, and races — is kept permanently in your **Butterfly Collection** (see §6.13).
-The garland is the in-the-moment payoff; the Collection is what makes that payoff *last*, which
-is what gives the level-path/progress system real weight without needing lives, currency, or
-timers to manufacture stakes.
+**Rule 1 — No uniform border-radius, anywhere.** Every card, sheet, and button uses four
+*different* corner values, like it was cut by hand:
+```
+border-radius: 22px 9px 26px 13px;
+```
+Vary the four numbers per component (keep them in the 8–28px range) so nothing in the app shares
+the exact same radius set. Perfectly symmetric rounding is one of the most reliable "a library
+made this" tells there is.
 
-In **Race mode**, both players' garlands sit side by side, growing independently — glancing at
-the top of the screen tells you who's ahead without reading numbers.
+**Rule 2 — No blurred drop-shadows. Use a solid "sticker" shadow instead.**
+```
+border: 2.5px solid var(--ink);
+box-shadow: 4px 5px 0 0 var(--ink);   /* solid, zero blur, zero spread */
+```
+It should look like a sticker sitting slightly off the page, not like a div floating in
+mid-air. On press (see §6), the shadow offset animates toward 0 and the element visually
+"presses into" its own shadow — ties the static shape language directly into motion.
 
-**This must be real SVG doodle art, not the 🦋 emoji character.** Emoji reads as a generic
-placeholder no matter how good the surrounding palette is — it's the fastest way to make a
-custom-illustrated app look like a template. Emoji is fine as a throwaway dev placeholder, never
-as shipped UI.
+**Rule 3 — Real custom icons for anything that matters; no stock icon set "as-is."** Primary
+navigation glyphs (home, level path, race, daily flame, account, the garland butterflies, chat
+bubble, stars) must be genuinely custom line-doodle SVGs — a single ~2px inked stroke, slightly
+irregular/organic path, not a geometrically perfect icon-font glyph. If a base set (e.g. Lucide)
+is used anywhere for minor utility icons, it must go through a hand-wobble treatment (a subtle
+SVG filter or manually nudged path points) before shipping — never dropped in untouched.
+**No emoji as shipped UI**, full stop (carried over from `agents.md` — worth repeating here since
+it's a shape/texture rule as much as a content rule).
 
-## 5. Motion system
-This app now leans into fluid, springy motion throughout — not just one signature moment. To
-keep that from becoming noisy or slow, everything shares one set of rules:
+**Rule 4 — Backgrounds carry paper grain, never a flat solid or a gradient blob.** A faint
+tiled noise texture at ~4% opacity (an SVG `feTurbulence` filter or a small tileable PNG) sits
+behind every screen. Flat-color-plus-soft-gradient-blob backgrounds are the single most common
+generic-AI-app tell — this one rule does a lot of work.
 
-- **One shared spring, reused everywhere.** Define a single "soft bounce" spring config (medium
-  stiffness, low damping) once and reuse it for buttons, cards, sheets, and the garland — so
-  every motion in the app feels like it came from the same hand, not a grab-bag of easing
-  curves. Recommend **Framer Motion** (free, MIT-licensed, pairs natively with React/Next.js) so
-  this is a config value, not hand-rolled physics per component.
-- **Screen transitions are "turning a page," not sliding a panel.** Prefer shared-element/morph
-  transitions where it makes sense (a level node grows into the gameplay card; the sign-in
-  butterflies burst into the home screen) over generic slide/fade — it reinforces the notebook
-  concept already in the grid design.
-- **Every tap responds within ~100ms** — a small scale/bounce on press, no exceptions, even on
-  secondary buttons.
-- **Lists stagger in**, 40–80ms per item (word pills, level nodes, the collection grid) — enough
-  to feel alive without feeling slow to settle.
-- **Ambient/idle motion stays subtle** — background butterflies drifting, a small idle flutter
-  near the avatar — low amplitude, slow, so it adds life without pulling focus from gameplay.
-- **Spend your biggest motion budget on real payoffs**, not routine navigation: word found →
-  garland flight, level complete → stars flying in, race win → celebration, path-hop on level
-  complete. Keep everyday navigation quick and quiet by comparison, or the payoffs stop feeling
-  special.
-- **Respect `prefers-reduced-motion` system-wide** — swap to simple opacity fades, no parallax,
-  no particles, still fully functional.
-- **Performance:** animate `transform`/`opacity` only (GPU-friendly), cap simultaneous particles
-  (e.g. ~12 confetti doodles max) so it stays smooth on an older phone, use `will-change`
+**Rule 5 — Organic "blob" shapes are reserved for compact, icon-only actions.** The floating
+nav's Home button (§7.1) is the one place a true amoeba-blob shape belongs:
+```
+border-radius: 63% 37% 54% 46% / 55% 45% 62% 38%;
+```
+Buttons carrying real text ("Sign in with Google," "Continue as Guest") stay legible — use the
+Rule-1 uneven-rectangle treatment for those instead. Cute should never cost usability; save the
+blob for the one button that's just a home icon.
+
+**Rule 6 — Small deliberate rotation on "stuck on by hand" elements.** Badges, the footer
+signature, a level's star cluster, a toast/banter bubble — rotate them −2° to −5° so they read
+as placed by a person, not laid out on a perfect grid. Primary content (the grid, word lists,
+buttons) stays straight; only decorative/secondary elements tilt.
+
+## 5. Signature element: the Butterfly Garland → the Collection
+Finding a word releases a hand-drawn butterfly (Rule 3 — real SVG, never 🦋) that flutters up
+and lands on a garland strip at the top of the screen. Every unique butterfly you ever earn is
+kept permanently in your **Butterfly Collection** (§9.13) — a sticker-album payoff for the
+Level Path and Daily Challenge that gives the progress system real weight without lives,
+currency, or timers.
+
+In Race mode, both players' garlands sit side by side, growing independently — the race is
+visible at a glance without reading a number.
+
+## 6. Motion system
+- **One shared spring, reused everywhere** (Framer Motion) — buttons, sheets, the garland, the
+  nav's Home button all use the same physics so the whole app feels like it came from one hand.
+- **The sticker-shadow press** (§4, Rule 2): every tappable element's shadow offset animates
+  toward 0 on press and springs back on release — this is the app's baseline "everything is
+  touchable" feedback, used on literally every button, card, and nav icon.
+- **Screen transitions read as turning a page**, not sliding a panel — shared-element/morph
+  transitions where it fits (a level node grows into the gameplay card).
+- **Lists stagger in**, 40–80ms per item.
+- **Ambient motion stays subtle** — background butterflies drifting, a slow idle flutter near
+  the nav's Home button.
+- **Spend the big motion budget on real payoffs** (word found, level stars, race win, path-hop),
+  keep routine navigation quick and quiet by comparison.
+- **`prefers-reduced-motion`** swaps everything to simple opacity fades, no exceptions.
+- **Performance:** transform/opacity only, cap simultaneous particles (~12), `will-change`
   sparingly.
 
-## 6. Screens — full walkthrough
+## 7. Global chrome — present on (almost) every page
 
-### 6.1 Splash
-- **Purpose:** cold-start branding moment when launched from the home-screen icon (no browser
-  chrome).
-- **Layout:** centered Fredoka wordmark on `--bg`; a couple of doodle butterflies drift in from
-  the edges and settle around it.
-- **Motion:** butterflies flutter in and land, then the splash "opens like a book" into
-  Sign-in/Home. ≤1.5s on true cold start; a fast, near-instant fade on quick re-opens so it
-  never feels like it's stalling you.
+### 7.1 The floating nav
+A single pill-shaped bar, floating ~16px above the bottom safe area (never flush to the screen
+edge — it should look like it's resting on the page, per Rule 2's sticker shadow), `--surface`
+fill, `--ink` border. **This is the direct fix for "I can't get back to home"** — it's persistent
+chrome, not a per-screen decision.
 
-### 6.2 Sign-in / Welcome
-- **Purpose:** first-run identity choice.
-- **Layout:** a warm doodle illustration (two butterflies meeting — a small nod to the "for two"
-  premise), one line of copy ("Save your progress and race your favorite person."), a primary
-  **"Sign in with Google"** button, and a secondary **"Continue as guest"** text link below it.
-- **States:** loading (during OAuth redirect), error (simple retry, no scary red banner — this
-  is a low-stakes app).
-- **Motion:** button press = soft bounce; successful sign-in triggers a quick garland-burst
-  transition straight into Home.
+**Contents, left to right:**
+1. **Daily** — small flame/streak-count badge, links to `/daily`
+2. **Level Path** — links to `/level-path`
+3. **Home** — the one blob-shaped icon (Rule 5), visually raised slightly above the rest of the
+   pill like a dock icon popping out, largest tap target in the bar, links to `/`
+4. **Race** — links to `/play/race/lobby`
+5. **Account** — your avatar. Signed in: your Google photo in a doodle circular frame. Guest:
+   an empty outlined-avatar doodle. **Tapping it is the sign-in entry point** — opens `/sign-in`
+   directly. This is also the direct fix for "there's no way to sign in": it's not a hidden
+   forced-onboarding step anymore, it's a permanent, obvious button.
 
-### 6.3 Home / Dashboard
-- **Purpose:** central hub — everything else is one tap away.
-- **Layout (top → bottom, mobile scroll):**
-  1. Header: avatar (Google photo in a doodle circular frame) + name, settings gear top-right.
-  2. **Daily Challenge card** — today's theme, streak count (small flame-butterfly icon), "Play
-     Today's Puzzle" button. Placed first since it's the "come back today" hook.
-  3. **Level Path teaser card** — "Chapter 2: Rainy Day · Level 14," a mini path preview,
-     "Continue" button.
-  4. Two primary buttons: **Level Path** and **Race a Friend**. "Standard (free play)" is a
-     smaller tertiary link beneath them — the level path is the main progression hook, standard
-     mode is there for casual no-pressure play.
-  5. A small stats row: total words found, races won vs. partner, current streak.
-- **Motion:** cards stagger in on load (fade + rise, ~60–80ms offset each); daily-streak icon
-  has a subtle idle flicker.
+Settings and the Butterfly Collection live inside the Profile screen (reached via Account) rather
+than getting their own nav slots — five icons is the ceiling for a bar this size before it stops
+being scannable at a glance.
 
-### 6.4 Level Map (Path)
-- **Purpose:** the Candy-Crush-style progression visual — but a garden path, not a candy trail.
-- **Layout:** a vertical winding path, scrollable, with level nodes as flower/leaf stops. Each
-  completed node shows 0–3 stars; locked nodes are greyed with a closed-bud icon; the
-  current/next level pulses gently. Chapter banners mark themed zones (Garden → Rainy Day →
-  Cozy Cottage → Night Sky → Date Night), with a subtle background-tint shift per chapter.
-- **Key interaction:** a small player-marker (doodle avatar or butterfly) sits on your current
-  node and visibly **hops forward** with a spring animation each time you complete a level —
-  the signature moment of this screen.
-- **Motion:** path auto-scrolls to center your current level on entry; background elements
-  (clouds, leaves) parallax-scroll slower than the path for depth.
+**States:**
+- **Full bar** on Home, Level Map, Level Info sheet, Standard Setup, Race Lobby, Race Ready-Up,
+  Race Results, Settings, Profile, Daily Challenge.
+- **Minimized to a single small pause/menu button (top-left)** during *active, timed* Level
+  gameplay and Race gameplay. Tapping it opens a confirm sheet ("Leave this puzzle? Your current
+  attempt won't be saved" / "Leave the race? This forfeits the round") before navigating home —
+  keeps "always reachable" true without letting an accidental tap cost you a race against your
+  partner mid-round.
+- **Hidden entirely** only on Splash and `/sign-in` — you're not "in the journal" yet.
+- **Tablet/landscape:** the pill relocates to a floating vertical bar on the left edge, same five
+  items top-to-bottom, Home still the largest/raised element.
 
-### 6.5 Level Info (bottom sheet)
-- **Purpose:** quick pre-level check before committing.
-- **Layout:** level number + chapter theme, star-requirement hints (e.g. "★★★ — finish with
-  time to spare"), a difficulty badge, primary **Play** button, small close (×).
-- **Motion:** sheet slides up with spring physics; backdrop dims/blurs.
+### 7.2 The signature footer
+A small handwritten (Caveat) line at the natural end of a page's content — *"a little garden,
+made by kimzam 🌿"* — `--ink` at ~60% opacity, centered, rotated −2° (Rule 6). This is a true
+footer (part of scrollable content), not sticky chrome like the nav — on short-content screens
+with no natural scroll end (Sign-in, Race Ready-Up) it sits statically pinned above the safe
+area. Always leave bottom padding equal to the floating nav's height + margin so the footer never
+sits underneath it. **Hidden during active gameplay** (Level/Standard/Race play) to keep that
+screen focused — it reappears on pause and results.
 
-### 6.6 Gameplay — Level & Standard (shared component)
-- **Purpose:** the core word-search loop, used by both Level Path and free-play Standard mode
-  (context banner differs; mechanics are identical).
-- **Layout:** top bar (back, level/theme label, optional timer, pause) → butterfly garland strip
-  pinned just under the top bar → grid card, centered → word-list pills below the grid on phone
-  portrait, beside it on tablet/landscape.
-- **Interaction:** drag or tap-sequence letter selection with a chunky rounded highlight path; a
-  found word gets a hand-drawn wobbly circle in `--found`, plus its butterfly launches from that
-  spot into the garland.
-- **States:** paused overlay (soft blur, Resume/Quit); level-complete overlay (stars animate in
-  one at a time, word summary, Next Level / Retry / Map). **No fail state in Level mode** — you
-  can always finish; stars simply reflect how well you did. (Race mode is the only place a hard
-  timer can end the round — see §6.10.)
-- **Motion:** letter cells get a tiny press-scale bounce; a found word-pill animates from the
-  list into its "found" state as the strikethrough draws itself; stars fly in with a quick pop.
+## 8. Sitemap — the explicit routing map
+This exists specifically to kill "the flow and routing is a mess." Every reachable screen and
+exactly where it links from:
 
-### 6.7 Standard (Free Play) Setup
-- **Purpose:** pick a theme + difficulty for untracked, no-pressure play — doesn't touch Level
-  Path progress.
-- **Layout:** swipeable theme carousel, three-card difficulty picker, optional timer toggle
-  (off by default), Start button.
-- **Motion:** carousel snaps with a light card-tilt on swipe.
+```
+/                         Home            ← default landing, guest by default, no forced gate
+/sign-in                  Sign-in         ← reached only via the nav's Account avatar
+/daily                    Daily Challenge ← from Home's daily card, or nav
+/level-path               Level Map       ← from Home or nav
+/level-path/[levelId]     Level gameplay  ← from tapping a node → Level Info sheet → Play
+/play/standard/[diff]     Standard setup → gameplay ← from Home's "Standard" link or nav shortcut
+/play/race/lobby          Race lobby      ← from Home or nav
+/play/race/[code]/ready   Race ready-up   ← after room create/join
+/play/race/[code]         Race gameplay   ← after both players ready
+/play/race/[code]/results Race results    ← after timer ends
+/profile                  Profile/Collection (+ Settings tab) ← from nav Account (signed in)
+/settings                 Settings        ← reachable from /profile, and directly via deep link
+```
+No screen is reachable only through a dead-end or a placeholder link — every arrow above is a
+real link/route. Locked Level Path nodes are non-interactive elements, not links to anywhere
+(see `agents.md` §5).
 
-### 6.8 Race Lobby — Create / Join
-- **Purpose:** stand up a 2-player race room.
-- **Layout:** segmented control "Create Room" / "Join Room." Create shows a large shareable room
-  code, a native-share button, and a QR code (handy phone-to-phone in the same room), then a
-  "waiting for your partner…" state. Join shows a big chunky code-entry field.
-- **Motion:** the waiting state shows two doodle butterflies circling each other; when the
-  second player connects, they "meet" with a small sparkle burst.
+**On guest vs. signed-in access, explicitly:** guest access to gameplay was always the intended
+design (`plan.md` §5) — that part doesn't change. What was actually broken was that there was no
+visible way to *choose* to sign in. The Account avatar in the floating nav is that fix: always
+present, always tappable, obvious at a glance whether you're signed in or not.
 
-### 6.9 Race Ready-Up
-- **Purpose:** each player locks in their own difficulty and confirms ready before the grid is
-  revealed.
-- **Layout:** both players' avatars/names side by side; each edits only their own difficulty
-  (partner's is shown read-only); a Ready toggle per player; once both are ready, a synced
-  3-2-1-GO countdown plays for both.
-- **Motion:** countdown numerals pop in large Fredoka type with a big bounce; "GO" triggers a
-  garland-strip sweep straight into gameplay.
+## 9. Screens — full walkthrough
+Each entry: purpose, layout, key interaction, nav/footer state, motion notes. Shape/shadow/icon
+rules from §4 apply throughout and aren't re-explained per screen.
 
-### 6.10 Race Gameplay (with banter chat)
-- **Purpose:** the timed race itself.
-- **Layout:** shared countdown timer, big, top-center. Your own grid + word list is the primary
-  focus (full width on phone). A slim strip shows your partner's *live progress* only — their
-  garland count and a percentage-filled outline of their grid, never their actual letters, to
-  keep it a race rather than a spectate. Both garlands sit at the top, yours and theirs, growing
-  independently.
-- **Quick-chat:** a small floating chat-bubble button in a thumb-reachable corner opens a tray
-  of one-tap banter presets — **"GG!", 😤, "So close!", "Nice find!", 🦋, "Hurry up!"** — tapping
-  sends instantly as a small speech-bubble doodle that pops up near the sender's garland and
-  fades after a couple seconds. No keyboard appears mid-race.
-- **States:** low-time warning (final ~10s) — timer pulses gently in `--accent`/`--gold`; kept
-  tasteful, not anxiety-inducing.
-- **Motion:** incoming banter bubbles pop in with a little wiggle; garland animations run
-  slightly snappier here than in Level mode, to match the race's energy.
+### 9.1 Splash
+Cold-start brand moment. Centered Fredoka wordmark on the paper-grain `--bg`; doodle butterflies
+drift in and settle. Opens "like a book" into Home. No nav/footer. ≤1.5s on true cold start, near
+-instant on quick re-opens.
 
-### 6.11 Race Results
-- **Purpose:** celebrate, reflect, maybe go again.
-- **Layout:** winner banner in big Fredoka ("You found more! 🦋"), both full garlands side by
-  side, stats (words found, time, fastest streak), the same quick-tap banter chips plus a
-  **freeform text chat box** now that there's no time pressure, and Rematch / Change Difficulty
-  / Home buttons.
-- **Motion:** winner's garland gets a celebratory shimmer pass; a brief fall of hand-drawn petal/
-  butterfly "confetti" (not generic square confetti), capped at ~12 particles.
+### 9.2 Home
+1. Header: Account avatar (guest or signed-in state) top-right — the same element as the nav's
+   rightmost icon, so it's recognizable immediately.
+2. **Daily Challenge card** — today's theme, streak badge, "Play Today's Puzzle."
+3. **Level Path teaser** — current chapter/level, mini path preview, "Continue."
+4. Two primary actions: **Level Path**, **Race a Friend**; "Standard (Free Play)" as a smaller
+   tertiary link beneath.
+5. Small stats row: words found, races won vs. partner, current streak.
+Full nav, footer visible at natural scroll end. Cards stagger in 60–80ms apart on load.
 
-### 6.12 Settings
-- **Purpose:** preferences + account, in one place.
-- **Sections:**
-  - **Appearance** — Light / Dark / System toggle.
-  - **Sound Mixer** — four doodle-styled sliders (Lofi/cassette icon, Rain/cloud-drip, Wind/
-    leaf-swirl, Birds/small-bird), each 0–100%, live-previewing while dragged, freely mixable
-    together; a master volume above them; 2–3 tappable presets ("Rainy Study," "Garden
-    Morning," "Quiet Night") that set all four at once and remain editable after. First playback
-    needs one explicit "▶ Start ambience" tap (mobile autoplay restriction) — styled as a
-    friendly doodle button, not a browser error.
-  - **Account** — Google profile card, "Sign out," "Delete my data." If in guest mode: a
-    "Sign in with Google to save your progress" prompt with a one-tap claim flow instead.
-  - **About** — sound-asset attributions, version number.
-- **Motion:** sections expand with a smooth height-spring; sliders give a satisfying thumb-bounce
-  on release.
+### 9.3 Sign-in
+Reached only via the nav's Account avatar (§7.1/§8) — never a forced first-run gate. Warm doodle
+illustration (two butterflies meeting), one line of copy, primary "Sign in with Google" (uneven-
+rectangle button, not a blob — it carries text), secondary "Continue as guest" text link. Loading
+and error states are simple, low-stakes (retry, no alarming red banner). No nav bar here
+(you're mid-decision about identity); footer pinned statically. Successful sign-in triggers a
+garland-burst transition back to Home.
 
-### 6.13 Profile / Butterfly Collection
-- **Purpose:** the lasting payoff for the Level Path and Daily Challenge — a sticker-album-style
-  home for every unique butterfly you've earned.
-- **Layout:** a grid of collected butterfly doodles; uncollected slots show as soft silhouettes;
-  tapping a collected one shows when/where it was earned (a nice small diary of your shared play
-  history). Core stats sit above the grid: levels completed, total words found, race record vs.
-  partner, current streak, longest streak.
-- **Motion:** newly-collected butterflies (since your last visit) carry a small "new" sparkle
-  that clears on tap; the grid stagger-reveals on load.
+### 9.4 Level Map
+Vertical winding garden path, scrollable. Level nodes as flower/leaf stops; completed nodes show
+0–3 stars; locked nodes are greyed non-interactive elements with a closed-bud icon (never a link,
+per §8); current/next node pulses. Chapter banners (Garden → Rainy Day → Cozy Cottage → Night
+Sky → Date Night) shift the background tint subtly per zone. A doodle player-marker sits on your
+current node and **hops forward** with a spring animation on level completion — the signature
+motion of this screen. Full nav; auto-scrolls to center your current level on entry.
 
-## 7. Accessibility & responsiveness
-- Minimum touch target 44×44px for all interactive elements (letters, buttons, sliders, chat
-  chips).
-- Both palettes checked for AA text contrast.
-- Found-word indication never relies on color alone — wobbly circle + strikethrough pill +
-  butterfly all reinforce it.
-- Support portrait and landscape on both phone and tablet; the grid scales, it doesn't crop.
-- `prefers-reduced-motion` is honored everywhere per §5, not just for the garland.
+### 9.5 Level Info (bottom sheet)
+Level number + chapter theme, star-requirement hints, difficulty badge, primary Play button
+(uneven-rectangle, text-bearing), small close. Sheet slides up with spring physics; backdrop
+blurs. Nav stays visible but dimmed behind the sheet.
+
+### 9.6 Gameplay — Level & Standard (shared component)
+Top bar: minimized pause/menu button (nav is minimized here, per §7.1) + level/theme label +
+optional timer. Garland strip pinned under the top bar. Grid card centered (uneven radius,
+sticker-shadow border per §4); word-list pills below on phone portrait, beside on tablet. Drag/
+tap letter selection with a chunky rounded highlight; a found word gets a hand-drawn wobbly
+circle plus its butterfly launches into the garland. **No fail state in Level mode** — stars
+measure quality, not gatekeeping. Level-complete overlay animates stars in one at a time. Footer
+hidden during play, reappears on the pause/complete overlays.
+
+### 9.7 Standard (Free Play) Setup
+Swipeable theme carousel (card-tilt on swipe), three-card difficulty picker, optional timer
+toggle (off by default), Start button. Full nav + footer.
+
+### 9.8 Race Lobby — Create/Join
+Segmented control. Create: large shareable room code, native-share button, QR code, then a
+"waiting for your partner…" state with two doodle butterflies circling each other until they
+"meet" with a sparkle on connect. Join: big chunky code-entry boxes. Full nav + footer.
+
+### 9.9 Race Ready-Up
+Both players' avatars/names side by side; each edits only their own difficulty; a Ready toggle
+per player; synced 3-2-1-GO countdown in large Fredoka numerals once both are ready, sweeping
+into gameplay on "GO." Full nav (you haven't started yet) + footer pinned.
+
+### 9.10 Race Gameplay (with banter chat)
+Nav minimized to the pause/menu button (§7.1) — same forfeit-confirmation reasoning as Level
+gameplay. Shared countdown timer, big, top-center. Your grid + word list is the primary focus;
+partner's *live progress* shows as a slim strip — their garland count and a percentage-filled
+grid outline, never their actual letters. Both garlands visible at the top, growing
+independently. A floating chat-bubble button (thumb corner) opens a tray of one-tap banter
+presets ("GG!", 😤, "So close!", "Nice find!", 🦋, "Hurry up!") — as real SVG/emoji-safe presets
+sent instantly, appearing as a small speech-bubble doodle near the sender's garland before
+fading. No keyboard mid-race. Final ~10 seconds: timer pulses gently in `--accent`/`--gold`,
+tasteful not anxious. Footer hidden.
+
+### 9.11 Race Results
+Full nav returns. Winner banner in big Fredoka ("You found more! 🦋" — as a real doodle butterfly
+graphic, not the literal emoji glyph, despite how that reads in this doc). Both full garlands
+side by side, stats, the same banter chips plus a freeform text box now that there's no time
+pressure, Rematch / Change Difficulty / Home. Winner's garland gets a shimmer pass; a capped
+(~12) fall of hand-drawn petal/butterfly confetti. Footer returns.
+
+### 9.12 Settings
+Reached from Profile or directly via `/settings`. Sections: **Appearance** (Light/Dark/System),
+**Sound Mixer** (four doodle sliders — cassette/Lofi, cloud-drip/Rain, leaf-swirl/Wind, small-
+bird/Birds — each 0–100%, freely mixable, master volume above, 2–3 tappable presets, one
+explicit "▶ Start ambience" tap for the first playback), **Account** (profile card, Sign out,
+Delete my data — or a "Sign in with Google" prompt + claim-progress flow if in guest mode),
+**About** (sound attributions, version). Sections expand with a height-spring. Full nav + footer.
+
+### 9.13 Profile / Butterfly Collection
+Grid of collected butterfly doodles (sticker-album feel); uncollected slots are soft
+silhouettes; tapping a collected one shows when/where it was earned. Core stats above the grid:
+levels completed, total words found, race record vs. partner, current streak, longest streak.
+Newly-collected butterflies carry a small rotated "new" sparkle badge that clears on tap. Full
+nav + footer.
+
+### 9.14 Daily Challenge
+Reuses the Gameplay component (§9.6) with a Daily-specific header: today's date (Caveat,
+small), streak count, a mini calendar strip of the last 7 days' completion dots. If already
+completed today: a "come back tomorrow" state showing today's result instead of a fresh grid.
+Full nav on the intro/result states; minimized during active play, same as §9.6.
+
+## 10. Accessibility & responsiveness
+- Minimum touch target 44×44px for all interactive elements, including every floating-nav icon.
+- Both palettes checked for AA text contrast; the sticker-shadow border (Rule 2) doubles as a
+  contrast aid against busy paper-grain backgrounds.
+- Found-word indication never relies on color alone.
+- Portrait and landscape supported on phone and tablet; the floating nav relocates per §7.1.
+- Content padding always accounts for the floating nav's height so nothing sits underneath it,
+  on every screen where it's present.
+- `prefers-reduced-motion` honored everywhere per §6.
