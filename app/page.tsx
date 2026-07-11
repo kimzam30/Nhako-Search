@@ -6,7 +6,7 @@ export default function Home() {
       <h1 className="text-4xl font-display text-ink mb-4">NhakoSearch</h1>
       
       <Link href="/daily" className="w-full bg-surface border-2 border-accent text-ink font-body font-bold py-3 px-4 rounded-xl text-center hover:bg-accent hover:border-ink transition-colors shadow-sm active:scale-95 duration-100 min-h-[44px]">
-        🔥 Daily Challenge
+        Daily Challenge
       </Link>
 
       <Link href="/level-path" className="w-full bg-accent text-ink font-body font-bold py-3 px-4 rounded-xl text-center border-2 border-ink shadow-[0_4px_0_var(--ink)] active:translate-y-1 active:shadow-none min-h-[44px] transition-transform">

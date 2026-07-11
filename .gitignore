@@ -85,3 +85,8 @@ dump.rdb
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# project specific scratch and scripts
+issue.md
+generate-words.js
+generate-words-2.js

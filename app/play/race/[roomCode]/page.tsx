@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { ButterflyGarland } from '@/components/game/ButterflyGarland';
 import { supabase } from '@/lib/multiplayer/supabase';
+import { ChatSvg } from '@/components/ui/Icons';
 
 const QUICK_BANTER = ["GG!", "😤", "So close!", "Nice find!", "🦋", "Hurry up!"];
 
@@ -17,8 +18,8 @@ export default function RaceRoomPage() {
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (data?.user) {
         setUserId(data.user.id);
         setUserName(data.user.email?.split('@')[0] || 'Player');
       } else {
@@ -26,6 +27,11 @@ export default function RaceRoomPage() {
         setUserId(tempId);
         setUserName('Guest');
       }
+    }).catch((err) => {
+      console.warn('Auth check failed, falling back to guest:', err);
+      const tempId = 'guest-' + Math.random().toString(36).substr(2, 6);
+      setUserId(tempId);
+      setUserName('Guest');
     });
   }, []);
 
@@ -148,9 +154,9 @@ function RaceRoom({ activeUserId, activeUserName, roomCode }: { activeUserId: st
          <motion.button 
            whileTap={{ scale: 0.9 }} transition={softBounce}
            onClick={() => setShowChatTray(!showChatTray)}
-           className="w-14 h-14 rounded-full bg-accent border-2 border-ink shadow-[0_4px_0_var(--ink)] active:translate-y-1 active:shadow-none flex items-center justify-center text-2xl"
+           className="w-14 h-14 rounded-full bg-accent border-2 border-ink shadow-[0_4px_0_var(--ink)] active:translate-y-1 active:shadow-none flex items-center justify-center"
          >
-           💬
+           <ChatSvg className="w-6 h-6 text-ink" />
          </motion.button>
        </div>
     </div>

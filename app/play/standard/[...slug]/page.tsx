@@ -10,11 +10,33 @@ export default function StandardPlayPage() {
   const [seed, setSeed] = useState<string>('');
   const [words, setWords] = useState<string[]>([]);
 
-  useEffect(() => {
-    setSeed(Math.random().toString(36).substring(2));
+  const generateNew = () => {
+    const wordCount = diff === 'easy' ? 6 : diff === 'medium' ? 8 : 10;
     const pool = (standardWords as any)[diff] || standardWords.easy;
-    const shuffled = [...pool].sort(() => 0.5 - Math.random());
-    setWords(shuffled.slice(0, 8));
+    
+    // Read recent from session storage
+    const recentJson = sessionStorage.getItem('nhako_recent_words') || '[]';
+    let recentWords: string[] = [];
+    try { recentWords = JSON.parse(recentJson); } catch (e) {}
+
+    // Filter out recent
+    const available = pool.filter((w: string) => !recentWords.includes(w));
+    // Fallback if pool exhausted
+    const poolToUse = available.length >= wordCount ? available : pool;
+
+    const shuffled = [...poolToUse].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, wordCount);
+
+    // Save back to session storage
+    const newRecent = [...recentWords, ...selected].slice(-30); // keep last 30 words (approx 3-5 sets)
+    sessionStorage.setItem('nhako_recent_words', JSON.stringify(newRecent));
+
+    setSeed(Math.random().toString(36).substring(2));
+    setWords(selected);
+  };
+
+  useEffect(() => {
+    generateNew();
   }, [diff]);
 
   if (!seed || words.length === 0) return null;
@@ -24,7 +46,7 @@ export default function StandardPlayPage() {
       <div className="w-full flex justify-between items-center mb-6 max-w-lg">
         <h1 className="text-2xl font-display text-ink capitalize">Standard Mode - {diff}</h1>
       </div>
-      <GameClient words={words} difficulty={diff} seedStr={seed} />
+      <GameClient words={words} difficulty={diff} seedStr={seed} onNext={generateNew} />
     </div>
   );
 }

@@ -18,10 +18,11 @@ interface Props {
   onComplete?: (stars: number, timeSeconds: number) => void;
   onProgress?: (progress: number) => void;
   nextLevelHref?: string;
+  onNext?: () => void;
   hideGarland?: boolean;
 }
 
-export function GameClient({ words, difficulty, seedStr = 'daily-seed-123', onComplete, onProgress, nextLevelHref, hideGarland = false }: Props) {
+export function GameClient({ words, difficulty, seedStr = 'daily-seed-123', onComplete, onProgress, nextLevelHref, onNext, hideGarland = false }: Props) {
   const game = useGameLogic(words, difficulty, seedStr);
   const [startTime] = useState(Date.now());
   const [isWon, setIsWon] = useState(false);
@@ -88,8 +89,13 @@ export function GameClient({ words, difficulty, seedStr = 'daily-seed-123', onCo
                   Next Level
                 </Link>
               )}
-              <Link href="/level-path" className="w-full bg-surface text-ink font-body font-bold py-3 px-4 rounded-xl border-2 border-ink min-h-[44px]">
-                Back to Map
+              {onNext && (
+                <button onClick={onNext} className="w-full bg-accent text-ink font-body font-bold py-3 px-4 rounded-xl border-2 border-ink shadow-[0_4px_0_var(--ink)] active:translate-y-1 active:shadow-none min-h-[44px]">
+                  New Puzzle
+                </button>
+              )}
+              <Link href={nextLevelHref ? "/level-path" : "/"} className="w-full bg-surface text-ink font-body font-bold py-3 px-4 rounded-xl border-2 border-ink min-h-[44px]">
+                {nextLevelHref ? "Back to Map" : "Back to Home"}
               </Link>
             </div>
           </motion.div>

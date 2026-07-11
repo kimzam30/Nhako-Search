@@ -38,7 +38,8 @@ export default function DailyChallengePage() {
     );
   }
 
-  const dailyWords = ['MORNING', 'COFFEE', 'SUNRISE', 'DEW', 'FRESH', 'AWAKE', 'STRETCH'];
+  const standardPool = require('@/lib/words/standard.json');
+  const dailyWords = standardPool.medium;
 
   return (
     <div className="flex flex-col flex-1 p-4 bg-background items-center justify-center">

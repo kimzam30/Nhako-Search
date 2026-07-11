@@ -4,6 +4,7 @@ import "./globals.css";
 import { AmbientAudioProvider } from "@/components/sound/AmbientAudioProvider";
 import { PwaRegister } from "@/components/PwaRegister";
 import { MotionConfig } from "framer-motion";
+import { MergeClient } from "@/components/MergeClient";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -42,6 +43,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col font-body">
         <PwaRegister />
+        <MergeClient />
         <MotionConfig reducedMotion="user">
           <AmbientAudioProvider>
             {children}
