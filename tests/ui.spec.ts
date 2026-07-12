@@ -38,24 +38,107 @@ test.describe('UI Regressions', () => {
     await playLevelBtn.waitFor({ state: 'visible' });
     await page.waitForTimeout(1000); // Wait for framer-motion slide-up animation
     
-    // Find the FloatingNav
-    const floatingNav = page.locator('div.fixed.bottom-6');
+    // The FloatingNav is z-50 and the modal is z-[60]. They may intersect visually, 
+    // but the Play Level button should remain clickable and not be blocked.
     
-    // Note: the FloatingNav is rendered unconditionally (hidden on sign-in), so it should be present.
-    // It is possible it's obscured by the z-[60] modal! Which is what we want!
-    // But let's check intersection if both are visible.
-    const navBox = await floatingNav.boundingBox();
-    const playBox = await playLevelBtn.boundingBox();
+    // Check if the button can be clicked
+    await playLevelBtn.click();
     
-    expect(navBox).not.toBeNull();
-    expect(playBox).not.toBeNull();
+    // Should navigate to the level
+    await page.waitForURL(/\/level-path\/.+/);
+  });
+
+  test('FloatingNav uses custom sheet instead of window.confirm', async ({ page }) => {
+    // Mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
     
-    if (navBox && playBox) {
-      // Check for overlap using bounding boxes
-      const intersectX = navBox.x < playBox.x + playBox.width && navBox.x + navBox.width > playBox.x;
-      const intersectY = navBox.y < playBox.y + playBox.height && navBox.y + navBox.height > playBox.y;
+    // Standard Hard mode URL
+    await page.goto('http://localhost:3002/play/standard/standard/hard');
+    
+    // Wait for the floating nav to be visible
+    const floatingNav = page.locator('div.fixed.bottom-6').first();
+    await floatingNav.waitFor({ state: 'visible' });
+
+    // Ensure we capture window.confirm if it is incorrectly called
+    let dialogFired = false;
+    page.on('dialog', dialog => {
+      dialogFired = true;
+      dialog.accept();
+    });
+
+    // Open Floating Nav Menu (it is minimized)
+    // Find the toggle button (the one with the PauseSvg or CloseSvg)
+    const toggleBtn = page.locator('div.fixed.bottom-6 > div > button');
+    await toggleBtn.waitFor({ state: 'visible' });
+    await toggleBtn.click();
+    
+    // Click Home
+    const homeBtn = page.locator('a[href="/"]');
+    await homeBtn.waitFor({ state: 'visible' });
+    await homeBtn.click();
+    
+    // Wait for the custom sheet to appear
+    const sheetTitle = page.locator('h3', { hasText: 'Leave this puzzle?' });
+    await sheetTitle.waitFor({ state: 'visible' });
+    
+    expect(dialogFired).toBe(false);
+    
+    // Click Leave
+    const leaveBtn = page.locator('button', { hasText: 'Leave' });
+    await leaveBtn.click();
+    
+    // Should navigate to Home
+    await page.waitForURL('http://localhost:3002/');
+  });
+
+  test('Grid selection highlight renders during active drag', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('http://localhost:3002/play/standard/standard/easy');
+    
+    // Wait for the grid cells to be visible
+    const firstCell = page.locator('div[data-x="0"][data-y="0"]').first();
+    await firstCell.waitFor({ state: 'visible' });
+
+    const gridBoard = page.locator('.aspect-square.max-w-\\[450px\\]').first();
+    
+    const firstBox = await firstCell.boundingBox();
+    expect(firstBox).not.toBeNull();
+    
+    if (firstBox) {
+      // Start drag from the first cell
+      await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
+      await page.mouse.down();
       
-      expect(intersectX && intersectY).toBe(false);
+      // Move mouse to the third cell (assuming they are in a row)
+      await page.mouse.move(firstBox.x + firstBox.width * 2.5, firstBox.y + firstBox.height / 2, { steps: 10 });
+      
+      // Screenshot mid-drag
+      await gridBoard.screenshot({ path: 'test-results/grid-drag.png' });
+      
+      // Check if the SVG line exists
+      const line = page.locator('svg line');
+      const count = await line.count();
+      expect(count).toBeGreaterThan(0);
+      
+      await page.mouse.up();
+    }
+  });
+
+  test('Word list layout fits within mobile viewport height', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('http://localhost:3002/play/standard/standard/easy');
+    
+    // Wait for WordList to be visible
+    const wordList = page.locator('div.flex.flex-wrap.justify-center.gap-1\\.5').first();
+    await wordList.waitFor({ state: 'visible' });
+    
+    // Verify it is fully visible in the viewport
+    const boundingBox = await wordList.boundingBox();
+    expect(boundingBox).not.toBeNull();
+    
+    if (boundingBox) {
+      expect(boundingBox.y + boundingBox.height).toBeLessThanOrEqual(667);
     }
   });
 });
+

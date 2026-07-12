@@ -10,7 +10,17 @@ export default function RaceLobbyPage() {
   const [roomCode, setRoomCode] = useState('');
   const router = useRouter();
 
+  const [errorMsg, setErrorMsg] = useState('');
+
   const handleCreate = () => {
+    const lastCreated = localStorage.getItem('nhako_last_room_created');
+    if (lastCreated && Date.now() - parseInt(lastCreated) < 10000) {
+      setErrorMsg('Please wait 10 seconds before creating another room.');
+      setTimeout(() => setErrorMsg(''), 3000);
+      return;
+    }
+    
+    localStorage.setItem('nhako_last_room_created', Date.now().toString());
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
     sessionStorage.setItem('is_leader_' + code, 'true');
     router.push(`/play/race/${code}`);
@@ -72,8 +82,13 @@ export default function RaceLobbyPage() {
             </Button>
           </form>
         ) : (
-          <div className="flex flex-col items-center gap-6 w-full">
+          <div className="flex flex-col items-center gap-6 w-full relative">
             <p className="text-ink/80 font-body font-medium text-center">Create a new room and invite your friend.</p>
+            {errorMsg && (
+              <p className="text-red-500 font-bold text-sm bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20 w-full text-center">
+                {errorMsg}
+              </p>
+            )}
             <Button onClick={handleCreate} fullWidth variant="primary" className="py-6 text-xl">
               Start New Room
             </Button>

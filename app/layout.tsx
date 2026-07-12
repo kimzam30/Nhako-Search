@@ -57,12 +57,14 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col font-body pb-24 md:pb-0 md:pl-24">
+      <body className="min-h-screen flex flex-col font-body pb-24 md:pb-0 md:pl-24 lg:pl-0 bg-background text-ink">
         <PwaRegister />
         <MergeClient />
         <MotionConfig reducedMotion="user">
           <AmbientAudioProvider>
-            {children}
+            <div className="flex flex-col flex-1 w-full md:max-w-[800px] md:mx-auto lg:max-w-[1000px] lg:mx-auto relative">
+              {children}
+            </div>
             <SignatureFooter />
             <FloatingNav />
           </AmbientAudioProvider>

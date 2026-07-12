@@ -10,6 +10,8 @@ export default function SignInPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
+  const [guestName, setGuestName] = useState('');
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -29,9 +31,38 @@ export default function SignInPage() {
   };
 
   const handleGuestContinue = () => {
+    setShowGuestPrompt(true);
+  };
+
+  const confirmGuest = () => {
+    const name = guestName.trim() || 'Guest';
     localStorage.setItem('nhako_guest_mode', 'true');
+    localStorage.setItem('nhako_guest_name', name);
     router.push('/');
   };
+
+  if (showGuestPrompt) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto h-screen relative">
+        <h1 className="text-3xl font-display text-ink mb-2">What's your name?</h1>
+        <p className="text-ink/80 mb-8 font-body font-medium text-lg text-center">
+          So your friend knows who they're racing.
+        </p>
+        <input 
+          type="text" 
+          value={guestName}
+          onChange={e => setGuestName(e.target.value)}
+          placeholder="Enter name"
+          maxLength={15}
+          className="w-full mb-4 bg-surface border-2 border-ink rounded-xl px-4 py-3 font-bold text-ink outline-none text-center text-lg"
+          autoFocus
+        />
+        <Button variant="primary" fullWidth onClick={confirmGuest}>
+          Start Playing
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto h-screen relative">

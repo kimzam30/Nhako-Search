@@ -234,3 +234,51 @@ Keep `public/audio/ATTRIBUTIONS.md` noting source + license per track, even the 
 
 ## 14. Budget
 Still $0/month software cost. The only expense is the nhako.com domain renewal you already own.
+
+## 15. Round 4 additions (post-README/video audit)
+
+**15.1 Difficulty now includes a placement-complexity dimension, not just size/count/timer:**
+
+| Difficulty | Grid | Words | Placement rules | Timer |
+|---|---|---|---|---|
+| Easy | 8×8 | 6 | Horizontal + vertical only, no overlapping letters between words — positions read as predictable | 3:00 |
+| Medium | 10×10 | 8 | + diagonals, some overlapping/crossing letters | 2:30 |
+| Hard | 13×13 | 10 | + reversed words, dense overlaps, tighter grid-to-word-count ratio | 2:00 |
+
+This applies to Standard, Level Path, and (per-room, leader-chosen per the Round 3 leader-
+authority change) Race mode.
+
+**15.2 Level Path scale.** ~365 levels across 10–12 seasonal/monthly chapters. Build a shared
+word pool per chapter (Datamuse-bootstrapped, §8), assign leveled subsets algorithmically with a
+difficulty ramp — do not hand-write 365 word lists. The Level Map view must virtualize its node
+list at this scale.
+
+**15.3 Sound sourcing, refined.** The current Lofi/Rain tracks need re-curation — search terms
+worth trying on Pixabay/Freesound/Mixkit: "lofi rain study loop, no drums" for a calmer Lofi
+bed, and "distant thunderstorm rain loop" for a new, separate Thunder channel (see `design.md`
+§11.5) rather than baking thunder into the existing Rain track.
+
+**15.4 Desktop breakpoint.** Add 1920×1080-class layouts per `design.md` §11.2 — this is new
+scope beyond the original mobile/tablet brief, worth knowing it's an expansion, not a bug fix.
+
+**15.5 Keep-alive for Supabase.** Add `.github/workflows/keep-supabase-awake.yml`: a `schedule`
+cron trigger every 3 days (well under the 7-day auto-pause window) running a trivial
+authenticated query against the project using a repo secret for the key. Free within GitHub
+Actions' minutes at this frequency.
+
+**15.6 Staying on free tiers — a safety pass, not just a hope.** Neither Vercel Hobby nor
+Supabase's free tier auto-charges on overage by default — both throttle or pause instead of
+silently billing you, since no payment method is required to be on either free tier in the first
+place. The actionable checklist: confirm no paid add-ons/compute upgrades are toggled on either
+project's dashboard, and add basic client-side rate-limiting on room creation/joining so a bug
+(e.g. a retry loop) can't hammer the free-tier request quota. Worth a periodic manual check of
+both dashboards regardless — terms and free-tier limits do change over time.
+
+**15.7 Username system.** Add a `display_name` field to the `profiles` table (§5) for signed-in
+users, defaulted from the Google account name and editable after. Guest mode stores an
+equivalent name in `localStorage`, prompted for on first entry. Every multiplayer-facing surface
+(lobby, ready-up, gameplay, chat, results) reads from this instead of a generic placeholder.
+
+**15.8 Repo cleanup.** Once the functional fixes in this round land — not before, so nothing
+mid-refactor gets deleted — run real dead-code tooling (ESLint unused-vars/imports, `knip` or
+`ts-prune` for unused exports/files) rather than an eyeballed pass, and remove what it finds.

@@ -21,7 +21,7 @@ export default function StandardSetupPage() {
 
   return (
     <div className="flex flex-col items-center flex-1 p-6 bg-transparent w-full max-w-lg mx-auto">
-      <h1 className="text-3xl font-display text-ink mb-8">Standard Play</h1>
+      <h1 className="text-3xl font-display text-ink mb-8">Free Play</h1>
       
       <div className="w-full mb-8 relative">
         <div className="flex justify-between items-end mb-4">

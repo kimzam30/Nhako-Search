@@ -66,7 +66,7 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
         {/* SVG Overlay for Loops */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1, overflow: 'visible' }} viewBox="0 0 100 100" preserveAspectRatio="none">
           {/* We use standard turbulence filter for sketchy look */}
-          <filter id="sketch">
+          <filter id="sketch" filterUnits="userSpaceOnUse" x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
             <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
           </filter>
@@ -81,11 +81,9 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
             return (
               <motion.line 
                 key={loop.id}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                x1={cx1} y1={cy1}
-                x2={cx2} y2={cy2}
+                initial={{ pathLength: 0, opacity: 0, x1: cx1, y1: cy1, x2: cx1, y2: cy1 }}
+                animate={{ pathLength: 1, opacity: 1, x1: cx1, y1: cy1, x2: cx2, y2: cy2 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
                 stroke={loop.isFound ? 'var(--found)' : 'var(--accent)'}
                 strokeWidth={80 / Math.max(grid.width, grid.height)}
                 strokeLinecap="round"
@@ -104,11 +102,9 @@ export function GridBoard({ grid, foundWords, selectedCells, onPointerDown, onPo
              return (
                <motion.line 
                  key={loop.id + '-outline'}
-                 initial={{ pathLength: 0, opacity: 0 }}
-                 animate={{ pathLength: 1, opacity: 1 }}
-                 transition={{ duration: 0.3 }}
-                 x1={cx1} y1={cy1}
-                 x2={cx2} y2={cy2}
+                 initial={{ pathLength: 0, opacity: 0, x1: cx1, y1: cy1, x2: cx1, y2: cy1 }}
+                 animate={{ pathLength: 1, opacity: 1, x1: cx1, y1: cy1, x2: cx2, y2: cy2 }}
+                 transition={{ duration: 0.15, ease: "easeOut" }}
                  stroke="var(--ink)"
                  strokeWidth={80 / Math.max(grid.width, grid.height) + 2}
                  strokeLinecap="round"

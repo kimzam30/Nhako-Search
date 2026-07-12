@@ -7,6 +7,7 @@ type AudioVolumes = {
   rain: number;
   wind: number;
   birds: number;
+  thunder: number;
 };
 
 interface AmbientAudioContextType {
@@ -23,6 +24,7 @@ const defaultVolumes: AudioVolumes = {
   rain: 0,
   wind: 0,
   birds: 0,
+  thunder: 0,
 };
 
 const AmbientAudioContext = createContext<AmbientAudioContextType | null>(null);
@@ -34,22 +36,16 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
-  const gainsRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'>, GainNode | null>>({
-    lofi: null,
-    rain: null,
-    wind: null,
-    birds: null,
+  const gainsRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'> | 'thunder', GainNode | null>>({
+    lofi: null, rain: null, wind: null, birds: null, thunder: null
   });
   
   const thunderGainRef = useRef<GainNode | null>(null);
   const thunderBufferRef = useRef<AudioBuffer | null>(null);
   
   // We keep track of the source nodes in case we need to stop them on unmount
-  const sourcesRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'>, AudioBufferSourceNode | null>>({
-    lofi: null,
-    rain: null,
-    wind: null,
-    birds: null,
+  const sourcesRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'> | 'thunder', AudioBufferSourceNode | null>>({
+    lofi: null, rain: null, wind: null, birds: null, thunder: null
   });
 
   // Load saved volumes on mount
@@ -109,13 +105,13 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
     };
 
     const thunderGain = ctx.createGain();
-    thunderGain.gain.value = volumes.rain / 100;
+    thunderGain.gain.value = volumes.thunder / 100;
     thunderGain.connect(masterGain);
     thunderGainRef.current = thunderGain;
 
     // Load all tracks concurrently
     await Promise.all([
-      loadTrack('lofi', '/audio/lofi-deep.mp3'),
+      loadTrack('lofi', '/audio/lofi.mp3'),
       loadTrack('rain', '/audio/rain.mp3'),
       loadTrack('wind', '/audio/wind.mp3'),
       loadTrack('birds', '/audio/birds.mp3'),
@@ -146,7 +142,7 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
     });
     
     if (thunderGainRef.current) {
-      thunderGainRef.current.gain.setTargetAtTime(volumes.rain / 100, now, 0.05);
+      thunderGainRef.current.gain.setTargetAtTime(volumes.thunder / 100, now, 0.05);
     }
     
     localStorage.setItem('nhako_audio_volumes', JSON.stringify(volumes));

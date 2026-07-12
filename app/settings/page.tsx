@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { getUserProfile, updateDisplayName } from '@/lib/auth/profile';
 
 const Section = ({ title, defaultOpen = false, children }: { title: string, defaultOpen?: boolean, children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -46,9 +47,16 @@ export default function SettingsPage() {
   const [user, setUser] = useState<any>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [theme, setThemeState] = useState('system');
+  const [profile, setProfile] = useState<{ displayName: string, avatarUrl: string, isGuest: boolean } | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState('');
 
   useEffect(() => {
     setThemeState(localStorage.getItem('nhako_theme') || 'system');
+    getUserProfile().then(p => {
+      setProfile(p);
+      setEditNameValue(p.displayName);
+    });
   }, []);
 
   const setTheme = (t: string) => {
@@ -56,6 +64,13 @@ export default function SettingsPage() {
     localStorage.setItem('nhako_theme', t);
     const isDark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', isDark);
+  };
+
+  const saveName = async () => {
+    const name = editNameValue.trim() || 'Player';
+    await updateDisplayName(name);
+    setProfile(prev => prev ? { ...prev, displayName: name } : null);
+    setIsEditingName(false);
   };
 
   useEffect(() => {
@@ -81,9 +96,9 @@ export default function SettingsPage() {
 
   const applyPreset = (preset: string) => {
     if (preset === 'focus') {
-      setVolume('lofi', 80); setVolume('rain', 40); setVolume('wind', 0); setVolume('birds', 0);
+      setVolume('lofi', 80); setVolume('rain', 40); setVolume('thunder', 0); setVolume('wind', 0); setVolume('birds', 0);
     } else if (preset === 'nature') {
-      setVolume('lofi', 0); setVolume('rain', 20); setVolume('wind', 50); setVolume('birds', 80);
+      setVolume('lofi', 0); setVolume('rain', 20); setVolume('thunder', 10); setVolume('wind', 50); setVolume('birds', 80);
     }
     if (!isPlaying) startAmbience();
   };
@@ -157,6 +172,7 @@ export default function SettingsPage() {
               {[
                 { id: 'lofi', label: 'Lofi Beats', initial: 'L' },
                 { id: 'rain', label: 'Rain Drops', initial: 'R' },
+                { id: 'thunder', label: 'Thunder', initial: 'T' },
                 { id: 'wind', label: 'Wind Swirl', initial: 'W' },
                 { id: 'birds', label: 'Morning Birds', initial: 'B' }
               ].map(track => (
@@ -184,30 +200,57 @@ export default function SettingsPage() {
         
         {/* Account */}
         <Section title="Account" defaultOpen={false}>
-          {user ? (
+          {profile ? (
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-4 bg-background p-4 rounded-xl border-2 border-ink/10">
-                <img src={user.user_metadata?.avatar_url || ''} className="w-12 h-12 rounded-full border border-ink/20" alt="Avatar" />
-                <div className="flex flex-col">
-                  <span className="font-bold text-ink">{user.user_metadata?.name || 'Player'}</span>
-                  <span className="text-sm text-ink/60">{user.email}</span>
+                {profile.avatarUrl ? (
+                  <img src={profile.avatarUrl} className="w-12 h-12 rounded-full border border-ink/20" alt="Avatar" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-surface border-2 border-ink flex items-center justify-center font-display font-bold text-xl text-ink">
+                    {profile.displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                
+                <div className="flex flex-col flex-1">
+                  {isEditingName ? (
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={editNameValue} 
+                        onChange={e => setEditNameValue(e.target.value)}
+                        className="flex-1 bg-surface border-2 border-ink rounded px-2 py-1 font-bold text-ink outline-none"
+                        autoFocus
+                      />
+                      <button onClick={saveName} className="bg-accent px-3 py-1 rounded border-2 border-ink font-bold shadow-[2px_2px_0_0_var(--ink)] active:translate-y-[2px] active:shadow-none">Save</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-ink text-lg">{profile.displayName}</span>
+                      <button onClick={() => setIsEditingName(true)} className="text-xs font-bold uppercase tracking-widest text-ink/50 hover:text-ink">Edit</button>
+                    </div>
+                  )}
+                  {user && <span className="text-sm text-ink/60">{user.email}</span>}
+                  {profile.isGuest && <span className="text-sm text-ink/60">Guest Mode</span>}
                 </div>
               </div>
-              <Button onClick={handleSignOut} fullWidth variant="secondary" className="border-ink/20 hover:bg-background">
-                Sign out
-              </Button>
+              
+              {!profile.isGuest && (
+                <Button onClick={handleSignOut} fullWidth variant="secondary" className="border-ink/20 hover:bg-background">
+                  Sign out
+                </Button>
+              )}
+              {profile.isGuest && (
+                <Button onClick={() => router.push('/sign-in')} fullWidth variant="primary">
+                  Sign in to save progress
+                </Button>
+              )}
               <Button onClick={handleDeleteData} fullWidth variant="danger">
                 Delete My Data
               </Button>
             </div>
-          ) : isGuest ? (
-            <div className="flex flex-col gap-4 text-center">
-              <p className="font-body text-ink font-medium">You are playing as a Guest.</p>
-              <Button onClick={() => router.push('/sign-in')} fullWidth variant="primary">
-                Sign in to save progress
-              </Button>
-            </div>
-          ) : null}
+          ) : (
+            <div className="animate-pulse h-24 bg-ink/5 rounded-xl w-full" />
+          )}
         </Section>
 
         {/* About */}

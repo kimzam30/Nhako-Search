@@ -149,11 +149,24 @@ unit-testable — no React imports there.
 - **Multiplayer events** go over one Supabase channel per room, named `room:{roomCode}`. Keep
   the event contract small and explicit:
   - `player_joined { playerId, name }`
+  - `difficulty_set { by: leaderId, difficulty }` — leader-only, per `design.md` §9.9
+  - `countdown_start { startAt }` — **both clients must render the 3-2-1-GO countdown computed
+    from this shared timestamp; the leader's local UI starting a countdown without broadcasting
+    this event (so the guest skips straight to live gameplay with a head start) is a confirmed
+    bug from live testing, not a hypothetical**
+  - `game_start { startedBy }`
   - `word_found { playerId, word, timestamp }`
   - `timer_sync { endsAt }`
   - `game_over { winnerId }`
   - `chat_message { playerId, type: 'quick' | 'text', content, timestamp }` — broadcast only,
-    never written to a table (see constraint §2.6).
+    never written to a table (see constraint §2.6). **The full `content` must render on the
+    receiving client, not just the sender's name/id** — confirmed broken in live testing (only
+    the sender label showed, message text was dropped).
+  - `room_closed { reason: 'leader_left' | ... }` — **the receiving (non-leader) client must
+    treat this as mandatory**: immediately redirect to the lobby/home rather than staying
+    connected to a dead room. Confirmed via live testing that a guest can currently get stuck in
+    an orphaned session when the leader leaves — this event existing in the code isn't enough,
+    the client-side handler that reacts to it must actually run.
 - **Every new Postgres table gets an RLS policy scoped to `auth.uid()`** before it's used, no
   exceptions — this is the one place a bug could leak data between the two accounts on this app.
   Test each policy by confirming you cannot read the other user's row from your own session.
@@ -239,3 +252,23 @@ every table's RLS policy is correctly scoped (§5).
 - **Check the Definition of Done (§9) explicitly before ending a task**, including running the
   reload-twice puzzle test and the back/forward test yourself — don't leave that verification to
   the human.
+
+## 11. Round 4 additions (post-README/video audit)
+
+- **No native browser dialogs** (`window.confirm`, `alert`, `prompt`) anywhere in the shipped
+  UI — every confirmation is a custom Framer-Motion sheet matching `design.md` §4. This was
+  found in the current nav's quit-confirmation and must be replaced.
+- **Produce `ROUTING_MAP.md`** as part of this round's audit: for every screen, enumerate every
+  tap target (button/link/card) and its exact destination or state change. This repo has full
+  code visibility that a document alone can't guarantee stays accurate — generate it from the
+  actual current routes/handlers, not from `design.md`'s sitemap description.
+- **Use the existing Playwright setup, not just `/browser`, for anything with a pass/fail
+  condition.** Per the README, Playwright is already in this repo for UI regression/viewport
+  testing — write or extend a test for each bug in this round (e.g. "reload Standard mode twice,
+  assert the word list differs," "open Race room in two contexts, change difficulty in one,
+  assert the other reflects it within 1s without a reload," "drag-select a word, screenshot
+  mid-drag, assert a highlight is visible"). `/browser` is for visual/UX judgment calls;
+  Playwright is for anything with a concrete assertion — use both, don't substitute one for the
+  other.
+- **Dead-code cleanup runs last**, after this round's functional fixes are in and verified —
+  see `plan.md` §15.8.

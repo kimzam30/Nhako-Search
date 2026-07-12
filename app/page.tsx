@@ -39,10 +39,13 @@ export default function HomePage() {
         });
       } else {
         // Guest mode
+        const localLevels = JSON.parse(localStorage.getItem('nhako_levels') || '{}');
+        const localDaily = JSON.parse(localStorage.getItem('nhako_daily') || '{}');
+        
         setStats({
-          levels: parseInt(localStorage.getItem('nhako_guest_levels') || '0'),
-          wins: parseInt(localStorage.getItem('nhako_guest_wins') || '0'),
-          streak: parseInt(localStorage.getItem('nhako_guest_streak') || '0'),
+          levels: Object.keys(localLevels).length,
+          wins: 0, // Guests don't save race history
+          streak: localDaily.streak || 0,
         });
       }
     };
@@ -203,7 +206,7 @@ export default function HomePage() {
         <motion.div variants={itemVariants} className="w-full">
           <Link href="/play/standard">
             <Button variant="secondary" fullWidth className="border-ink/40 text-ink/80 hover:bg-surface">
-              Standard (Free Play)
+              Free Play
             </Button>
           </Link>
         </motion.div>

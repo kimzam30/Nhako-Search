@@ -12,6 +12,7 @@ This repository is a Next.js (App Router) progressive web app (PWA) backed by Su
 - **Animation**: Framer Motion for shared spring physics, page transitions, and interactive component feedback (like sticker-shadow presses).
 - **Backend & Auth**: Supabase (PostgreSQL, Supabase Auth via Google OAuth, Supabase Realtime).
 - **Audio**: Native Web Audio API integrated into a persistent global React Context.
+- **Testing**: Playwright for UI regression and viewport testing.
 - **Hosting**: Vercel (Hobby plan).
 
 ---
@@ -46,7 +47,7 @@ The app follows a flat, accessible Next.js App Router structure. There are no de
 - **Purpose**: The central dashboard and landing page. Guest by default, no forced login gates.
 - **Features**: 
   - Splash screen (first load only, managed via `sessionStorage`).
-  - Fetches and displays dynamic stats (Levels, Wins, Streak). Reads from `localStorage` for Guests, and `Supabase` for authenticated users.
+  - Fetches and displays dynamic stats (Levels, Wins, Streak). Reads from `localStorage` for Guests, and `Supabase` for authenticated users via unified fetching.
   - Quick-action cards to enter Daily Challenge, Level Path, Race Lobby, Standard mode, and Profile.
 - **Connections**: Connects to `level_progress`, `race_history`, and `daily_challenge_log` to aggregate the top-level stats.
 
@@ -72,7 +73,7 @@ The app follows a flat, accessible Next.js App Router structure. There are no de
   - Calculates the highest unlocked level by reading `level_progress`.
   - Animated pulsing marker for the current unlocked level.
   - Locked levels are visually inaccessible standard `<div>` or `<button disabled>` nodes.
-  - Tapping an unlocked node pops open a Framer Motion bottom sheet with Star requirements.
+  - Tapping an unlocked node pops open a Framer Motion bottom sheet with Star requirements (secured via precise z-index math).
 
 ### `/level-path/[levelId]` (Level Gameplay)
 - **Purpose**: Executes the puzzle for a specific node on the level path.
@@ -81,32 +82,36 @@ The app follows a flat, accessible Next.js App Router structure. There are no de
 ### `/play/standard/[...slug]` (Standard Play)
 - **Purpose**: Unlimited, casual free play.
 - **Features**: 
+  - Setup screen includes horizontal, wrap-prevented scroll sections with animated visual hints ("Scroll for more →").
   - Reads `theme` and `difficulty` parameters from the URL.
   - Filters out recent words using `sessionStorage` (e.g., `nhako_recent_garden_easy`) to prevent immediate puzzle repeats.
   - Passes a fully random `Math.random()` seed to `<GameClient />` so grids are always unique.
 
 ### `/play/race/lobby` (Race Lobby)
 - **Purpose**: Segmented control screen to Join or Create a multiplayer room.
-- **Features**: Generates a random 4-character Room Code (`Math.random().toString(36)`) or validates a 4-character input before routing the user to the specific room URL.
+- **Features**: Generates a random 4-character Room Code (`Math.random().toString(36)`) or validates a 4-character input before routing the user to the specific room URL. The creator of the room is granted `isLeader` status.
 
 ### `/play/race/[roomCode]` (Race Room)
 - **Purpose**: Realtime 2-player racing environment with a lobby, countdown, and active play states.
 - **Features**: 
-  - **Lobby Phase**: Both users configure their personal difficulty. Both must hit "Ready" to initiate a synced 3-second countdown.
-  - **Live Gameplay**: Shared countdown timer. Realtime progress bars. Mini floating tray for one-tap "Banter" chat.
+  - **Lobby Phase**: Leader Authority system. The Leader dictates the difficulty and manually triggers the "Start" sequence. Guests receive a read-only "Waiting for Leader..." state.
+  - **Live Gameplay**: Globally synced 3-2-1 countdown into shared play. Realtime progress bars reflect exact word-find events.
+  - **Auto-Kick Teardown**: If the Leader leaves the room or disconnects, presence hooks immediately route the Guest back to the lobby.
+  - **Banter Chat**: Mini floating tray for one-tap text communication, rendering both sender tags and unclipped message blocks.
   - **Results Phase**: Shows the winner, both garlands side-by-side, and offers a Rematch.
 - **Connections**: Fully relies on `useRaceRoom` custom hook interfacing with Supabase Realtime Channels (`room:{code}`).
 
 ### `/profile` (Profile & Collection)
 - **Purpose**: Visual sticker album for earned butterflies and aggregate user stats.
 - **Features**: 
+  - Dynamically fetches comprehensive user stats natively via `level_progress` and `daily_challenge_log` to render responsive loading skeletons before dropping in true data.
   - Pulls `butterfly_collection` records to populate a 30-slot grid.
   - Interacting with an earned butterfly opens a detailed modal showing where and when it was unlocked.
 
 ### `/settings` (Settings)
 - **Purpose**: App configuration.
 - **Features**:
-  - Appearance toggles (Light/Dark/System) that directly manipulate the `document.documentElement` class list and `localStorage`.
+  - Appearance toggles (Light/Dark/System) managed via a smoothly animated horizontal layout, manipulating `localStorage`.
   - Advanced Sound Mixer binding sliders to `useAmbientAudio` volumes.
   - Account actions: Sign out, and Data Deletion warnings.
 
@@ -119,13 +124,13 @@ The app follows a flat, accessible Next.js App Router structure. There are no de
 - **Difficulty Scaling**: Easy (8x8, H/V), Medium (10x10, +Diag), Hard (13x13, +Reverse).
 
 ### Game Client (`components/game/GridBoard.tsx` & `useGameLogic.ts`)
-- The grid board uses an SVG canvas set to `viewBox="0 0 100 100"` to render touch-friendly highlight paths.
-- Line widths and coordinates are absolute within the SVG space to prevent mobile rendering glitches.
+- Strict coordinate math explicitly validates orthogonal (dx=0 or dy=0) and perfect diagonal vectors to ensure flawless 360-degree dragging.
+- The grid board wrapper enforces an `aspect-square w-full max-w-[450px]` rule, ensuring even 13x13 hard mode grids scale down gracefully to fit mobile screens.
 - Uses `PointerEvents` (`onPointerDown`, `onPointerEnter`, `onPointerUp`) to support seamless dragging across cells.
 
 ### Multiplayer Sync (`lib/multiplayer/useRaceRoom.ts`)
 - Utilizes `supabase.channel()` to broadcast and listen to ephemeral JSON packets.
-- Implements deterministic Host-Election: When an event requires authoritative consensus (like starting a race), the client sorts both Player IDs alphabetically. The first ID triggers the state transition, preventing race conditions or duplicated network requests.
+- **Leader Authority State Machine**: Abandons arbitrary election patterns. The initial creator dictates the room's constraints and fires authoritative broadcast events (`start_race`, `room_closed`) ensuring zero race-conditions or orphaned Guests.
 
 ### Global Sound Engine (`components/sound/AmbientAudioProvider.tsx`)
 - Native Web Audio API implementation holding an `AudioContext`.
@@ -141,13 +146,15 @@ The app follows a flat, accessible Next.js App Router structure. There are no de
 ## 5. Components Deep Dive
 
 ### Global Chrome
-- **`FloatingNav.tsx`**: A responsive, bottom-anchored (or side-anchored on tablet) navigation pill. Features Framer Motion layout animations, a mini Sound Mixer popover, and dynamically minimized states during active gameplay to prevent accidental navigation.
+- **`FloatingNav.tsx`**: A responsive, 6-icon navigation pill that anchors to the bottom-center on mobile, and the left-center on tablet/desktop. 
+  - **Universal Pause Integration**: During active gameplay, clicking navigation links intercepts the route event and triggers a strict `window.confirm` popup, serving as the single source of truth for quitting puzzles.
+  - **Framer Motion Integration**: The entire structure smoothly shrinks to a `w-14 h-14` Hamburger pill to minimize UI blocking, toggling open and closed effortlessly.
 - **`SignatureFooter.tsx`**: A small, tilted `-2deg` hand-written text element at the bottom of scrollable pages ensuring the app feels personal and hand-crafted.
 
 ### Game UI
 - **`ButterflyGarland.tsx`**: The core progression UI. Renders earned butterflies linearly. Animates new butterflies popping into existence upon finding words.
-- **`GridBoard.tsx`**: Renders the letter matrix and the dynamic pink SVG highlight overlay.
-- **`WordList.tsx`**: A pill-based list of words to find. Pills cross out and dim gracefully once found.
+- **`GridBoard.tsx`**: Renders the responsive letter matrix and the dynamic pink SVG highlight overlay directly coupled to the bounds of the fluid container.
+- **`WordList.tsx`**: A responsive flex-wrapped word pill container replacing standard horizontal scrolling, keeping all required targets visibly stacked for the player at all times.
 - **`LetterCell.tsx`**: A simple memoized div rendering individual characters, dispatching pointer events to the Game logic context.
 
 ---
@@ -157,4 +164,4 @@ As outlined in the design spec, the repo rigidly adheres to specific anti-generi
 1. **Asymmetric Border Radii**: Components use `border-radius: 22px 9px 26px 13px` syntax to avoid looking like template boxes.
 2. **Sticker Shadows**: No CSS blurring. Box shadows use strict solid offsets `shadow-[4px_5px_0_0_var(--ink)]`.
 3. **Paper Grain Textures**: Global turbulence SVG noise filters sit behind the app.
-4. **Custom Vectors Only**: No emojis. Standard icons are hand-wobbled SVGs (e.g., `FlameSvg`, `StarSvg`, `ButterflySvg`).
+4. **Custom Vectors Only**: No emojis. Standard icons are hand-wobbled SVGs (e.g., `FlameSvg`, `StarSvg`, `ButterflySvg`, custom Hamburger menu toggle).

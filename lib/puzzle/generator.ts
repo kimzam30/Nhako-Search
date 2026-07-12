@@ -86,8 +86,10 @@ export function generateGrid(words: string[], difficulty: Difficulty, seedStr: s
     let placed = false;
     let attempts = 0;
     
-    // We try placing randomly up to 100 times per word
-    while (!placed && attempts < 100) {
+    // For hard mode, we evaluate multiple valid placements and pick the one with most overlaps
+    let bestPlacement: { dir: number[], startX: number, startY: number, overlaps: number } | null = null;
+    
+    while (!placed && attempts < (difficulty === 'hard' ? 200 : 100)) {
       const dir = directions[Math.floor(random() * directions.length)];
       const startX = Math.floor(random() * width);
       const startY = Math.floor(random() * height);
@@ -96,32 +98,64 @@ export function generateGrid(words: string[], difficulty: Difficulty, seedStr: s
 
       if (endX >= 0 && endX < width && endY >= 0 && endY < height) {
         let fits = true;
+        let overlaps = 0;
+        
         for (let i = 0; i < word.length; i++) {
           const cx = startX + dir[0] * i;
           const cy = startY + dir[1] * i;
-          if (grid[cy][cx] !== '' && grid[cy][cx] !== word[i]) {
-            fits = false;
-            break;
+          
+          if (difficulty === 'easy') {
+            if (grid[cy][cx] !== '') {
+              fits = false;
+              break;
+            }
+          } else {
+            if (grid[cy][cx] !== '') {
+              if (grid[cy][cx] !== word[i]) {
+                fits = false;
+                break;
+              } else {
+                overlaps++;
+              }
+            }
           }
         }
 
         if (fits) {
-          for (let i = 0; i < word.length; i++) {
-            const cx = startX + dir[0] * i;
-            const cy = startY + dir[1] * i;
-            grid[cy][cx] = word[i];
+          if (difficulty === 'hard') {
+            if (!bestPlacement || overlaps > bestPlacement.overlaps) {
+              bestPlacement = { dir, startX, startY, overlaps };
+            }
+            // If we found a really good overlap, stop searching early
+            if (overlaps >= 2) break;
+          } else {
+            bestPlacement = { dir, startX, startY, overlaps };
+            break;
           }
-          placedWords.push({
-            word,
-            startX,
-            startY,
-            endX,
-            endY
-          });
-          placed = true;
         }
       }
       attempts++;
+    }
+
+    if (bestPlacement) {
+      const { dir, startX, startY } = bestPlacement;
+      const endX = startX + dir[0] * (word.length - 1);
+      const endY = startY + dir[1] * (word.length - 1);
+
+      for (let i = 0; i < word.length; i++) {
+        const cx = startX + dir[0] * i;
+        const cy = startY + dir[1] * i;
+        grid[cy][cx] = word[i];
+      }
+      
+      placedWords.push({
+        word,
+        startX,
+        startY,
+        endX,
+        endY
+      });
+      placed = true;
     }
   }
 

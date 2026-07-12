@@ -6,9 +6,11 @@ export interface PlayerState {
   id: string;
   name: string;
   difficulty: string;
+  isReady: boolean;
   isLeader: boolean;
   progress: number;
   total: number;
+  foundWords: string[];
 }
 
 export interface RaceState {
@@ -26,11 +28,11 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
 
   const [raceState, setRaceState] = useState<RaceState>({ 
     status: 'lobby',
-    playerA: { id: userId, name: userName, difficulty: 'medium', isLeader, progress: 0, total: 8 }
+    playerA: { id: userId, name: userName, difficulty: 'medium', isReady: isLeader, isLeader, progress: 0, total: 8, foundWords: [] }
   });
   
   const myStateRef = useRef<PlayerState>({ 
-    id: userId, name: userName, difficulty: 'medium', isLeader, progress: 0, total: 8 
+    id: userId, name: userName, difficulty: 'medium', isReady: isLeader, isLeader, progress: 0, total: 8, foundWords: [] 
   });
   
   const [chatMessages, setChatMessages] = useState<{ id: string, text: string, sender: string, time: number }[]>([]);
@@ -67,15 +69,16 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
         }
 
         setRaceState(prev => {
-          // If we are a guest, and we've already joined (so we've seen the other player or we are in a lobby),
-          // and the leader is no longer present, kick us.
-          if (!isLeader && !leaderIsPresent && prev.playerB) {
-            router.push('/play/race/lobby');
-            return prev;
-          }
           if (!otherPlayerState) return prev;
           return { ...prev, playerB: otherPlayerState };
         });
+
+        // Safe router.push outside of state updater
+        if (!isLeader && !leaderIsPresent) {
+           // We only kick if we have seen a leader before or if they never existed and we've been here a while.
+           // Since leader always creates the room, if leader is gone, room is dead.
+           setTimeout(() => router.push('/play/race/lobby'), 0);
+        }
       })
       .on('broadcast', { event: 'room_closed' }, () => {
         if (!isLeader) {
@@ -99,18 +102,26 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
           return { ...prev, [key]: payload.state };
         });
       })
-      .on('broadcast', { event: 'start_race' }, (payload) => {
-        // The non-host receives this to transition to playing mode
+      .on('broadcast', { event: 'countdown_start' }, (payload) => {
         setRaceState(prev => ({
           ...prev,
           status: 'countdown',
-          startTime: payload.startTime,
+          startTime: payload.startAt,
           seedStr: payload.seedStr
         }));
       })
-      .on('broadcast', { event: 'chat' }, (payload) => {
+      .on('broadcast', { event: 'game_start' }, (payload) => {
+        setRaceState(prev => ({
+          ...prev,
+          status: 'playing'
+        }));
+      })
+      .on('broadcast', { event: 'game_over' }, (payload) => {
+        setRaceState(prev => ({ ...prev, status: 'finished', winner: payload.winner }));
+      })
+      .on('broadcast', { event: 'chat_message' }, (payload) => {
         const id = Math.random().toString();
-        setChatMessages(prev => [...prev, { id, text: payload.text, sender: payload.sender, time: Date.now() }]);
+        setChatMessages(prev => [...prev, { id, text: payload.content, sender: payload.playerId, time: Date.now() }]);
         setTimeout(() => {
           setChatMessages(prev => prev.filter(m => m.id !== id));
         }, 3000);
@@ -125,22 +136,59 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
     return () => {
       if (isLeader) {
         channel.send({ type: 'broadcast', event: 'room_closed', payload: {} });
+        setTimeout(() => supabase.removeChannel(channel), 100);
+      } else {
+        supabase.removeChannel(channel);
       }
-      supabase.removeChannel(channel);
     };
   }, [roomCode, userId, userName, isLeader, router]);
 
   useEffect(() => {
-    if (raceState.status === 'countdown' && raceState.startTime) {
+    if (raceState.status === 'countdown' && isLeader) {
       const interval = setInterval(() => {
         if (Date.now() >= raceState.startTime!) {
+          channelRef.current?.send({ type: 'broadcast', event: 'game_start', payload: { startedBy: userId } });
           setRaceState(prev => ({ ...prev, status: 'playing' }));
           clearInterval(interval);
         }
       }, 100);
       return () => clearInterval(interval);
     }
-  }, [raceState.status, raceState.startTime]);
+
+    if (raceState.status === 'playing' && raceState.startTime) {
+      // Find leader's difficulty for timer
+      const leaderDiff = raceState.playerA?.isLeader ? raceState.playerA.difficulty : (raceState.playerB?.isLeader ? raceState.playerB.difficulty : 'medium');
+      const durationSecs = leaderDiff === 'easy' ? 180 : leaderDiff === 'medium' ? 150 : 120;
+      const endTime = raceState.startTime + durationSecs * 1000;
+
+      const interval = setInterval(() => {
+        const pA = myStateRef.current;
+        const pB = raceState.playerA?.id === userId ? raceState.playerB : raceState.playerA;
+
+        // Check if someone won
+        if (pA.progress >= pA.total && pA.total > 0) {
+          channelRef.current?.send({ type: 'broadcast', event: 'game_over', payload: { winner: pA.id } });
+          setRaceState(prev => ({ ...prev, status: 'finished', winner: pA.id }));
+          clearInterval(interval);
+        } else if (pB && pB.progress >= pB.total && pB.total > 0) {
+          // If we receive the state_update that B finished, we don't need to broadcast
+          setRaceState(prev => ({ ...prev, status: 'finished', winner: pB.id }));
+          clearInterval(interval);
+        } else if (Date.now() >= endTime) {
+          // Time's up! Tie breaker by progress
+          const pA_score = pA.progress / (pA.total || 1);
+          const pB_score = pB ? (pB.progress / (pB.total || 1)) : 0;
+          const winnerId = pA_score >= pB_score ? pA.id : pB!.id;
+          if (isLeader) {
+            channelRef.current?.send({ type: 'broadcast', event: 'game_over', payload: { winner: winnerId } });
+          }
+          setRaceState(prev => ({ ...prev, status: 'finished', winner: winnerId }));
+          clearInterval(interval);
+        }
+      }, 250);
+      return () => clearInterval(interval);
+    }
+  }, [raceState.status, raceState.startTime, raceState.playerA, raceState.playerB, isLeader, userId]);
 
   const updateMyState = (partialState: Partial<PlayerState>) => {
     const newMyState = { ...myStateRef.current, ...partialState };
@@ -167,13 +215,14 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
   };
 
   const sendChat = (text: string) => {
+    const safeText = text.slice(0, 50);
     channelRef.current?.send({
       type: 'broadcast',
-      event: 'chat',
-      payload: { text, sender: userId }
+      event: 'chat_message',
+      payload: { content: safeText, playerId: userId, type: 'quick', timestamp: Date.now() }
     });
     const id = Math.random().toString();
-    setChatMessages(prev => [...prev, { id, text, sender: userId, time: Date.now() }]);
+    setChatMessages(prev => [...prev, { id, text: safeText, sender: userId, time: Date.now() }]);
     setTimeout(() => {
       setChatMessages(prev => prev.filter(m => m.id !== id));
     }, 3000);
@@ -182,13 +231,13 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
   const startRaceAsLeader = () => {
     if (!isLeader) return;
     const seedStr = Math.random().toString(36).substring(2);
-    const startTime = Date.now() + 3000;
-    channelRef.current?.send({ type: 'broadcast', event: 'start_race', payload: { startTime, seedStr } });
+    const startAt = Date.now() + 3000;
+    channelRef.current?.send({ type: 'broadcast', event: 'countdown_start', payload: { startAt, seedStr } });
     
     setRaceState(prev => ({
       ...prev,
       status: 'countdown',
-      startTime: startTime,
+      startTime: startAt,
       seedStr: seedStr
     }));
   };

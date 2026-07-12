@@ -9,7 +9,7 @@ interface Props {
 
 export function WordList({ words }: Props) {
   return (
-    <div className="flex flex-wrap justify-center gap-2 mt-4 mb-6 w-full px-4">
+    <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mt-2 mb-2 w-full px-2 sm:px-4">
       {words.map((w, i) => (
         <motion.div
           key={w.word}
@@ -17,7 +17,7 @@ export function WordList({ words }: Props) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.05, ...softBounce }}
           className={`
-            relative px-4 py-2 font-display text-lg sm:text-xl font-bold transition-all duration-300
+            relative px-2 sm:px-3 py-1 font-display text-base sm:text-lg font-bold transition-all duration-300
             ${w.found ? 'text-ink/40' : 'text-ink'}
           `}
         >

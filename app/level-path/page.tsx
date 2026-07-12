@@ -65,9 +65,12 @@ export default function LevelPathPage() {
     <div className="flex flex-col items-center flex-1 w-full relative pb-32">
       {/* Background zones */}
       <div className="absolute inset-0 w-full h-full -z-10 flex flex-col">
-        {CHAPTERS.map(chapter => (
-          <div key={chapter.id} className={`flex-1 w-full ${CHAPTER_COLORS[chapter.id] || 'bg-background'}`} />
-        ))}
+        {CHAPTERS.map(chapter => {
+          const colorKey = chapter.id.replace(/c\d+/, '').trim(); // if id is c1, c7, etc... wait, CHAPTER_COLORS uses names or old ids.
+          // Let's map dynamically using chapter name
+          const themeName = chapter.name.toLowerCase().replace(' ii', '').replace(' ', '-');
+          return <div key={chapter.id} className={`flex-1 w-full ${CHAPTER_COLORS[themeName] || 'bg-background'}`} />
+        })}
       </div>
 
       <div className="flex flex-col items-center w-full max-w-lg mx-auto p-4 pt-10">
@@ -80,77 +83,20 @@ export default function LevelPathPage() {
           {/* Path line background */}
           <div className="absolute top-0 bottom-0 w-2 bg-ink/10 rounded-full" />
 
-          {CHAPTERS.map((chapter, chapterIdx) => (
-            <div key={chapter.id} className="flex flex-col w-full relative mb-12">
-              <h2 className="text-2xl font-display text-ink bg-surface py-2 px-6 rounded-xl text-center shadow-[4px_5px_0_0_var(--ink)] border-2 border-ink self-center z-10 mb-8" style={{ borderRadius: '15px 225px 15px 255px/255px 15px 225px 15px', transform: 'rotate(-2deg)' }}>
-                {chapter.name}
-              </h2>
-              
-              <div className="flex flex-col items-center gap-12 py-4 relative">
-                {chapter.levels.map((levelId, idx) => {
-                  const levelIndex = flatLevels.indexOf(levelId);
-                  const stars = getStars(levelId);
-                  const isUnlocked = levelIndex <= highestUnlockedIndex;
-                  const isCurrent = levelIndex === highestUnlockedIndex;
-                  
-                  const offset = offsets[levelIndex % offsets.length];
-
-                  return (
-                    <div key={levelId} className="relative flex justify-center items-center w-full" style={{ left: `${offset}px` }}>
-                      
-                      {/* Current Node Pulse & Player Marker */}
-                      {isCurrent && (
-                        <>
-                          <motion.div 
-                            className="absolute w-20 h-20 bg-accent/30 rounded-full"
-                            animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-                            transition={{ repeat: Infinity, duration: 2 }}
-                          />
-                          <motion.div 
-                            className="absolute -top-6 z-20 drop-shadow-md"
-                            animate={{ y: [0, -6, 0] }}
-                            transition={{ repeat: Infinity, duration: 1.5, ...softBounce }}
-                          >
-                            <PlayerMarkerSvg />
-                          </motion.div>
-                        </>
-                      )}
-
-                      <motion.button 
-                        whileTap={isUnlocked ? { scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' } : {}} 
-                        transition={softBounce}
-                        onClick={() => {
-                          if (isUnlocked) setSelectedLevel(levelId);
-                        }}
-                        aria-disabled={!isUnlocked}
-                        className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-4 relative z-10 
-                          ${isUnlocked ? 'bg-surface border-ink shadow-[4px_5px_0_0_var(--ink)] cursor-pointer hover:bg-white' 
-                                       : 'bg-surface/50 border-ink/20 opacity-70 pointer-events-none'}`}
-                        style={{ borderRadius: '45% 55% 40% 60% / 55% 45% 60% 40%' }} // blob shape
-                      >
-                        {isUnlocked ? (
-                          <>
-                            <span className="font-display font-bold text-ink text-xl">{levelId.split('-l')[1]}</span>
-                            {stars > 0 && (
-                              <div className="absolute -bottom-3 flex gap-[2px] bg-surface rounded-full px-1 border border-ink/20">
-                                {Array.from({length: 3}).map((_, i) => (
-                                  <StarSvg key={i} className={`w-3 h-3 ${i < stars ? 'text-gold' : 'text-ink/20'}`} filled={i < stars} />
-                                ))}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <LockSvg className="w-6 h-6 text-ink/30" />
-                        )}
-                      </motion.button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+          {CHAPTERS.map((chapter) => (
+            <ChapterView 
+              key={chapter.id}
+              chapter={chapter}
+              flatLevels={flatLevels}
+              highestUnlockedIndex={highestUnlockedIndex}
+              getStars={getStars}
+              offsets={offsets}
+              onSelectLevel={setSelectedLevel}
+            />
           ))}
         </div>
       </div>
+
 
       {/* Level Info Bottom Sheet Modal */}
       <AnimatePresence>
@@ -203,6 +149,101 @@ export default function LevelPathPage() {
           </>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function ChapterView({ chapter, flatLevels, highestUnlockedIndex, getStars, offsets, onSelectLevel }: any) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting);
+    }, { rootMargin: '1000px 0px' });
+    
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Approximate height: header (~90px) + levels * gap (112px) + padding
+  const estimatedHeight = 90 + (chapter.levels.length * 112) + 60;
+
+  return (
+    <div ref={ref} className="flex flex-col w-full relative mb-12" style={{ minHeight: `${estimatedHeight}px` }}>
+      {isVisible ? (
+        <>
+          <h2 className="text-2xl font-display text-ink bg-surface py-2 px-6 rounded-xl text-center shadow-[4px_5px_0_0_var(--ink)] border-2 border-ink self-center z-10 mb-8" style={{ borderRadius: '15px 225px 15px 255px/255px 15px 225px 15px', transform: 'rotate(-2deg)' }}>
+            {chapter.name}
+          </h2>
+          
+          <div className="flex flex-col items-center gap-12 py-4 relative">
+            {chapter.levels.map((levelId: string) => {
+              const levelIndex = flatLevels.indexOf(levelId);
+              const stars = getStars(levelId);
+              const isUnlocked = levelIndex <= highestUnlockedIndex;
+              const isCurrent = levelIndex === highestUnlockedIndex;
+              
+              const offset = offsets[levelIndex % offsets.length];
+
+              return (
+                <div key={levelId} className="relative flex justify-center items-center w-full" style={{ left: `${offset}px` }}>
+                  
+                  {isCurrent && (
+                    <>
+                      <motion.div 
+                        className="absolute w-20 h-20 bg-accent/30 rounded-full"
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                      />
+                      <motion.div 
+                        className="absolute -top-6 z-20 drop-shadow-md"
+                        animate={{ y: [0, -6] }}
+                        transition={{ 
+                          duration: 0.5, 
+                          repeat: Infinity, 
+                          repeatType: "reverse",
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <PlayerMarkerSvg />
+                      </motion.div>
+                    </>
+                  )}
+
+                  <motion.button 
+                    whileTap={isUnlocked ? { scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' } : {}} 
+                    transition={softBounce}
+                    onClick={() => {
+                      if (isUnlocked) onSelectLevel(levelId);
+                    }}
+                    aria-disabled={!isUnlocked}
+                    className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-4 relative z-10 
+                      ${isUnlocked ? 'bg-surface border-ink shadow-[4px_5px_0_0_var(--ink)] cursor-pointer hover:bg-white' 
+                                   : 'bg-surface/50 border-ink/20 opacity-70 pointer-events-none'}`}
+                    style={{ borderRadius: '45% 55% 40% 60% / 55% 45% 60% 40%' }}
+                  >
+                    {isUnlocked ? (
+                      <>
+                        <span className="font-display font-bold text-ink text-xl">{levelId.split('-l')[1]}</span>
+                        {stars > 0 && (
+                          <div className="absolute -bottom-3 flex gap-[2px] bg-surface rounded-full px-1 border border-ink/20">
+                            {Array.from({length: 3}).map((_, i) => (
+                              <StarSvg key={i} className={`w-3 h-3 ${i < stars ? 'text-gold' : 'text-ink/20'}`} filled={i < stars} />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <LockSvg className="w-6 h-6 text-ink/30" />
+                    )}
+                  </motion.button>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

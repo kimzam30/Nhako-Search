@@ -54,11 +54,14 @@ export default function ProfilePage() {
         const saved = JSON.parse(localStorage.getItem('nhako_collection') || '[]');
         setCollection(saved);
         
-        const levels = parseInt(localStorage.getItem('nhako_guest_levels') || '0');
-        const wins = parseInt(localStorage.getItem('nhako_guest_wins') || '0');
-        const played = parseInt(localStorage.getItem('nhako_guest_race_played') || '0');
-        const streak = parseInt(localStorage.getItem('nhako_guest_streak') || '0');
-        const maxStreak = parseInt(localStorage.getItem('nhako_guest_max_streak') || '0');
+        const localLevels = JSON.parse(localStorage.getItem('nhako_levels') || '{}');
+        const localDaily = JSON.parse(localStorage.getItem('nhako_daily') || '{}');
+
+        const levels = Object.keys(localLevels).length;
+        const wins = 0;
+        const played = 0;
+        const streak = localDaily.streak || 0;
+        const maxStreak = localDaily.streak || 0;
         
         setStats({
           levels,
@@ -113,6 +116,43 @@ export default function ProfilePage() {
             const b = collection[i];
             
             if (b) {
+              const isDaily = b.butterfly_style_id?.startsWith('daily-');
+              const isTogether = b.butterfly_style_id?.startsWith('together-');
+              const chapterMatch = b.butterfly_style_id?.match(/level-(c\d+)/);
+              const chapterId = chapterMatch ? chapterMatch[1] : 'unknown';
+              
+              let butterflyColor = 'text-accent';
+              let butterflyBg = 'bg-white';
+              let title = 'Monarch';
+              let Icon = ButterflySvg;
+
+              if (isTogether) {
+                butterflyColor = 'text-gold';
+                butterflyBg = 'bg-accent/10';
+                title = 'Together Butterfly';
+              } else if (isDaily) {
+                butterflyColor = 'text-[#FFD166]';
+                title = `Daily - ${b.butterfly_style_id.split('daily-')[1]}`;
+              } else if (chapterId === 'c1' || chapterId === 'c7') {
+                butterflyColor = 'text-[#7FCB9C]';
+                title = 'Garden Skimmer';
+              } else if (chapterId === 'c2' || chapterId === 'c8') {
+                butterflyColor = 'text-[#4A1942]';
+                title = 'Rainy Blue';
+              } else if (chapterId === 'c3' || chapterId === 'c9') {
+                butterflyColor = 'text-[#FFC1D9]';
+                title = 'Cozy Moth';
+              } else if (chapterId === 'c4' || chapterId === 'c10') {
+                butterflyColor = 'text-ink';
+                title = 'Nightwing';
+              } else if (chapterId === 'c5' || chapterId === 'c11') {
+                butterflyColor = 'text-[#FF6FA5]';
+                title = 'Heartwing';
+              } else if (chapterId === 'c6' || chapterId === 'c12') {
+                butterflyColor = 'text-accent';
+                title = 'Standard Swallowtail';
+              }
+
               return (
                 <motion.button 
                   key={i}
@@ -120,17 +160,22 @@ export default function ProfilePage() {
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: i * 0.05, ...softBounce }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => setSelectedButterfly(b)}
-                  className="aspect-square rounded-2xl bg-white border-2 border-ink shadow-[2px_2px_0_0_var(--ink)] flex flex-col items-center justify-center cursor-pointer relative"
+                  onClick={() => setSelectedButterfly({ ...b, title, color: butterflyColor })}
+                  className={`aspect-square rounded-2xl ${butterflyBg} border-2 border-ink shadow-[2px_2px_0_0_var(--ink)] flex flex-col items-center justify-center cursor-pointer relative`}
                   style={{ borderRadius: `${12 + (i%5)}px ${18 - (i%3)}px ${14 + (i%4)}px ${16 - (i%2)}px` }}
                 >
-                  <ButterflySvg className="w-8 h-8 text-accent drop-shadow-sm" />
+                  <Icon className={`w-8 h-8 ${butterflyColor} drop-shadow-sm`} />
+                  {isDaily && (
+                    <span className="text-[8px] font-bold text-ink/40 absolute bottom-1 truncate w-full text-center px-1">
+                      {b.butterfly_style_id.split('-').slice(2).join('/')}
+                    </span>
+                  )}
                   {/* Sparkle badge for 'new' */}
                   {i === 0 && (
                     <motion.div 
                       animate={{ rotate: 360 }} 
                       transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                      className="absolute -top-2 -right-2 bg-gold border-2 border-ink w-6 h-6 flex items-center justify-center rounded-full"
+                      className="absolute -top-2 -right-2 bg-gold border-2 border-ink w-6 h-6 flex items-center justify-center rounded-full z-10"
                     >
                       <StarSvg className="w-3 h-3 text-ink" filled />
                     </motion.div>
@@ -182,8 +227,8 @@ export default function ProfilePage() {
               >
                 <CloseSvg className="w-6 h-6" />
               </button>
-              <ButterflySvg className="w-20 h-20 text-accent mb-6" />
-              <h3 className="text-2xl font-display text-ink mb-2">Monarch</h3>
+              <ButterflySvg className={`w-20 h-20 ${selectedButterfly.color || 'text-accent'} mb-6 drop-shadow-sm`} />
+              <h3 className="text-2xl font-display text-ink mb-2">{selectedButterfly.title || 'Monarch'}</h3>
               <p className="text-ink/70 font-body mb-2">Earned from <strong>{selectedButterfly.earned_from || 'Gameplay'}</strong></p>
               <p className="text-ink/50 font-body text-sm">{new Date(selectedButterfly.earned_at || Date.now()).toLocaleDateString()}</p>
             </motion.div>

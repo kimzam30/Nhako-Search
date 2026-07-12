@@ -16,7 +16,7 @@ interface Props {
   difficulty: Difficulty;
   seedStr?: string;
   onComplete?: (stars: number, timeSeconds: number) => void;
-  onProgress?: (progress: number) => void;
+  onProgress?: (progress: number, foundWords: string[]) => void;
   nextLevelHref?: string;
   onNext?: () => void;
   hideGarland?: boolean;
@@ -37,9 +37,9 @@ export function GameClient({ words, difficulty, seedStr = 'daily-seed-123', onCo
   useEffect(() => {
     if (game.foundWords.length !== prevProgressRef.current) {
       prevProgressRef.current = game.foundWords.length;
-      onProgress?.(game.foundWords.length);
+      onProgress?.(game.foundWords.length, game.foundWords);
     }
-  }, [game.foundWords.length, onProgress]);
+  }, [game.foundWords.length, game.foundWords, onProgress]);
 
   useEffect(() => {
     if (!isWon && game.foundWords.length === game.grid.placedWords.length && game.grid.placedWords.length > 0) {
@@ -61,14 +61,15 @@ export function GameClient({ words, difficulty, seedStr = 'daily-seed-123', onCo
           <ButterflyGarland count={game.foundWords.length} total={game.grid.placedWords.length} />
         </div>
       )}
-      <div className="flex-none w-full mb-4">
-        <WordList words={wordListProps} />
-      </div>
-      <div className="flex-1 w-full min-h-0 flex items-center justify-center relative">
-        <div className="w-full h-full max-w-full max-h-full flex items-center justify-center">
+
+      <div className="flex-1 w-full min-h-0 flex flex-col md:flex-row items-center justify-center relative gap-4">
+        <div className="flex-1 w-full h-full max-w-full max-h-full flex items-center justify-center">
           <div className="aspect-square h-full max-w-full max-h-full relative">
             <GridBoard {...game} />
           </div>
+        </div>
+        <div className="flex-none w-full md:w-48 lg:w-64 md:h-full mt-2 md:mt-0 mb-4 overflow-y-auto overflow-x-hidden md:flex md:items-center">
+          <WordList words={wordListProps} />
         </div>
       </div>
 

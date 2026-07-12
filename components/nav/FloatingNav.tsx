@@ -3,10 +3,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import Link from 'next/link';
-import { FlameSvg, MapSvg, HomeSvg, RaceSvg, UserSvg, PauseSvg, VolumeSvg, CloseSvg } from '@/components/ui/Icons';
+import { PauseSvg, VolumeSvg, CloseSvg, HomeSvg, FlameSvg, MapSvg, RaceSvg, UserSvg } from '@/components/ui/Icons';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/multiplayer/supabase';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
+import { Button } from '@/components/ui/Button';
 
 export function FloatingNav() {
   const pathname = usePathname();
@@ -14,6 +15,7 @@ export function FloatingNav() {
   const [sessionUser, setSessionUser] = useState<any>(null);
   const [showMixer, setShowMixer] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ href: string } | null>(null);
   const { volumes, setVolume, isPlaying, startAmbience, stopAmbience } = useAmbientAudio();
 
   useEffect(() => {
@@ -43,13 +45,12 @@ export function FloatingNav() {
   // Determine if we're in active gameplay to intercept navigation
   const isMinimized = isLevelGameplay || isRaceGameplay || isStandardGameplay;
 
+  const showNavItems = !isMinimized || isOpen;
+
   const handleNav = (e: React.MouseEvent, href: string) => {
     if (isMinimized && href !== pathname) {
       e.preventDefault();
-      if (window.confirm("Leave this puzzle? Your current attempt won't be saved.")) {
-        setIsOpen(false);
-        router.push(href);
-      }
+      setConfirmAction({ href });
     } else {
       setIsOpen(false);
     }
@@ -58,7 +59,43 @@ export function FloatingNav() {
   if (isHidden) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-6 md:-translate-x-0 z-50">
+    <>
+      <AnimatePresence>
+        {confirmAction && (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center px-4 pb-8 pointer-events-auto">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setConfirmAction(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 100, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 100, scale: 0.9 }}
+              transition={softBounce}
+              className="relative bg-surface w-full max-w-sm p-6 border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] flex flex-col gap-6"
+              style={{ borderRadius: '22px 9px 26px 13px' }}
+            >
+              <div className="text-center flex flex-col gap-2">
+                <h3 className="font-display text-2xl text-ink">Leave this puzzle?</h3>
+                <p className="font-body text-ink/80 font-bold">Your current attempt won't be saved.</p>
+              </div>
+              <div className="flex gap-4 w-full">
+                <Button variant="secondary" fullWidth onClick={() => setConfirmAction(null)}>Stay</Button>
+                <Button variant="primary" fullWidth onClick={() => {
+                  router.push(confirmAction.href);
+                  setConfirmAction(null);
+                  setIsOpen(false);
+                }}>Leave</Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-6 md:-translate-x-0 lg:left-[calc(50%-500px+24px)] z-40">
       
       <AnimatePresence>
         {showMixer && (
@@ -66,7 +103,7 @@ export function FloatingNav() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 w-64 bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-3xl p-4 flex flex-col gap-4 origin-bottom"
+            className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 md:bottom-auto md:mb-0 md:left-full md:ml-4 md:top-1/2 md:-translate-y-1/2 md:translate-x-0 w-64 bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-3xl p-4 flex flex-col gap-4 origin-bottom md:origin-left"
           >
             <div className="flex justify-between items-center mb-2">
               <span className="font-display font-bold text-ink">Mixer</span>
@@ -103,14 +140,16 @@ export function FloatingNav() {
         )}
       </AnimatePresence>
 
-      <div className="flex flex-row md:flex-col items-center justify-center gap-2 relative">
+      <div className={`flex flex-row md:flex-col items-center gap-2 relative ${isMinimized ? 'justify-start items-start' : 'justify-center'}`}>
         
         <AnimatePresence>
-          {isOpen && (
+          {showNavItems && (
             <motion.div 
+              key="nav-bar"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
+              transition={softBounce}
               className="flex flex-row md:flex-col items-center gap-2 overflow-hidden bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]"
             >
               <NavLink href="/daily" icon={<FlameSvg className="w-6 h-6" />} isActive={pathname.startsWith('/daily')} onClick={(e) => handleNav(e, '/daily')} />
@@ -142,33 +181,34 @@ export function FloatingNav() {
                 </motion.div>
               </a>
               
-              <button onClick={() => setShowMixer(!showMixer)}>
-                <motion.div 
-                  whileTap={{ scale: 0.9 }}
-                  className={`w-12 h-12 flex items-center justify-center rounded-2xl ${showMixer ? 'bg-accent-soft text-ink' : 'text-ink/60 hover:text-ink hover:bg-surface border-2 border-transparent hover:border-ink/20'}`}
-                >
-                  <VolumeSvg className="w-6 h-6" />
-                </motion.div>
-              </button>
+              {isMinimized && (
+                <button onClick={() => setShowMixer(!showMixer)}>
+                  <motion.div 
+                    whileTap={{ scale: 0.9 }}
+                    className={`w-12 h-12 flex items-center justify-center rounded-2xl ${showMixer ? 'bg-accent-soft text-ink' : 'text-ink/60 hover:text-ink hover:bg-surface border-2 border-transparent hover:border-ink/20'}`}
+                  >
+                    <VolumeSvg className="w-6 h-6" />
+                  </motion.div>
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        <motion.button 
-          whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
-          onClick={() => { setIsOpen(!isOpen); if (showMixer) setShowMixer(false); }}
-          className={`w-14 h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-full text-ink z-20`}
-        >
-          {isOpen ? <CloseSvg className="w-6 h-6" /> : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-              <line x1="4" y1="12" x2="20" y2="12"></line>
-              <line x1="4" y1="6" x2="20" y2="6"></line>
-              <line x1="4" y1="18" x2="20" y2="18"></line>
-            </svg>
-          )}
-        </motion.button>
+        {isMinimized && (
+          <motion.button 
+            whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
+            onClick={() => { setIsOpen(!isOpen); if (showMixer) setShowMixer(false); }}
+            className={`w-14 h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-full text-ink z-20`}
+          >
+            {isOpen ? <CloseSvg className="w-6 h-6" /> : (
+              <PauseSvg className="w-6 h-6" />
+            )}
+          </motion.button>
+        )}
       </div>
     </div>
+    </>
   );
 }
 

@@ -160,23 +160,38 @@ being scannable at a glance.
 **States:**
 - **Full bar** on Home, Level Map, Level Info sheet, Standard Setup, Race Lobby, Race Ready-Up,
   Race Results, Settings, Profile, Daily Challenge.
-- **Minimized to a single small pause/menu button (top-left)** during *active, timed* Level
-  gameplay and Race gameplay. Tapping it opens a confirm sheet ("Leave this puzzle? Your current
-  attempt won't be saved" / "Leave the race? This forfeits the round") before navigating home —
-  keeps "always reachable" true without letting an accidental tap cost you a race against your
-  partner mid-round.
+- **Collapsed — same component, not a separate pause icon — during active, timed Level and
+  Race gameplay.** This is a hard requirement, not a style preference: gameplay must not fall
+  back to a bespoke standalone pause button. It's the *same* `FloatingNav`, in a small
+  collapsed-pill state (e.g. one compact icon), that expands on tap to reveal the normal Home /
+  Level Path / Race / Account items **plus quick access to the audio mixer** — so a player can
+  reach Home, Profile, or adjust ambience mid-puzzle without a second, unfamiliar UI. Tapping
+  Home from the collapsed/expanded state during gameplay opens a confirm sheet ("Leave this
+  puzzle? Your current attempt won't be saved" / "Leave the race? This forfeits the round")
+  before navigating — keeps "always reachable" true without an accidental tap costing a race.
 - **Hidden entirely** only on Splash and `/sign-in` — you're not "in the journal" yet.
 - **Tablet/landscape:** the pill relocates to a floating vertical bar on the left edge, same five
-  items top-to-bottom, Home still the largest/raised element.
+  items top-to-bottom, Home still the largest/raised element. The collapse/expand transition
+  must use the same shared spring (§6) on every device — a stuttering or jerky expand animation
+  on any device is a bug, not acceptable "good enough."
+- **The collapsed state is always a real icon, never a text label.** A wide text pill standing
+  in for the icon (seen on phone in testing) is a fallback/placeholder state, not shippable UI.
 
 ### 7.2 The signature footer
 A small handwritten (Caveat) line at the natural end of a page's content — *"a little garden,
-made by kimzam "* — `--ink` at ~60% opacity, centered, rotated −2° (Rule 6). This is a true
+made by kimzam 🌿"* — `--ink` at ~60% opacity, centered, rotated −2° (Rule 6). This is a true
 footer (part of scrollable content), not sticky chrome like the nav — on short-content screens
 with no natural scroll end (Sign-in, Race Ready-Up) it sits statically pinned above the safe
 area. Always leave bottom padding equal to the floating nav's height + margin so the footer never
 sits underneath it. **Hidden during active gameplay** (Level/Standard/Race play) to keep that
 screen focused — it reappears on pause and results.
+
+### 7.3 Content width — applies to tablet, not just desktop
+Confirmed via live device testing: tablet landscape (e.g. a 10–11" tablet) was showing large
+dead gutters on both sides because content wasn't width-capped. The centered-column treatment
+from §11.2 (originally written for 1920px desktop) applies starting at tablet landscape widths,
+not only at desktop breakpoints — don't let full-bleed-stretched-to-edge be the default for any
+viewport wider than a phone.
 
 ## 8. Sitemap — the explicit routing map
 This exists specifically to kill "the flow and routing is a mess." Every reachable screen and
@@ -246,7 +261,7 @@ Level number + chapter theme, star-requirement hints, difficulty badge, primary 
 blurs. Nav stays visible but dimmed behind the sheet.
 
 ### 9.6 Gameplay — Level & Standard (shared component)
-Top bar: minimized pause/menu button (nav is minimized here, per §7.1) + level/theme label +
+Top bar: the collapsed `FloatingNav` (§7.1 — same component, not a separate icon) + level/theme label +
 optional timer. Garland strip pinned under the top bar. Grid card centered (uneven radius,
 sticker-shadow border per §4); word-list pills below on phone portrait, beside on tablet. Drag/
 tap letter selection with a chunky rounded highlight; a found word gets a hand-drawn wobbly
@@ -269,7 +284,7 @@ per player; synced 3-2-1-GO countdown in large Fredoka numerals once both are re
 into gameplay on "GO." Full nav (you haven't started yet) + footer pinned.
 
 ### 9.10 Race Gameplay (with banter chat)
-Nav minimized to the pause/menu button (§7.1) — same forfeit-confirmation reasoning as Level
+Nav collapsed to its small pill (§7.1, same component) — same forfeit-confirmation reasoning as Level
 gameplay. Shared countdown timer, big, top-center. Your grid + word list is the primary focus;
 partner's *live progress* shows as a slim strip — their garland count and a percentage-filled
 grid outline, never their actual letters. Both garlands visible at the top, growing
@@ -316,3 +331,47 @@ Full nav on the intro/result states; minimized during active play, same as §9.6
 - Content padding always accounts for the floating nav's height so nothing sits underneath it,
   on every screen where it's present.
 - `prefers-reduced-motion` honored everywhere per §6.
+
+## 11. Round 4 additions (post-README/video audit)
+
+**11.1 No native browser dialogs, ever.** The nav's "leave puzzle/race" confirmation must be a
+custom Framer Motion sheet matching §4's shape/shadow language — never `window.confirm()`,
+`alert()`, or `prompt()`. A native dialog breaks the hand-drawn illusion completely regardless
+of how correct the logic behind it is.
+
+**11.2 Desktop breakpoint (1920×1080 and similar large screens).** Previously mobile/tablet-only;
+now add a third breakpoint: content caps at a centered ~1000px column (never full-bleed edge to
+edge — a flat-out-stretched pink background at 1920px reads empty, not calm). The floating nav
+docks as the tablet's left-rail treatment. Race Gameplay specifically gets a desktop-only
+enhancement: show both players' **full** grids side by side (not the phone's partner-progress
+mini-strip) since the width supports it.
+
+**11.3 Level Path scale: ~365 levels across 10–12 seasonal/monthly chapters.** Word pools are
+NOT hand-curated per level — build a shared pool per chapter (Datamuse-bootstrapped per
+`plan.md` §8) and algorithmically assign leveled subsets with a difficulty ramp. The Level Map
+must virtualize/window its node list (only render nodes near the viewport) at this scale —
+rendering 365 nodes unvirtualized will visibly lag on scroll.
+
+**11.4 Butterfly Collection personalization.** Add, in this priority order: (1) chapter-exclusive
+butterfly species — a chapter's butterfly design is earned nowhere else, (2) Daily Challenge
+butterflies carry that day's date, so the collection reads as a diary, (3) a rare **"Together"**
+butterfly awarded only when both accounts complete the same calendar day's Daily Challenge —
+this is the one actually built for two people, prioritize it if only implementing one.
+
+**11.5 Sound Mixer gets a 6th channel: Thunder.** Independent slider alongside Master/Lofi/Rain/
+Wind/Birds — sparse, occasional rumble, not a constant loop. Not merged into Rain; the whole
+premise of the mixer is independent mix-and-match.
+
+**11.6 Username system.** Google sign-in defaults to the Google account's display name, editable
+after in Settings. Guest mode prompts for a display name on first entry (stored locally),
+editable in Settings the same way. Every place a player currently shows as generic ("Player 1,"
+"Player 2," an unlabeled avatar) — race lobby, ready-up, gameplay partner strip, chat, results —
+must show the real name instead.
+
+**11.7 Grid selection highlight — must be visibly animated, not just present.** The highlight
+path should draw progressively as a finger/cursor moves across cells (chunky rounded stroke,
+`--accent`), not only appear after the drag completes. This was reported broken/invisible —
+treat "renders nothing during an active drag" as the default assumption to disprove, not a
+possibility to rule out by reading code.
+
+**11.8 "Standard (Free Play)" is renamed to "Free Play"** everywhere it appears in UI copy.
