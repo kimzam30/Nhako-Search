@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/multiplayer/supabase';
+import type { CollectionEntry } from '@/lib/types';
 
 export async function mergeGuestProgress() {
   if (typeof window === 'undefined') return;
@@ -24,7 +25,7 @@ export async function mergeGuestProgress() {
 
     // 2. Merge Collection
     const localCollection = JSON.parse(localStorage.getItem('nhako_collection') || '[]');
-    const collectionEntries = localCollection.map((c: any) => ({
+    const collectionEntries = (localCollection as CollectionEntry[]).map(c => ({
       user_id: user.id,
       butterfly_style_id: c.butterfly_style_id,
       earned_from: c.earned_from,
@@ -35,7 +36,7 @@ export async function mergeGuestProgress() {
       // Avoid inserting duplicates manually by checking first
       const { data: existing } = await supabase.from('butterfly_collection').select('butterfly_style_id, earned_at');
       const existingIds = new Set(existing?.map(e => e.butterfly_style_id));
-      const newEntries = collectionEntries.filter((c: any) => !existingIds.has(c.butterfly_style_id));
+      const newEntries = collectionEntries.filter(c => !existingIds.has(c.butterfly_style_id));
       if (newEntries.length > 0) {
         await supabase.from('butterfly_collection').insert(newEntries);
       }

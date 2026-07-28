@@ -1,6 +1,6 @@
 'use client';
 import { GameClient } from '@/components/game/GameClient';
-import { getDailySeed, saveDailyChallenge, checkDailyStreak } from '@/lib/daily/logic';
+import { getDailySeed, saveDailyChallenge, checkDailyStreak, getRecentDailyHistory } from '@/lib/daily/logic';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
@@ -14,18 +14,17 @@ export default function DailyChallengePage() {
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
-    checkDailyStreak().then(data => {
-      // Mock history for calendar strip (last 7 days, true = played, false = missed)
-      const mockHistory = Array.from({length: 7}).map((_, i) => i < Math.min(data.streak, 7));
-      setStreakData({ ...data, history: mockHistory.reverse() });
+    // Real play history, so the strip can show actual gaps.
+    Promise.all([checkDailyStreak(), getRecentDailyHistory(7)]).then(([data, history]) => {
+      setStreakData({ ...data, history });
       setLoading(false);
     });
   }, []);
 
   const handleComplete = async (stars: number, time: number) => {
     await saveDailyChallenge();
-    const data = await checkDailyStreak();
-    setStreakData({ ...data, history: streakData.history });
+    const [data, history] = await Promise.all([checkDailyStreak(), getRecentDailyHistory(7)]);
+    setStreakData({ ...data, history });
     setPlaying(false);
   };
 
@@ -37,7 +36,7 @@ export default function DailyChallengePage() {
     return (
       <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-lg mx-auto pb-20">
         <h1 className="text-4xl font-display text-ink mb-2 text-center">Daily Challenge</h1>
-        <p className="font-title text-ink/70 text-2xl mb-8 -rotate-2">{today}</p>
+        <p className="font-accent text-ink/70 text-2xl mb-8 -rotate-2">{today}</p>
         
         <Card className="flex flex-col gap-6 text-center items-center justify-center py-10 w-full mb-8">
           <h2 className="text-2xl font-display text-ink">Puzzle Completed!</h2>
@@ -69,7 +68,7 @@ export default function DailyChallengePage() {
     return (
       <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-lg mx-auto pb-20">
         <h1 className="text-4xl font-display text-ink mb-2 text-center">Daily Challenge</h1>
-        <p className="font-title text-ink/70 text-2xl mb-8 -rotate-2">{today}</p>
+        <p className="font-accent text-ink/70 text-2xl mb-8 -rotate-2">{today}</p>
         
         <Card className="flex flex-col gap-6 text-center items-center py-8 w-full mb-8 bg-accent-soft">
           <div className="flex items-center gap-2 mb-4">

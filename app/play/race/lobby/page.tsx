@@ -4,6 +4,12 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { Button } from '@/components/ui/Button';
+import {
+  generateRoomCode,
+  normaliseRoomCode,
+  isValidRoomCode,
+  ROOM_CODE_LENGTH,
+} from '@/lib/multiplayer/identity';
 
 export default function RaceLobbyPage() {
   const [mode, setMode] = useState<'join' | 'create'>('join');
@@ -19,17 +25,18 @@ export default function RaceLobbyPage() {
       setTimeout(() => setErrorMsg(''), 3000);
       return;
     }
-    
+
     localStorage.setItem('nhako_last_room_created', Date.now().toString());
-    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = generateRoomCode();
     sessionStorage.setItem('is_leader_' + code, 'true');
     router.push(`/play/race/${code}`);
   };
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (roomCode.trim().length === 4) {
-      router.push(`/play/race/${roomCode.trim().toUpperCase()}`);
+    const code = normaliseRoomCode(roomCode);
+    if (isValidRoomCode(code)) {
+      router.push(`/play/race/${code}`);
     }
   };
 
@@ -62,21 +69,28 @@ export default function RaceLobbyPage() {
       >
         {mode === 'join' ? (
           <form onSubmit={handleJoin} className="flex flex-col gap-6 w-full items-center">
-            <p className="text-ink/80 font-body font-medium text-center">Enter the 4-letter room code from your friend.</p>
-            <input 
-              type="text" 
-              placeholder="CODE" 
+            <p className="text-ink/80 font-body font-medium text-center">
+              Enter the {ROOM_CODE_LENGTH}-character room code from your friend.
+            </p>
+            <input
+              type="text"
+              inputMode="text"
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              aria-label="Room code"
+              placeholder="CODE"
               value={roomCode}
-              onChange={e => setRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4))}
-              className="w-full max-w-[200px] bg-surface border-4 border-ink p-4 rounded-2xl font-display text-center text-4xl tracking-[0.5em] text-ink outline-none focus:border-accent shadow-[4px_5px_0_0_var(--ink)] transition-colors"
-              maxLength={4}
+              onChange={e => setRoomCode(normaliseRoomCode(e.target.value))}
+              className="w-full max-w-[280px] bg-surface border-4 border-ink p-4 rounded-2xl font-display text-center text-3xl tracking-[0.3em] text-ink outline-none focus:border-accent shadow-[4px_5px_0_0_var(--ink)] transition-colors"
+              maxLength={ROOM_CODE_LENGTH}
             />
-            <Button 
-              type="submit" 
-              disabled={roomCode.length !== 4} 
-              fullWidth 
+            <Button
+              type="submit"
+              disabled={!isValidRoomCode(roomCode)}
+              fullWidth
               variant="primary"
-              className={roomCode.length !== 4 ? 'opacity-50' : ''}
+              className={!isValidRoomCode(roomCode) ? 'opacity-50' : ''}
             >
               Join Race
             </Button>

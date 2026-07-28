@@ -4,6 +4,9 @@ NhakoSearch is a shared nature journal and word search game built for mobile and
 
 This repository is a Next.js (App Router) progressive web app (PWA) backed by Supabase for database, authentication, and realtime multiplayer syncing.
 
+> **Project docs** live in `docs/` (design spec, routing map, historical plans).
+> `newissue.md` holds the full audit and the phased remediation plan.
+
 ---
 
 ## 1. Architecture Overview
@@ -11,7 +14,7 @@ This repository is a Next.js (App Router) progressive web app (PWA) backed by Su
 - **Styling**: Tailwind CSS, utilizing a custom CSS-variable design system in `globals.css` to allow true dynamic theming (Light/Dark mode) that bypasses system preferences.
 - **Animation**: Framer Motion for shared spring physics, page transitions, and interactive component feedback (like sticker-shadow presses).
 - **Backend & Auth**: Supabase (PostgreSQL, Supabase Auth via Google OAuth, Supabase Realtime).
-- **Audio**: Native Web Audio API integrated into a persistent global React Context.
+- **Audio**: Fully procedural — ambience and sound effects are synthesised at runtime with the Web Audio API, so no audio files are shipped.
 - **Testing**: Playwright for UI regression and viewport testing.
 - **Hosting**: Vercel (Hobby plan).
 
@@ -120,21 +123,27 @@ The app follows a flat, accessible Next.js App Router structure. There are no de
 ## 4. Key Features & Systems
 
 ### The Puzzle Generator (`lib/puzzle/generator.ts`)
-- **Deterministic**: Powered by a Mulberry32 PRNG and a `cyrb128` string hash. A specific seed + word list + difficulty will ALWAYS yield the exact same grid layout.
+- **Deterministic**: Powered by a Mulberry32 PRNG and a `cyrb128` string hash. A specific seed + word list + difficulty always yields the same grid — in every browser. Word selection uses Fisher-Yates; the previous `sort(() => random() - 0.5)` was an inconsistent comparator whose result depended on the engine's sort algorithm, so two players could get different grids from the same seed.
+- **Length-guarded**: Words longer than the grid are filtered out before placement, and unplaceable words are backfilled from spares, so a puzzle always offers its full word count.
 - **Difficulty Scaling**: Easy (8x8, H/V), Medium (10x10, +Diag), Hard (13x13, +Reverse).
 
 ### Game Client (`components/game/GridBoard.tsx` & `useGameLogic.ts`)
 - Strict coordinate math explicitly validates orthogonal (dx=0 or dy=0) and perfect diagonal vectors to ensure flawless 360-degree dragging.
-- The grid board wrapper enforces an `aspect-square w-full max-w-[450px]` rule, ensuring even 13x13 hard mode grids scale down gracefully to fit mobile screens.
+- The board is sized from its WIDTH via the `.grid-board` class (`min(100%, 450px, 100dvh - 330px)`). It must never derive width from leftover flex height — doing so collapsed the board to ~106px on a phone.
+- `gridTemplateRows` is declared alongside `gridTemplateColumns`. Without it, rows size to text and the grid overflows its card while the highlight overlay drifts away from the letters.
 - Uses `PointerEvents` (`onPointerDown`, `onPointerEnter`, `onPointerUp`) to support seamless dragging across cells.
 
 ### Multiplayer Sync (`lib/multiplayer/useRaceRoom.ts`)
 - Utilizes `supabase.channel()` to broadcast and listen to ephemeral JSON packets.
-- **Leader Authority State Machine**: Abandons arbitrary election patterns. The initial creator dictates the room's constraints and fires authoritative broadcast events (`start_race`, `room_closed`) ensuring zero race-conditions or orphaned Guests.
+- **Leader Authority State Machine**: The room creator dictates difficulty and mode, and fires authoritative broadcast events (`countdown_start`, `game_over`, `rematch`, `room_closed`).
+- **Payload shape**: Supabase delivers `{ type, event, payload }` to broadcast listeners. Always read `msg.payload.x`, never `msg.x`.
+- **Identity**: state is keyed `me` / `opponent` by user id — never positional, or both clients believe they are the same player.
+- **Modes**: `race` (separate boards, first to finish) and `coop` (one shared board, finds pooled).
 
 ### Global Sound Engine (`components/sound/AmbientAudioProvider.tsx`)
-- Native Web Audio API implementation holding an `AudioContext`.
-- Manages 5 separate `GainNodes` (Master, Lofi, Rain, Wind, Birds).
+- Everything is generated in-browser (`lib/audio/engine.ts`): pink-noise rain and wind, FM bird chirps, filtered-noise thunder, and a generative lofi chord progression. No audio files are downloaded.
+- Channels: Master, Lofi, Rain, Thunder, Wind, Birds, plus SFX for game feedback.
+- The `AudioContext` is suspended/resumed, never closed — a closed context cannot be reopened.
 - State synced to `localStorage` (per-device preference) and provided globally to allow the `FloatingNav` and `Settings` pages to modify volume sliders simultaneously.
 
 ### Theming System
@@ -147,7 +156,7 @@ The app follows a flat, accessible Next.js App Router structure. There are no de
 
 ### Global Chrome
 - **`FloatingNav.tsx`**: A responsive, 6-icon navigation pill that anchors to the bottom-center on mobile, and the left-center on tablet/desktop. 
-  - **Universal Pause Integration**: During active gameplay, clicking navigation links intercepts the route event and triggers a strict `window.confirm` popup, serving as the single source of truth for quitting puzzles.
+  - **Universal Pause Integration**: During active gameplay, clicking navigation links intercepts the route event and opens an in-app confirmation sheet (not `window.confirm`).
   - **Framer Motion Integration**: The entire structure smoothly shrinks to a `w-14 h-14` Hamburger pill to minimize UI blocking, toggling open and closed effortlessly.
 - **`SignatureFooter.tsx`**: A small, tilted `-2deg` hand-written text element at the bottom of scrollable pages ensuring the app feels personal and hand-crafted.
 

@@ -7,9 +7,14 @@ import { ButterflySvg, CloseSvg, StarSvg } from '@/components/ui/Icons';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
+import { wordsFoundForLevels } from '@/lib/levels/data';
+import type { CollectionEntry } from '@/lib/types';
+
+// The daily challenge is a medium puzzle: 8 words.
+const WORDS_PER_DAILY = 8;
 
 export default function ProfilePage() {
-  const [collection, setCollection] = useState<any[]>([]);
+  const [collection, setCollection] = useState<CollectionEntry[]>([]);
   const [selectedButterfly, setSelectedButterfly] = useState<any | null>(null);
   const router = useRouter();
 
@@ -30,7 +35,8 @@ export default function ProfilePage() {
         const { data: coll } = await supabase.from('butterfly_collection').select('*').eq('user_id', user.id);
         setCollection(coll || []);
         
-        const { count: levels } = await supabase.from('level_progress').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+        const { data: levelRows } = await supabase.from('level_progress').select('level_id').eq('user_id', user.id);
+        const levels = levelRows?.length ?? 0;
         const { count: wins } = await supabase.from('race_history').select('*', { count: 'exact', head: true }).eq('winner', user.id);
         const { count: played } = await supabase.from('race_history').select('*', { count: 'exact', head: true }).or(`player_a.eq.${user.id},player_b.eq.${user.id}`);
         
@@ -48,7 +54,11 @@ export default function ProfilePage() {
           racePlayed: played || 0,
           streak: currentStreak,
           maxStreak: maxStreak,
-          wordsFound: (levels || 0) * 8
+          // Derived from the actual difficulty of each completed level plus
+          // the daily puzzles, rather than the old flat `levels * 8` guess.
+          wordsFound:
+            wordsFoundForLevels((levelRows ?? []).map(r => r.level_id)) +
+            (logs?.length ?? 0) * WORDS_PER_DAILY,
         });
       } else {
         const saved = JSON.parse(localStorage.getItem('nhako_collection') || '[]');
@@ -57,7 +67,9 @@ export default function ProfilePage() {
         const localLevels = JSON.parse(localStorage.getItem('nhako_levels') || '{}');
         const localDaily = JSON.parse(localStorage.getItem('nhako_daily') || '{}');
 
-        const levels = Object.keys(localLevels).length;
+        const levelIds = Object.keys(localLevels);
+        const levels = levelIds.length;
+        const dailyCount = Array.isArray(localDaily.history) ? localDaily.history.length : 0;
         const wins = 0;
         const played = 0;
         const streak = localDaily.streak || 0;
@@ -69,7 +81,7 @@ export default function ProfilePage() {
           racePlayed: played,
           streak,
           maxStreak,
-          wordsFound: levels * 8
+          wordsFound: wordsFoundForLevels(levelIds) + dailyCount * WORDS_PER_DAILY,
         });
       }
     }

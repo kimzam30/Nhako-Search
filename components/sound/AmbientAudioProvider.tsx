@@ -1,219 +1,229 @@
 'use client';
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import {
+  AMBIENCE_PRESETS,
+  CHANNEL_IDS,
+  createAmbienceEngine,
+  loadLofiSample,
+  type AmbienceEngine,
+  type ChannelId,
+} from '@/lib/audio/engine';
+import { playEffect, type EffectName } from '@/lib/audio/sfx';
 
-type AudioVolumes = {
-  master: number;
-  lofi: number;
-  rain: number;
-  wind: number;
-  birds: number;
-  thunder: number;
-};
+/** `sfx` is a mixer channel but not an ambience layer, so it sits outside ChannelId. */
+export type AudioVolumes = Record<ChannelId | 'master' | 'sfx', number>;
 
 interface AmbientAudioContextType {
   volumes: AudioVolumes;
   setVolume: (track: keyof AudioVolumes, value: number) => void;
   isPlaying: boolean;
-  startAmbience: () => void;
+  /** True once the engine has been built (first user gesture). */
+  isReady: boolean;
+  startAmbience: () => Promise<void>;
   stopAmbience: () => void;
+  applyPreset: (presetId: string) => void;
+  presets: typeof AMBIENCE_PRESETS;
+  /** Game feedback. Works whether or not the ambience is running. */
+  playSfx: (name: EffectName) => void;
 }
 
+const STORAGE_KEY = 'nhako_audio_volumes';
+
 const defaultVolumes: AudioVolumes = {
-  master: 100,
+  master: 80,
   lofi: 50,
   rain: 0,
   wind: 0,
   birds: 0,
   thunder: 0,
+  sfx: 70,
 };
 
 const AmbientAudioContext = createContext<AmbientAudioContextType | null>(null);
+
+function readStoredVolumes(): AudioVolumes {
+  if (typeof window === 'undefined') return defaultVolumes;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultVolumes;
+    const parsed = JSON.parse(raw) as Partial<AudioVolumes>;
+    // Merge rather than replace: an older payload is missing newer channels.
+    const merged = { ...defaultVolumes };
+    for (const key of Object.keys(merged) as (keyof AudioVolumes)[]) {
+      const v = parsed[key];
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        merged[key] = Math.min(100, Math.max(0, v));
+      }
+    }
+    return merged;
+  } catch {
+    return defaultVolumes;
+  }
+}
 
 export function AmbientAudioProvider({ children }: { children: React.ReactNode }) {
   const [volumes, setVolumes] = useState<AudioVolumes>(defaultVolumes);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const masterGainRef = useRef<GainNode | null>(null);
-  const gainsRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'> | 'thunder', GainNode | null>>({
-    lofi: null, rain: null, wind: null, birds: null, thunder: null
-  });
-  
-  const thunderGainRef = useRef<GainNode | null>(null);
-  const thunderBufferRef = useRef<AudioBuffer | null>(null);
-  
-  // We keep track of the source nodes in case we need to stop them on unmount
-  const sourcesRef = useRef<Record<Exclude<keyof AudioVolumes, 'master'> | 'thunder', AudioBufferSourceNode | null>>({
-    lofi: null, rain: null, wind: null, birds: null, thunder: null
-  });
+  const ctxRef = useRef<AudioContext | null>(null);
+  const engineRef = useRef<AmbienceEngine | null>(null);
+  const startingRef = useRef(false);
+  const sfxGainRef = useRef<GainNode | null>(null);
+  const volumesRef = useRef<AudioVolumes>(defaultVolumes);
 
-  // Load saved volumes on mount
+  /**
+   * Creates the AudioContext on demand. Game interactions are user gestures,
+   * so effects can play even if the player never started the ambience.
+   */
+  const ensureContext = useCallback((): AudioContext | null => {
+    if (ctxRef.current) return ctxRef.current;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return null;
+
+    const ctx = new AudioContextClass();
+    ctxRef.current = ctx;
+
+    const sfxGain = ctx.createGain();
+    sfxGain.gain.value = (volumesRef.current.sfx / 100) * (volumesRef.current.master / 100);
+    sfxGain.connect(ctx.destination);
+    sfxGainRef.current = sfxGain;
+
+    return ctx;
+  }, []);
+
+  const playSfx = useCallback(
+    (name: EffectName) => {
+      const ctx = ensureContext();
+      const dest = sfxGainRef.current;
+      if (!ctx || !dest) return;
+      if (volumesRef.current.sfx <= 0 || volumesRef.current.master <= 0) return;
+      // A suspended context would swallow the effect silently.
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      playEffect(ctx, dest, name);
+    },
+    [ensureContext]
+  );
+
+  // Hydrate saved volumes on the client only.
   useEffect(() => {
-    const saved = localStorage.getItem('nhako_audio_volumes');
-    if (saved) {
-      try {
-        setVolumes(JSON.parse(saved));
-      } catch (e) {}
+    setVolumes(readStoredVolumes());
+  }, []);
+
+  // Persist, and push every change into the running graph.
+  useEffect(() => {
+    volumesRef.current = volumes;
+    if (sfxGainRef.current && ctxRef.current) {
+      sfxGainRef.current.gain.setTargetAtTime(
+        (volumes.sfx / 100) * (volumes.master / 100),
+        ctxRef.current.currentTime,
+        0.05
+      );
     }
-    setIsReady(true);
-    
-    return () => {
-      // Cleanup Web Audio API resources on unmount
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close().catch(console.error);
+    const engine = engineRef.current;
+    if (engine) {
+      engine.setMasterGain(volumes.master / 100);
+      for (const id of CHANNEL_IDS) engine.setChannelGain(id, volumes[id] / 100);
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(volumes));
+    } catch {
+      /* private mode, quota — not worth surfacing */
+    }
+  }, [volumes]);
+
+  const startAmbience = useCallback(async () => {
+    if (startingRef.current) return;
+
+    // Build the graph on the first gesture; autoplay policy blocks it earlier.
+    if (!engineRef.current) {
+      startingRef.current = true;
+      try {
+        const ctx = ensureContext();
+        if (!ctx) return;
+
+        // Optional real recording; falls back to generated chords when absent.
+        const lofiSample = await loadLofiSample(ctx);
+        engineRef.current = createAmbienceEngine(ctx, volumes, lofiSample);
+        setIsReady(true);
+      } finally {
+        startingRef.current = false;
       }
+    }
+
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+    if (ctx.state === 'suspended') await ctx.resume();
+    setIsPlaying(true);
+  }, [volumes, ensureContext]);
+
+  const stopAmbience = useCallback(() => {
+    setIsPlaying(false);
+    // Suspend rather than close. The old code closed the context in an unmount
+    // cleanup and never rebuilt the graph, so any remount killed audio for the
+    // rest of the session; a closed context can never be resumed.
+    ctxRef.current?.suspend().catch(() => {});
+  }, []);
+
+  // Browsers can suspend the context on their own (tab backgrounded, iOS
+  // interruptions). Nudge it back on the next interaction while playing.
+  useEffect(() => {
+    if (!isPlaying) return;
+    const resume = () => {
+      const ctx = ctxRef.current;
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    };
+    window.addEventListener('pointerdown', resume);
+    document.addEventListener('visibilitychange', resume);
+    return () => {
+      window.removeEventListener('pointerdown', resume);
+      document.removeEventListener('visibilitychange', resume);
+    };
+  }, [isPlaying]);
+
+  // Tear the graph down only when the provider itself goes away for good.
+  useEffect(() => {
+    return () => {
+      engineRef.current?.dispose();
+      engineRef.current = null;
+      ctxRef.current?.close().catch(() => {});
+      ctxRef.current = null;
     };
   }, []);
 
-  const initAudio = async () => {
-    if (audioCtxRef.current) return;
-    
-    // Fallback for older Webkit
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    
-    const ctx = new AudioContextClass();
-    audioCtxRef.current = ctx;
+  const setVolume = useCallback((track: keyof AudioVolumes, value: number) => {
+    const clamped = Math.min(100, Math.max(0, Math.round(value)));
+    setVolumes(prev => (prev[track] === clamped ? prev : { ...prev, [track]: clamped }));
+  }, []);
 
-    const masterGain = ctx.createGain();
-    masterGain.connect(ctx.destination);
-    masterGain.gain.value = volumes.master / 100;
-    masterGainRef.current = masterGain;
-
-    const loadTrack = async (trackName: Exclude<keyof AudioVolumes, 'master'>, url: string) => {
-      try {
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error(`Failed to fetch ${url}`);
-        const arrayBuffer = await resp.arrayBuffer();
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-
-        const gainNode = ctx.createGain();
-        gainNode.gain.value = volumes[trackName] / 100;
-        gainNode.connect(masterGain);
-        gainsRef.current[trackName] = gainNode;
-
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.loop = true;
-        source.connect(gainNode);
-        source.start(0);
-        sourcesRef.current[trackName] = source;
-      } catch (err) {
-        console.error(`Failed to load ambient track ${trackName}:`, err);
-      }
-    };
-
-    const thunderGain = ctx.createGain();
-    thunderGain.gain.value = volumes.thunder / 100;
-    thunderGain.connect(masterGain);
-    thunderGainRef.current = thunderGain;
-
-    // Load all tracks concurrently
-    await Promise.all([
-      loadTrack('lofi', '/audio/lofi.mp3'),
-      loadTrack('rain', '/audio/rain.mp3'),
-      loadTrack('wind', '/audio/wind.mp3'),
-      loadTrack('birds', '/audio/birds.mp3'),
-      (async () => {
-        try {
-          const resp = await fetch('/audio/thunder.mp3');
-          if (resp.ok) thunderBufferRef.current = await ctx.decodeAudioData(await resp.arrayBuffer());
-        } catch (e) { console.error('Failed to load thunder'); }
-      })()
-    ]);
-  };
-
-  // Update volumes when state changes
-  useEffect(() => {
-    if (!audioCtxRef.current || !masterGainRef.current) return;
-    
-    const now = audioCtxRef.current.currentTime;
-    
-    // Update master volume with a slight ramp to prevent clicks
-    masterGainRef.current.gain.setTargetAtTime(volumes.master / 100, now, 0.05);
-
-    // Update individual track volumes
-    (['lofi', 'rain', 'wind', 'birds'] as const).forEach(track => {
-      const gainNode = gainsRef.current[track];
-      if (gainNode) {
-        gainNode.gain.setTargetAtTime(volumes[track] / 100, now, 0.05);
-      }
-    });
-    
-    if (thunderGainRef.current) {
-      thunderGainRef.current.gain.setTargetAtTime(volumes.thunder / 100, now, 0.05);
-    }
-    
-    localStorage.setItem('nhako_audio_volumes', JSON.stringify(volumes));
-  }, [volumes]);
-
-  // Handle play/pause state and browser autoplay policy
-  useEffect(() => {
-    if (!audioCtxRef.current) return;
-    
-    const tryResume = () => {
-      if (audioCtxRef.current?.state === 'suspended' && isPlaying) {
-        audioCtxRef.current.resume().catch(console.error);
-      }
-    };
-
-    if (isPlaying) {
-      tryResume();
-      window.addEventListener('pointerdown', tryResume);
-      window.addEventListener('click', tryResume);
-    } else {
-      if (audioCtxRef.current.state === 'running') {
-        audioCtxRef.current.suspend().catch(console.error);
-      }
-    }
-
-    return () => {
-      window.removeEventListener('pointerdown', tryResume);
-      window.removeEventListener('click', tryResume);
-    };
-  }, [isPlaying]);
-
-  // Thunder random interval
-  useEffect(() => {
-    if (!isPlaying) return;
-    let timeoutId: NodeJS.Timeout;
-
-    const playThunder = () => {
-      if (audioCtxRef.current && thunderBufferRef.current && thunderGainRef.current) {
-         const source = audioCtxRef.current.createBufferSource();
-         source.buffer = thunderBufferRef.current;
-         source.connect(thunderGainRef.current);
-         source.start(0);
-      }
-      
-      const nextInterval = Math.random() * 30000 + 15000;
-      timeoutId = setTimeout(playThunder, nextInterval);
-    };
-
-    const initialInterval = Math.random() * 20000 + 10000;
-    timeoutId = setTimeout(playThunder, initialInterval);
-
-    return () => clearTimeout(timeoutId);
-  }, [isPlaying]);
-
-  const setVolume = (track: keyof AudioVolumes, value: number) => {
-    setVolumes(prev => ({ ...prev, [track]: value }));
-  };
-
-  const startAmbience = async () => {
-    if (!audioCtxRef.current) {
-      await initAudio();
-    }
-    setIsPlaying(true);
-  };
-
-  const stopAmbience = () => {
-    setIsPlaying(false);
-  };
+  const applyPreset = useCallback(
+    (presetId: string) => {
+      const preset = AMBIENCE_PRESETS.find(p => p.id === presetId);
+      if (!preset) return;
+      // One state write so the whole mix crossfades together rather than
+      // stepping channel by channel.
+      setVolumes(prev => ({ ...prev, ...preset.volumes }));
+      if (!isPlaying) void startAmbience();
+    },
+    [isPlaying, startAmbience]
+  );
 
   return (
-    <AmbientAudioContext.Provider value={{ volumes, setVolume, isPlaying, startAmbience, stopAmbience }}>
+    <AmbientAudioContext.Provider
+      value={{
+        volumes,
+        setVolume,
+        isPlaying,
+        isReady,
+        startAmbience,
+        stopAmbience,
+        applyPreset,
+        presets: AMBIENCE_PRESETS,
+        playSfx,
+      }}
+    >
       {children}
     </AmbientAudioContext.Provider>
   );

@@ -70,19 +70,41 @@ export function generateGrid(words: string[], difficulty: Difficulty, seedStr: s
 
   // Pick exactly the words we need based on difficulty max
   const wordCount = difficulty === 'easy' ? 6 : difficulty === 'medium' ? 8 : 10;
-  
-  // Shuffle available words to pick a subset
-  const shuffledWords = [...words].sort(() => random() - 0.5);
-  const selectedWords = shuffledWords.slice(0, Math.min(wordCount, shuffledWords.length));
-  // Clean words
-  const cleanWords = selectedWords.map(w => w.toUpperCase().replace(/[^A-Z]/g, ''));
+
+  // Only consider words that can physically fit. A word longer than the grid
+  // can never be placed, and the placement loop drops such words silently —
+  // e.g. BUTTERFLY (9) in race easy mode (8x8) failed 100% of the time.
+  const maxLength = Math.min(width, height);
+  const eligible = Array.from(
+    new Set(
+      words
+        .map(w => w.toUpperCase().replace(/[^A-Z]/g, ''))
+        .filter(w => w.length >= 3 && w.length <= maxLength)
+    )
+  );
+
+  // Fisher-Yates, not `sort(() => random() - 0.5)`. That comparator is
+  // inconsistent, so the result depended on the engine's sort algorithm —
+  // the same seed produced different grids in different browsers, which
+  // desynced the two players in a race.
+  const shuffledWords = [...eligible];
+  for (let i = shuffledWords.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffledWords[i], shuffledWords[j]] = [shuffledWords[j], shuffledWords[i]];
+  }
+
   // Sort by length descending for easier placement
-  cleanWords.sort((a, b) => b.length - a.length);
+  const cleanWords = shuffledWords
+    .slice(0, Math.min(wordCount, shuffledWords.length))
+    .sort((a, b) => b.length - a.length);
+  // Spares used to backfill if a first-choice word cannot be placed, so the
+  // puzzle still offers the expected number of words.
+  const reserveWords = shuffledWords.slice(wordCount);
 
   const grid: string[][] = Array(height).fill(null).map(() => Array(width).fill(''));
   const placedWords: PlacedWord[] = [];
 
-  for (const word of cleanWords) {
+  const tryPlaceWord = (word: string) => {
     let placed = false;
     let attempts = 0;
     
@@ -157,6 +179,19 @@ export function generateGrid(words: string[], difficulty: Difficulty, seedStr: s
       });
       placed = true;
     }
+    return placed;
+  };
+
+  for (const word of cleanWords) {
+    tryPlaceWord(word);
+  }
+
+  // A word can still fail to place if the grid got congested. Backfill from the
+  // spares so the player reliably gets `wordCount` words rather than silently
+  // fewer, which previously capped the race progress bar below 100%.
+  for (const word of reserveWords) {
+    if (placedWords.length >= wordCount) break;
+    tryPlaceWord(word);
   }
 
   // Fill remainder

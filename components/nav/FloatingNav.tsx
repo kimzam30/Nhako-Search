@@ -2,17 +2,17 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
-import Link from 'next/link';
 import { PauseSvg, VolumeSvg, CloseSvg, HomeSvg, FlameSvg, MapSvg, RaceSvg, UserSvg } from '@/components/ui/Icons';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/multiplayer/supabase';
+import type { User } from '@supabase/supabase-js';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 import { Button } from '@/components/ui/Button';
 
 export function FloatingNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [sessionUser, setSessionUser] = useState<any>(null);
+  const [sessionUser, setSessionUser] = useState<User | null>(null);
   const [showMixer, setShowMixer] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ href: string } | null>(null);
@@ -95,7 +95,7 @@ export function FloatingNav() {
         )}
       </AnimatePresence>
 
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-6 md:-translate-x-0 lg:left-[calc(50%-500px+24px)] z-40">
+      <div className="floating-nav">
       
       <AnimatePresence>
         {showMixer && (
@@ -120,8 +120,10 @@ export function FloatingNav() {
               { id: 'master', label: 'Master', color: 'bg-accent' },
               { id: 'lofi', label: 'Lofi', color: 'bg-ink/10' },
               { id: 'rain', label: 'Rain', color: 'bg-ink/10' },
+              { id: 'thunder', label: 'Thunder', color: 'bg-ink/10' },
               { id: 'wind', label: 'Wind', color: 'bg-ink/10' },
-              { id: 'birds', label: 'Birds', color: 'bg-ink/10' }
+              { id: 'birds', label: 'Birds', color: 'bg-ink/10' },
+              { id: 'sfx', label: 'Sounds', color: 'bg-ink/10' }
             ].map(track => (
               <div key={track.id} className="flex flex-col gap-1 w-full">
                 <div className="flex justify-between font-body text-ink/80 text-xs font-bold">
@@ -174,7 +176,16 @@ export function FloatingNav() {
                   className={`w-12 h-12 rounded-2xl border-2 border-ink flex items-center justify-center overflow-hidden bg-surface ${pathname.startsWith('/profile') || pathname === '/sign-in' ? 'bg-accent-soft' : ''}`}
                 >
                   {sessionUser?.user_metadata?.avatar_url ? (
-                    <img src={sessionUser.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                    <img
+                      src={sessionUser.user_metadata.avatar_url}
+                      alt=""
+                      width={48}
+                      height={48}
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <UserSvg className="w-5 h-5 text-ink/70" />
                   )}

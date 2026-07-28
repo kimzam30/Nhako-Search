@@ -41,11 +41,150 @@ body {
   font-family: var(--font-body), sans-serif;
 }
 
+/*
+ * Paper grain.
+ *
+ * Without an explicit background-size the SVG stretched to the whole viewport,
+ * so the browser rasterised a turbulence filter at full screen resolution — on
+ * a large display that is millions of pixels of noise generated on first paint.
+ * Tiling a 160px square instead renders a fraction of the pixels, and the finer
+ * repeat actually reads more like paper.
+ */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  background-repeat: repeat;
+}
+
+/* The grain is decoration; skip it when the user asks for less motion/effects. */
+@media (prefers-reduced-transparency: reduce) {
+  body::after {
+    display: none;
+  }
+}
+
+/* Used by the horizontal theme/appearance pickers. */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * The puzzle board is sized from its WIDTH, never from leftover flex height —
+ * deriving width from height collapsed the board to ~106px on a phone.
+ * First declaration is the fallback for browsers without dvh support.
+ * The ~330px allowance covers the rest of the game column (garland, gap, word
+ * list, nav padding) so board + word list still fit on a short phone without
+ * scrolling; the 200px floor stops it collapsing in landscape.
+ */
+.grid-board {
+  width: min(100%, 450px);
+  width: max(200px, min(100%, 450px, 100dvh - 330px));
+}
+
+/*
+ * Letter size follows the CELL, not the viewport. Previously a viewport-based
+ * clamp produced a 24px glyph inside a 20.6px cell on tablet hard mode.
+ * --cols is set on the grid container in GridBoard.
+ */
+.letter-cell {
+  font-size: clamp(9px, 3.2vmin, 22px);
+}
+
+/*
+ * Keyboard cursor. Only shown while the board itself has keyboard focus, so
+ * pointer players never see it. Uses an inset ring rather than outline so it
+ * cannot spill outside the cell on a dense 13x13 board.
+ */
+.cell-cursor {
+  position: relative;
+}
+[role='grid']:focus-visible .cell-cursor::after,
+[role='grid']:focus-within .cell-cursor::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+/*
+ * One source of truth for the content column width.
+ *
+ * The nav rail used to be pinned with `lg:left-[calc(50%-500px+24px)]`, which
+ * hardcoded half of a 1000px container. Changing the container width silently
+ * moved the nav off its column. Both now derive from --content-max.
+ */
+:root {
+  --content-max: 100%;
+  --nav-gutter: 1.5rem;
+}
+@media (min-width: 768px) {
+  :root {
+    --content-max: 800px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --content-max: 1080px;
+  }
+}
+
+.app-shell {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+}
+
+/* Bottom-centre pill on phones; left rail from tablet up. */
+.floating-nav {
+  position: fixed;
+  z-index: 40;
+  bottom: var(--nav-gutter);
+  left: 50%;
+  transform: translateX(-50%);
+}
+@media (min-width: 768px) {
+  .floating-nav {
+    bottom: auto;
+    top: 50%;
+    /* Sit just outside the content column, but never off-screen. */
+    left: max(var(--nav-gutter), calc(50% - var(--content-max) / 2 - 5rem));
+    transform: translateY(-50%);
+  }
+}
+
+/* Reserve room for the rail until the viewport is wide enough for it to sit
+ * beside the centred column rather than on top of it. */
+@media (min-width: 768px) {
+  body {
+    padding-bottom: 0;
+    padding-left: 6rem;
+  }
+}
+@media (min-width: 1400px) {
+  body {
+    padding-left: 0;
+  }
+}
+
+/* A visible, consistent focus ring for every interactive control. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+@supports (container-type: inline-size) {
+  .letter-cell {
+    font-size: calc(100cqw / var(--cols, 10) * 0.56);
+  }
 }

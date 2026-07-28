@@ -1,11 +1,10 @@
-const CACHE_NAME = 'nhakosearch-v2';
+const CACHE_NAME = 'nhakosearch-v3';
+// Ambience is synthesised in the browser, so there are no audio files to
+// precache. Drop an optional /audio/lofi.mp3 in and add it here if you ever
+// want a real recording cached for offline use.
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
-  '/audio/lofi.mp3',
-  '/audio/rain.mp3',
-  '/audio/wind.mp3',
-  '/audio/birds.mp3',
 ];
 
 self.addEventListener('install', (event) => {
@@ -47,22 +46,52 @@ self.addEventListener('fetch', (event) => {
   // Bypass cache if the browser is requesting a reload (fixes infinite HMR reload loop)
   if (event.request.cache === 'reload' || event.request.cache === 'no-cache') return;
 
+  const offlineFallback = () =>
+    new Response('Network error occurred. You may be offline.', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/plain' },
+    });
+
+  // Navigations are NETWORK-FIRST.
+  //
+  // Cache-first on HTML meant a returning player could be served a stale
+  // document — running old JS against a newer database schema — until the cache
+  // happened to be revalidated. The cached copy is now only a fallback for
+  // genuinely being offline.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() =>
+          caches
+            .open(CACHE_NAME)
+            .then((cache) => cache.match(event.request))
+            .then((cached) => cached || caches.match('/'))
+            .then((cached) => cached || offlineFallback())
+        )
+    );
+    return;
+  }
+
+  // Static assets stay cache-first with background revalidation.
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.match(event.request).then((cachedResponse) => {
-        const fetchedResponse = fetch(event.request).then((networkResponse) => {
-          if (networkResponse.status === 200) {
-            cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
-        }).catch(() => {
-          // Return cached or offline fallback to prevent TypeError
-          return new Response('Network error occurred. You may be offline.', { 
-            status: 503, 
-            statusText: 'Service Unavailable',
-            headers: { 'Content-Type': 'text/plain' }
-          });
-        });
+        const fetchedResponse = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => cachedResponse || offlineFallback());
         return cachedResponse || fetchedResponse;
       });
     })

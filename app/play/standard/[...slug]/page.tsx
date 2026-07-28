@@ -63,7 +63,9 @@ export default function StandardPlayPage() {
       <div className="w-full flex justify-center items-center mb-6 max-w-lg absolute top-6">
         <h1 className="text-xl font-display text-ink/60 bg-surface px-4 py-1 rounded-full border-2 border-ink shadow-sm capitalize">{theme.replace('-', ' ')} - {diff}</h1>
       </div>
-      <GameClient words={words} difficulty={diff} seedStr={seed} onNext={generateNew} />
+      {/* key remounts the game so a new seed actually regenerates the grid —
+          useGameLogic builds it in a useState initialiser, which only runs on mount. */}
+      <GameClient key={seed} words={words} difficulty={diff} seedStr={seed} onNext={generateNew} />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { softBounce } from '@/components/motion/springs';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';

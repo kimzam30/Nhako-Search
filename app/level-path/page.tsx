@@ -1,8 +1,9 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
-import { CHAPTERS, LEVELS } from '@/lib/levels/data';
+import { CHAPTERS, ALL_LEVEL_IDS } from '@/lib/levels/data';
 import { loadLevelProgress } from '@/lib/levels/progress';
+import type { LevelProgressRow } from '@/lib/types';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { StarSvg, CloseSvg } from '@/components/ui/Icons';
@@ -33,7 +34,7 @@ const CHAPTER_COLORS: Record<string, string> = {
 };
 
 export default function LevelPathPage() {
-  const [progress, setProgress] = useState<any[]>([]);
+  const [progress, setProgress] = useState<LevelProgressRow[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function LevelPathPage() {
     return p ? p.stars : 0;
   };
 
-  const flatLevels = CHAPTERS.flatMap(c => c.levels);
+  const flatLevels = ALL_LEVEL_IDS;
   
   // Find the highest unlocked level
   let highestUnlockedIndex = 0;
@@ -153,7 +154,23 @@ export default function LevelPathPage() {
   );
 }
 
-function ChapterView({ chapter, flatLevels, highestUnlockedIndex, getStars, offsets, onSelectLevel }: any) {
+interface ChapterViewProps {
+  chapter: { id: string; name: string; levels: string[] };
+  flatLevels: string[];
+  highestUnlockedIndex: number;
+  getStars: (levelId: string) => number;
+  offsets: number[];
+  onSelectLevel: (levelId: string) => void;
+}
+
+function ChapterView({
+  chapter,
+  flatLevels,
+  highestUnlockedIndex,
+  getStars,
+  offsets,
+  onSelectLevel,
+}: ChapterViewProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 

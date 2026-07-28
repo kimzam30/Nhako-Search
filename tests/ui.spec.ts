@@ -9,7 +9,7 @@ test.describe('UI Regressions', () => {
     await page.goto('http://localhost:3002/play/standard/standard/hard');
     
     // Wait for GridBoard to render (wait for the parent div with aspect-square)
-    const gridBoard = page.locator('.aspect-square.max-w-\\[450px\\]').first();
+    const gridBoard = page.locator('.aspect-square.grid-board').first();
     await gridBoard.waitFor({ state: 'visible' });
     
     const boundingBox = await gridBoard.boundingBox();
@@ -99,7 +99,7 @@ test.describe('UI Regressions', () => {
     const firstCell = page.locator('div[data-x="0"][data-y="0"]').first();
     await firstCell.waitFor({ state: 'visible' });
 
-    const gridBoard = page.locator('.aspect-square.max-w-\\[450px\\]').first();
+    const gridBoard = page.locator('.aspect-square.grid-board').first();
     
     const firstBox = await firstCell.boundingBox();
     expect(firstBox).not.toBeNull();

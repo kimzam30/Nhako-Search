@@ -1,13 +1,33 @@
 import { supabase } from '@/lib/multiplayer/supabase';
+import type { CollectionEntry } from '@/lib/types';
 
 export async function saveLevelProgress(levelId: string, stars: number, timeSeconds: number) {
   const { data: user } = await supabase.auth.getUser();
   const butterflyId = `level-${levelId}`;
   
   if (user.user) {
+    // Keep the best result. The old code upserted the latest values straight in,
+    // so replaying a 3-star level slowly demoted it to 1 star and overwrote the
+    // best time — while the guest path below correctly kept the maximum.
+    const { data: existing } = await supabase
+      .from('level_progress')
+      .select('stars, best_time_seconds')
+      .eq('user_id', user.user.id)
+      .eq('level_id', levelId)
+      .maybeSingle();
+
+    const bestStars = Math.max(existing?.stars ?? 0, stars);
+    const bestTime =
+      existing?.best_time_seconds != null
+        ? Math.min(existing.best_time_seconds, timeSeconds)
+        : timeSeconds;
+
     const { error } = await supabase
       .from('level_progress')
-      .upsert({ user_id: user.user.id, level_id: levelId, stars, best_time_seconds: timeSeconds }, { onConflict: 'user_id,level_id' });
+      .upsert(
+        { user_id: user.user.id, level_id: levelId, stars: bestStars, best_time_seconds: bestTime },
+        { onConflict: 'user_id,level_id' }
+      );
     if (error) console.error('Save level error:', error);
     
     // Earn butterfly for completing level
@@ -27,11 +47,15 @@ export async function saveLevelProgress(levelId: string, stars: number, timeSeco
   } else {
     // Fallback to local storage for guest
     const saved = JSON.parse(localStorage.getItem('nhako_levels') || '{}');
-    saved[levelId] = { stars: Math.max(saved[levelId]?.stars || 0, stars), best_time_seconds: timeSeconds };
+    const prevTime = saved[levelId]?.best_time_seconds;
+    saved[levelId] = {
+      stars: Math.max(saved[levelId]?.stars || 0, stars),
+      best_time_seconds: typeof prevTime === 'number' ? Math.min(prevTime, timeSeconds) : timeSeconds,
+    };
     localStorage.setItem('nhako_levels', JSON.stringify(saved));
     
     const collection = JSON.parse(localStorage.getItem('nhako_collection') || '[]');
-    if (!collection.find((c: any) => c.butterfly_style_id === butterflyId)) {
+    if (!(collection as CollectionEntry[]).find(c => c.butterfly_style_id === butterflyId)) {
       collection.push({ butterfly_style_id: butterflyId, earned_from: `Level ${levelId}`, earned_at: new Date().toISOString() });
       localStorage.setItem('nhako_collection', JSON.stringify(collection));
     }

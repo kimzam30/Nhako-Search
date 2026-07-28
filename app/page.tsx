@@ -1,24 +1,25 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ButterflySvg, UserSvg, FlameSvg, MapSvg, RaceSvg } from '@/components/ui/Icons';
 import { supabase } from '@/lib/multiplayer/supabase';
+import type { User } from '@supabase/supabase-js';
 import { mergeGuestProgress } from '@/lib/auth/merge';
-import { CHAPTERS, LEVELS } from '@/lib/levels/data';
+import { ALL_LEVEL_IDS, getLevelMeta } from '@/lib/levels/data';
 
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState({ levels: 0, wins: 0, streak: 0 });
 
   useEffect(() => {
     mergeGuestProgress();
     
-    const fetchStats = async (currentUser: any) => {
+    const fetchStats = async (currentUser: User | null) => {
       if (currentUser) {
         // Logged in
         const { count: levels } = await supabase.from('level_progress').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
@@ -132,7 +133,16 @@ export default function HomePage() {
               className="w-12 h-12 rounded-full border-2 border-ink flex items-center justify-center overflow-hidden bg-surface"
             >
               {user?.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                <img
+                  src={user.user_metadata.avatar_url}
+                  alt=""
+                  width={48}
+                  height={48}
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <UserSvg className="w-6 h-6 text-ink/70" />
               )}
@@ -168,13 +178,12 @@ export default function HomePage() {
                 <h2 className="text-sm font-bold text-ink/70 uppercase tracking-widest mb-1">Level Path</h2>
                 <h3 className="text-xl font-display text-ink">
                   {(() => {
-                    const allLevelIds = CHAPTERS.flatMap(c => c.levels);
-                    const nextLevelId = allLevelIds[Math.min(stats.levels, allLevelIds.length - 1)] || allLevelIds[0];
-                    const nextLvl = LEVELS[nextLevelId];
-                    if (!nextLvl) return 'Start Journey';
-                    const chapterIndex = CHAPTERS.findIndex(c => c.name === nextLvl.chapter);
-                    const levelInChapter = CHAPTERS[chapterIndex].levels.indexOf(nextLevelId) + 1;
-                    return `${nextLvl.chapter} - ${levelInChapter}`;
+                    // Metadata only — no word lists are generated to render a label.
+                    const nextLevelId =
+                      ALL_LEVEL_IDS[Math.min(stats.levels, ALL_LEVEL_IDS.length - 1)] || ALL_LEVEL_IDS[0];
+                    const meta = getLevelMeta(nextLevelId);
+                    if (!meta) return 'Start Journey';
+                    return `${meta.chapter} - ${meta.numberInChapter}`;
                   })()}
                 </h3>
               </div>

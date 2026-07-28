@@ -20,6 +20,10 @@ ON public.profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert their own profile" 
 ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
+-- Required by the "Delete My Data" flow.
+CREATE POLICY "Users can delete their own profile" 
+ON public.profiles FOR DELETE USING (auth.uid() = id);
+
 
 -- Table: level_progress
 CREATE TABLE IF NOT EXISTS public.level_progress (
@@ -112,11 +116,35 @@ ALTER TABLE public.race_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view race history they are part of" 
 ON public.race_history FOR SELECT USING (auth.uid() = player_a OR auth.uid() = player_b);
 
-CREATE POLICY "Users can insert race history they are part of" 
-ON public.race_history FOR INSERT WITH CHECK (auth.uid() = player_a OR auth.uid() = player_b);
+-- Only the room leader records a match. Allowing any participant to insert
+-- meant one race wrote two rows, because both clients believed they were player_a.
+CREATE POLICY "Only the leader records a race" 
+ON public.race_history FOR INSERT WITH CHECK (auth.uid() = player_a);
 
-CREATE POLICY "Users can update race history they are part of" 
-ON public.race_history FOR UPDATE USING (auth.uid() = player_a OR auth.uid() = player_b);
+-- No UPDATE policy: results are immutable once written. Nothing in the app
+-- updates this table, and an update policy let a player rewrite their losses.
 
 CREATE POLICY "Users can delete race history they are part of" 
 ON public.race_history FOR DELETE USING (auth.uid() = player_a OR auth.uid() = player_b);
+
+
+-- Integrity constraints: a winner must have played, and a player cannot race
+-- themselves.
+ALTER TABLE public.race_history
+  ADD CONSTRAINT race_history_winner_is_participant
+  CHECK (winner IS NULL OR winner = player_a OR winner = player_b);
+
+ALTER TABLE public.race_history
+  ADD CONSTRAINT race_history_distinct_players
+  CHECK (player_b IS NULL OR player_a <> player_b);
+
+
+-- Indexes backing the home and profile stat queries.
+CREATE INDEX IF NOT EXISTS level_progress_user_idx
+  ON public.level_progress (user_id);
+CREATE INDEX IF NOT EXISTS daily_challenge_log_user_date_idx
+  ON public.daily_challenge_log (user_id, challenge_date DESC);
+CREATE INDEX IF NOT EXISTS butterfly_collection_user_idx
+  ON public.butterfly_collection (user_id);
+CREATE INDEX IF NOT EXISTS race_history_winner_idx
+  ON public.race_history (winner);

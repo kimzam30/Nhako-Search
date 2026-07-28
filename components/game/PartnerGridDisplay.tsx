@@ -22,11 +22,14 @@ export function PartnerGridDisplay({ words, difficulty, seedStr, foundWords }: P
   }));
 
   return (
-    <div className="flex flex-col items-center w-full max-w-lg mx-auto h-full min-h-0 opacity-80 pointer-events-none grayscale-[0.2]">
-      <div className="flex-1 w-full min-h-0 flex flex-col md:flex-row items-center justify-center gap-6 relative">
-        <div className="flex-1 w-full max-w-[400px] h-full flex flex-col items-center justify-center relative">
-          <GridBoard 
-            grid={game.grid}
+    <div className="flex flex-col items-center w-full max-w-lg mx-auto opacity-80 pointer-events-none grayscale-[0.2]">
+      <div className="w-full flex flex-col items-center justify-center gap-4">
+        <div className="w-full flex justify-center">
+          {/* A read-only mirror of the partner's board: not a tab stop, and
+              interaction handlers are no-ops. */}
+          <GridBoard
+            {...game}
+            readOnly
             foundWords={foundWords}
             selectedCells={[]}
             onPointerDown={() => {}}
@@ -34,8 +37,8 @@ export function PartnerGridDisplay({ words, difficulty, seedStr, foundWords }: P
             onPointerUp={() => {}}
           />
         </div>
-        
-        <div className="flex-none md:flex-1 md:h-full md:overflow-y-auto pt-2 pb-4">
+
+        <div className="w-full">
           <WordList words={wordListProps} />
         </div>
       </div>

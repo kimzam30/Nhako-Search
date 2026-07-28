@@ -1,4 +1,3 @@
-import React from 'react';
 
 export const ButterflySvg = ({ className = '' }: { className?: string }) => (
   <svg 

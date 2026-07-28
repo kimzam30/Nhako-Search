@@ -3,11 +3,13 @@ import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { supabase } from '@/lib/multiplayer/supabase';
+import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { getUserProfile, updateDisplayName } from '@/lib/auth/profile';
+import { deleteAllUserData } from '@/lib/auth/deleteData';
 
 const Section = ({ title, defaultOpen = false, children }: { title: string, defaultOpen?: boolean, children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -42,14 +44,18 @@ const Section = ({ title, defaultOpen = false, children }: { title: string, defa
 };
 
 export default function SettingsPage() {
-  const { volumes, setVolume, isPlaying, startAmbience, stopAmbience } = useAmbientAudio();
+  const { volumes, setVolume, isPlaying, startAmbience, stopAmbience, applyPreset, presets } =
+    useAmbientAudio();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [theme, setThemeState] = useState('system');
   const [profile, setProfile] = useState<{ displayName: string, avatarUrl: string, isGuest: boolean } | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     setThemeState(localStorage.getItem('nhako_theme') || 'system');
@@ -87,21 +93,21 @@ export default function SettingsPage() {
   };
   
   const handleDeleteData = async () => {
-    if (confirm("Are you sure you want to delete all your progress? This cannot be undone.")) {
-      localStorage.clear();
-      await supabase.auth.signOut();
-      router.push('/sign-in');
+    setIsDeleting(true);
+    setDeleteError('');
+    const result = await deleteAllUserData();
+    setIsDeleting(false);
+
+    if (!result.ok) {
+      setDeleteError(`Could not clear: ${result.failed.join(', ')}. Nothing else was touched.`);
+      return;
     }
+    setConfirmDelete(false);
+    router.push('/sign-in');
   };
 
-  const applyPreset = (preset: string) => {
-    if (preset === 'focus') {
-      setVolume('lofi', 80); setVolume('rain', 40); setVolume('thunder', 0); setVolume('wind', 0); setVolume('birds', 0);
-    } else if (preset === 'nature') {
-      setVolume('lofi', 0); setVolume('rain', 20); setVolume('thunder', 10); setVolume('wind', 50); setVolume('birds', 80);
-    }
-    if (!isPlaying) startAmbience();
-  };
+  // Presets now live with the audio engine and crossfade as a single change,
+  // instead of stepping each channel one at a time.
 
   return (
     <div className="flex flex-col items-center flex-1 w-full max-w-lg mx-auto p-4 pt-10 pb-32">
@@ -153,9 +159,16 @@ export default function SettingsPage() {
               </Button>
             )}
 
-            <div className="flex gap-2">
-              <button onClick={() => applyPreset('focus')} className="flex-1 bg-surface border-2 border-ink py-2 rounded-lg font-body font-bold text-sm shadow-[2px_3px_0_0_var(--ink)] active:translate-y-[2px] active:shadow-none">Focus</button>
-              <button onClick={() => applyPreset('nature')} className="flex-1 bg-surface border-2 border-ink py-2 rounded-lg font-body font-bold text-sm shadow-[2px_3px_0_0_var(--ink)] active:translate-y-[2px] active:shadow-none">Nature</button>
+            <div className="grid grid-cols-2 gap-2">
+              {presets.map(preset => (
+                <button
+                  key={preset.id}
+                  onClick={() => applyPreset(preset.id)}
+                  className="bg-surface border-2 border-ink py-2 px-2 rounded-lg font-body font-bold text-sm shadow-[2px_3px_0_0_var(--ink)] active:translate-y-[2px] active:shadow-none min-h-[44px]"
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
 
             <div className="flex flex-col gap-6 mt-2">
@@ -174,7 +187,8 @@ export default function SettingsPage() {
                 { id: 'rain', label: 'Rain Drops', initial: 'R' },
                 { id: 'thunder', label: 'Thunder', initial: 'T' },
                 { id: 'wind', label: 'Wind Swirl', initial: 'W' },
-                { id: 'birds', label: 'Morning Birds', initial: 'B' }
+                { id: 'birds', label: 'Morning Birds', initial: 'B' },
+                { id: 'sfx', label: 'Game Sounds', initial: 'S' }
               ].map(track => (
                 <div key={track.id} className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-surface border-2 border-ink flex items-center justify-center font-display font-bold text-lg flex-shrink-0">
@@ -204,7 +218,16 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-4 bg-background p-4 rounded-xl border-2 border-ink/10">
                 {profile.avatarUrl ? (
-                  <img src={profile.avatarUrl} className="w-12 h-12 rounded-full border border-ink/20" alt="Avatar" />
+                  <img
+                    src={profile.avatarUrl}
+                    alt=""
+                    width={48}
+                    height={48}
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    className="w-12 h-12 rounded-full border border-ink/20"
+                  />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-surface border-2 border-ink flex items-center justify-center font-display font-bold text-xl text-ink">
                     {profile.displayName.charAt(0).toUpperCase()}
@@ -244,9 +267,42 @@ export default function SettingsPage() {
                   Sign in to save progress
                 </Button>
               )}
-              <Button onClick={handleDeleteData} fullWidth variant="danger">
-                Delete My Data
-              </Button>
+              {!confirmDelete ? (
+                <Button onClick={() => setConfirmDelete(true)} fullWidth variant="danger">
+                  Delete My Data
+                </Button>
+              ) : (
+                <div className="flex flex-col gap-3 bg-background border-2 border-ink rounded-xl p-4">
+                  <p className="font-body font-bold text-ink text-sm">
+                    This erases your levels, streak, butterflies and race history
+                    from the server and this device. It cannot be undone.
+                  </p>
+                  {deleteError && (
+                    <p className="font-body text-sm text-red-500 font-bold">{deleteError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        setConfirmDelete(false);
+                        setDeleteError('');
+                      }}
+                      fullWidth
+                      variant="secondary"
+                      disabled={isDeleting}
+                    >
+                      Keep it
+                    </Button>
+                    <Button
+                      onClick={handleDeleteData}
+                      fullWidth
+                      variant="danger"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete everything'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="animate-pulse h-24 bg-ink/5 rounded-xl w-full" />
@@ -257,12 +313,12 @@ export default function SettingsPage() {
         <Section title="About" defaultOpen={false}>
           <div className="flex flex-col gap-4 text-ink/70 font-body text-sm">
             <p>Made by kimzam  for date nights and lazy afternoons.</p>
-            <p className="font-bold">Audio Attributions:</p>
-            <ul className="list-disc pl-4 space-y-1">
-              <li>Lofi Beats - CC0 Public Domain</li>
-              <li>Rain & Wind - CC0 via FreeSound</li>
-              <li>Birds - CC0 Public Domain</li>
-            </ul>
+            <p className="font-bold">About the sound:</p>
+            <p>
+              Every layer is generated live in your browser rather than streamed
+              from a recording, so it never loops the same way twice and costs
+              nothing to download.
+            </p>
             <p className="pt-2 text-xs opacity-50">Version 1.0.0</p>
           </div>
         </Section>

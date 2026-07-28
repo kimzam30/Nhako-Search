@@ -22,7 +22,7 @@ export function SignatureFooter() {
       className={`w-full py-8 flex justify-center items-center opacity-60 ${isHidden ? 'fixed bottom-4' : 'mt-auto'}`}
     >
       <span 
-        className="font-caveat text-xl text-ink"
+        className="font-accent text-xl text-ink"
         style={{ transform: 'rotate(-2deg)' }}
       >
         a little garden, made by kimzam
