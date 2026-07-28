@@ -9,17 +9,17 @@ export async function saveLevelProgress(levelId: string, stars: number, timeSeco
     // Keep the best result. The old code upserted the latest values straight in,
     // so replaying a 3-star level slowly demoted it to 1 star and overwrote the
     // best time — while the guest path below correctly kept the maximum.
-    const { data: existing } = await supabase
+    const { data: existingProgress } = await supabase
       .from('level_progress')
       .select('stars, best_time_seconds')
       .eq('user_id', user.user.id)
       .eq('level_id', levelId)
       .maybeSingle();
 
-    const bestStars = Math.max(existing?.stars ?? 0, stars);
+    const bestStars = Math.max(existingProgress?.stars ?? 0, stars);
     const bestTime =
-      existing?.best_time_seconds != null
-        ? Math.min(existing.best_time_seconds, timeSeconds)
+      existingProgress?.best_time_seconds != null
+        ? Math.min(existingProgress.best_time_seconds, timeSeconds)
         : timeSeconds;
 
     const { error } = await supabase
@@ -31,13 +31,13 @@ export async function saveLevelProgress(levelId: string, stars: number, timeSeco
     if (error) console.error('Save level error:', error);
     
     // Earn butterfly for completing level
-    const { data: existing } = await supabase
+    const { data: existingButterfly } = await supabase
       .from('butterfly_collection')
       .select('id')
       .eq('user_id', user.user.id)
       .eq('butterfly_style_id', butterflyId);
-      
-    if (!existing || existing.length === 0) {
+
+    if (!existingButterfly || existingButterfly.length === 0) {
       await supabase.from('butterfly_collection').insert({
         user_id: user.user.id,
         butterfly_style_id: butterflyId,

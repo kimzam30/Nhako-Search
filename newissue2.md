@@ -34,6 +34,33 @@ That CRLF churn is now fixed permanently by a new `.gitattributes` (§5).
 
 ---
 
+## 1b. First real build — one error, fixed
+
+The first `npm run build` failed with a genuine compile error, and it was mine:
+
+```
+./lib/levels/progress.ts:34:19
+the name `existing` is defined multiple times
+```
+
+In Phase 4 I added `const { data: existing }` to keep the best stars on replay,
+without noticing the function already declared `const { data: existing }` lower
+down for the butterfly check. Two `const`s, one scope. Renamed to
+`existingProgress` and `existingButterfly`.
+
+This is exactly the class of error my static checks could not see — imports
+resolved, props matched, delimiters balanced, and the code was still invalid.
+I have since added a scope-aware duplicate-declaration check and swept the whole
+codebase: no other instance.
+
+**Note on where you built.** The failing run was inside
+`.claude/worktrees/word-search-audit-06c78f`, which is the old agent worktree
+pinned to `cfd441d` — it does not contain the post-merge fixes. It is also the
+source of the "multiple lockfiles" warning. Build from the repository root
+instead, and remove the worktree once you are happy (§7).
+
+---
+
 ## 2. Bugs found and fixed in this pass
 
 ### 2.1 PWA icons were still 404 — my miss
@@ -174,12 +201,23 @@ validated without a production server — see §7.
 
 ## 7. What you must run
 
-I could not execute any of this. In order:
+I could not execute any of this. **Run it from the repository root, not the
+worktree.** PowerShell 5.1 does not support `&&`, so use separate lines:
 
-```bash
+```powershell
+cd D:\Projects\KimProjects\NhakoSearch
 npm install
 npm run lint
 npm run build
+```
+
+Once the build is green, delete the stale agent worktree — it holds a second
+`package-lock.json`, which is what triggers Next's "multiple lockfiles" warning
+and inferred-workspace-root confusion:
+
+```powershell
+git worktree remove .claude/worktrees/word-search-audit-06c78f --force
+git worktree prune
 ```
 
 **Where I expect trouble, most likely first:**
