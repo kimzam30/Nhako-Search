@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/multiplayer/supabase';
-import type { CollectionEntry } from '@/lib/types';
+import type { CollectionEntry, LevelProgressRow } from '@/lib/types';
 
 export async function saveLevelProgress(levelId: string, stars: number, timeSeconds: number) {
   const { data: user } = await supabase.auth.getUser();
@@ -62,7 +62,7 @@ export async function saveLevelProgress(levelId: string, stars: number, timeSeco
   }
 }
 
-export async function loadLevelProgress() {
+export async function loadLevelProgress(): Promise<LevelProgressRow[]> {
   const { data: user } = await supabase.auth.getUser();
   if (user.user) {
     const { data, error } = await supabase.from('level_progress').select('*');

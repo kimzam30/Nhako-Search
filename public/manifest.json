@@ -1,21 +1,32 @@
 {
   "name": "NhakoSearch",
   "short_name": "NhakoSearch",
-  "description": "A cozy, hand-drawn word-search game.",
+  "description": "A cozy, hand-drawn word-search game for two.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#FFF6F8",
   "theme_color": "#FF6FA5",
+  "categories": ["games", "puzzle"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

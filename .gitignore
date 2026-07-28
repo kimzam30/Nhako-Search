@@ -97,3 +97,40 @@ next-env.d.ts
 issue.md
 generate-words.js
 generate-words-2.js
+
+# secrets and local config (belt and braces before pushing)
+.env
+.env.*
+!.env.example
+*.local
+.envrc
+.direnv/
+*.pem
+*.key
+*.p8
+*.pkcs12
+*.jks
+credentials.json
+service-account*.json
+supabase/.temp/
+.supabase/
+
+# editor and OS noise
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+
+# agent/tooling scratch
+.claude/
+.aider*
+.cursor/
+
+# misc
+*.tsbuildinfo
+.turbo/
+.vercel
+coverage/

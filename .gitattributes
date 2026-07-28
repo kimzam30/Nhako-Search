@@ -1,0 +1,23 @@
+# Normalise line endings.
+#
+# This repo lives on an SMB share, which handed every file CRLF endings and made
+# all 60 tracked files look modified when nothing had changed. Git now stores LF
+# and checks out the platform default.
+* text=auto eol=lf
+
+# Never munge binaries.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Keep generated files out of diffs and language stats.
+package-lock.json -diff linguist-generated

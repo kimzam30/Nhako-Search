@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka, Nunito, Caveat } from "next/font/google";
 import "./globals.css";
 import { AmbientAudioProvider } from "@/components/sound/AmbientAudioProvider";
@@ -25,10 +25,30 @@ export const metadata: Metadata = {
   title: "NhakoSearch",
   description: "A cozy, hand-drawn word-search game.",
   manifest: "/manifest.json",
+  applicationName: "NhakoSearch",
   appleWebApp: {
+    capable: true,
     title: "NhakoSearch",
     statusBarStyle: "default",
   },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FFF6F8" },
+    { media: "(prefers-color-scheme: dark)", color: "#241326" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  // The board is a precision drag target; zooming mid-drag misaligns it.
+  maximumScale: 5,
 };
 
 import { FloatingNav } from "@/components/nav/FloatingNav";

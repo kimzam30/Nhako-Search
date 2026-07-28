@@ -6,6 +6,7 @@ import { PauseSvg, VolumeSvg, CloseSvg, HomeSvg, FlameSvg, MapSvg, RaceSvg, User
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/multiplayer/supabase';
 import type { User } from '@supabase/supabase-js';
+import type { AudioVolumes } from '@/components/sound/AmbientAudioProvider';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 import { Button } from '@/components/ui/Button';
 
@@ -116,7 +117,7 @@ export function FloatingNav() {
             </div>
             
             {/* Mini Tracks */}
-            {[
+            {([
               { id: 'master', label: 'Master', color: 'bg-accent' },
               { id: 'lofi', label: 'Lofi', color: 'bg-ink/10' },
               { id: 'rain', label: 'Rain', color: 'bg-ink/10' },
@@ -124,16 +125,16 @@ export function FloatingNav() {
               { id: 'wind', label: 'Wind', color: 'bg-ink/10' },
               { id: 'birds', label: 'Birds', color: 'bg-ink/10' },
               { id: 'sfx', label: 'Sounds', color: 'bg-ink/10' }
-            ].map(track => (
+            ] as { id: keyof AudioVolumes; label: string; color: string }[]).map(track => (
               <div key={track.id} className="flex flex-col gap-1 w-full">
                 <div className="flex justify-between font-body text-ink/80 text-xs font-bold">
                   <span>{track.label}</span>
-                  <span>{(volumes as any)[track.id]}%</span>
+                  <span>{volumes[track.id]}%</span>
                 </div>
                 <input 
                   type="range" min="0" max="100" 
-                  value={(volumes as any)[track.id]} 
-                  onChange={(e) => setVolume(track.id as any, parseInt(e.target.value))}
+                  value={volumes[track.id]} 
+                  onChange={(e) => setVolume(track.id, parseInt(e.target.value))}
                   className={`w-full h-2 ${track.color} rounded-full appearance-none cursor-pointer`}
                 />
               </div>

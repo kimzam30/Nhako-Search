@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { supabase } from '@/lib/multiplayer/supabase';
 import type { User } from '@supabase/supabase-js';
+import type { AudioVolumes } from '@/components/sound/AmbientAudioProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
@@ -182,14 +183,14 @@ export default function SettingsPage() {
               </div>
 
               {/* Tracks */}
-              {[
+              {([
                 { id: 'lofi', label: 'Lofi Beats', initial: 'L' },
                 { id: 'rain', label: 'Rain Drops', initial: 'R' },
                 { id: 'thunder', label: 'Thunder', initial: 'T' },
                 { id: 'wind', label: 'Wind Swirl', initial: 'W' },
                 { id: 'birds', label: 'Morning Birds', initial: 'B' },
                 { id: 'sfx', label: 'Game Sounds', initial: 'S' }
-              ].map(track => (
+              ] as { id: keyof AudioVolumes; label: string; initial: string }[]).map(track => (
                 <div key={track.id} className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-surface border-2 border-ink flex items-center justify-center font-display font-bold text-lg flex-shrink-0">
                     {track.initial}
@@ -197,12 +198,12 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-1 w-full">
                     <div className="flex justify-between font-body text-ink/80 text-sm font-bold">
                       <span>{track.label}</span>
-                      <span>{(volumes as any)[track.id]}%</span>
+                      <span>{volumes[track.id]}%</span>
                     </div>
                     <input 
                       type="range" min="0" max="100" 
-                      value={(volumes as any)[track.id]} 
-                      onChange={(e) => setVolume(track.id as any, parseInt(e.target.value))}
+                      value={volumes[track.id]} 
+                      onChange={(e) => setVolume(track.id, parseInt(e.target.value))}
                       className="w-full h-3 bg-ink/10 rounded-full appearance-none cursor-pointer"
                     />
                   </div>

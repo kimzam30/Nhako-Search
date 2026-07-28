@@ -27,7 +27,9 @@ const csp = [
   // Tailwind and Framer Motion both write inline style attributes.
   `style-src 'self' 'unsafe-inline'`,
   // data: for the paper-grain SVG; Google's CDN serves OAuth avatars.
-  `img-src 'self' data: blob: https://lh3.googleusercontent.com`,
+  // Google serves avatars from lh3-lh6 and other googleusercontent subdomains;
+  // pinning lh3 alone silently blocked some users' pictures.
+  `img-src 'self' data: blob: https://*.googleusercontent.com`,
   `font-src 'self' data:`,
   `connect-src 'self' ${supabaseOrigin.http} ${supabaseOrigin.ws}`,
   // Ambience is generated in-browser, so no external media is ever loaded.

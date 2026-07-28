@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/Card';
 import { ButterflySvg, UserSvg, FlameSvg, MapSvg, RaceSvg } from '@/components/ui/Icons';
 import { supabase } from '@/lib/multiplayer/supabase';
 import type { User } from '@supabase/supabase-js';
-import { mergeGuestProgress } from '@/lib/auth/merge';
 import { ALL_LEVEL_IDS, getLevelMeta } from '@/lib/levels/data';
 
 export default function HomePage() {
@@ -17,8 +16,9 @@ export default function HomePage() {
   const [stats, setStats] = useState({ levels: 0, wins: 0, streak: 0 });
 
   useEffect(() => {
-    mergeGuestProgress();
-    
+    // Guest-progress merging is handled globally by <MergeClient /> in the
+    // layout; calling it here too raced the `nhako_merged` flag and could
+    // upsert the same rows twice.
     const fetchStats = async (currentUser: User | null) => {
       if (currentUser) {
         // Logged in
