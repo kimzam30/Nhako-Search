@@ -84,8 +84,27 @@ const securityHeaders = isDev
   ? baseSecurityHeaders
   : [...baseSecurityHeaders, ...productionOnlyHeaders];
 
+/**
+ * Hosts allowed to load dev-server internals (`/_next/*`, HMR).
+ *
+ * Next 16 blocks these cross-origin by default. Reaching the dev server by LAN
+ * IP — which is what happens when the editor runs over SSH and the browser is on
+ * another machine — counts as cross-origin, so the dev runtime is blocked and
+ * the app never hydrates. The page then renders only un-animated SSR markup.
+ *
+ * Add extra hosts with DEV_ORIGINS="10.0.0.5,my-box.local". Development only;
+ * this has no effect on a production build.
+ */
+const allowedDevOrigins = [
+  "localhost",
+  "127.0.0.1",
+  "100.66.219.92",
+  ...(process.env.DEV_ORIGINS?.split(",").map(s => s.trim()).filter(Boolean) ?? []),
+];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  allowedDevOrigins,
   async headers() {
     return [
       {
