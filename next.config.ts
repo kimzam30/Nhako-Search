@@ -34,17 +34,22 @@ const csp = [
   `connect-src 'self' ${supabaseOrigin.http} ${supabaseOrigin.ws}`,
   // Ambience is generated in-browser, so no external media is ever loaded.
   `media-src 'self'`,
-  `worker-src 'self'`,
+  `worker-src 'self' blob:`,
   `manifest-src 'self'`,
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,
   `object-src 'none'`,
+  // HTTPS-only. Never send this in development: over plain HTTP it rewrites
+  // every subresource to https://, so scripts and fonts fail to load, the app
+  // never hydrates, and the page renders blank apart from un-animated markup.
   `upgrade-insecure-requests`,
 ].join("; ");
 
-const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
+/**
+ * Headers that are safe everywhere.
+ */
+const baseSecurityHeaders = [
   // Redundant with frame-ancestors, but covers older browsers.
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -53,12 +58,31 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   },
+  { key: "X-DNS-Prefetch-Control", value: "on" },
+];
+
+/**
+ * Production-only headers.
+ *
+ * The CSP is deliberately not applied in development. `next dev` needs eval,
+ * blob workers and an HMR WebSocket, and a dev server reached over plain HTTP
+ * (or by LAN IP) is broken outright by `upgrade-insecure-requests`. HSTS is
+ * equally meaningless without TLS.
+ *
+ * Because of this, CSP problems only appear in a production build — verify with
+ * `npm run build && npm start`, not `npm run dev`.
+ */
+const productionOnlyHeaders = [
+  { key: "Content-Security-Policy", value: csp },
   {
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
   },
-  { key: "X-DNS-Prefetch-Control", value: "on" },
 ];
+
+const securityHeaders = isDev
+  ? baseSecurityHeaders
+  : [...baseSecurityHeaders, ...productionOnlyHeaders];
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
