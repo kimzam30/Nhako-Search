@@ -17,6 +17,42 @@ import { getStableGuestId } from '@/lib/multiplayer/identity';
 import standardPool from '@/lib/words/standard.json';
 import type { Difficulty } from '@/lib/puzzle/generator';
 
+function ProgressBar({
+  label,
+  value,
+  total,
+  tone,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  tone: string;
+}) {
+  const pct = total > 0 ? Math.min(100, (value / total) * 100) : 0;
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="flex justify-between items-baseline mb-1 gap-2">
+        <span className="text-xs font-bold text-ink uppercase tracking-wider truncate">
+          {label}
+        </span>
+        <span className="text-xs font-bold text-ink/50 tabular-nums shrink-0">
+          {total > 0 ? `${value}/${total}` : '—'}
+        </span>
+      </div>
+      <div
+        className="w-full h-3 bg-background border-2 border-ink rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={Math.max(total, 1)}
+        aria-label={label}
+      >
+        <div className={`h-full ${tone} transition-all duration-500`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function RaceRoomPage() {
   const params = useParams();
   const roomCode = (params.roomCode as string)?.toUpperCase();
@@ -315,41 +351,43 @@ function RaceRoom({
 
   return (
     <div className="flex flex-col bg-background relative w-full min-h-screen">
-      <div className="flex-none flex flex-col w-full max-w-lg mx-auto p-4 z-10 bg-surface border-b-2 border-ink shadow-[0_4px_0_0_var(--ink)]">
-        <div className="flex justify-between items-center mb-4">
+      {/* Status bar spans the full width so it does not read as a stray box
+          floating in the middle of a desktop screen. */}
+      <div className="flex-none w-full z-10 bg-surface border-b-2 border-ink shadow-[0_4px_0_0_var(--ink)]">
+        <div className="w-full max-w-lg lg:max-w-5xl mx-auto p-4 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-8">
           <div
-            className={`font-display text-xl font-bold flex-1 transition-colors ${
+            className={`font-display text-2xl lg:text-3xl font-bold tabular-nums lg:w-24 shrink-0 transition-colors ${
               timeLeft <= 10 ? 'text-accent animate-pulse' : 'text-ink'
             }`}
+            role="timer"
+            aria-label={`${timeLeft} seconds remaining`}
           >
             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </div>
-        </div>
-        <div className="flex items-center gap-4 w-full">
-          <div className="flex-1">
-            <span className="text-xs font-bold text-ink uppercase tracking-wider mb-1 block">
-              You
-            </span>
-            <div className="w-full h-3 bg-surface border-2 border-ink rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gold transition-all duration-500"
-                style={{ width: `${(me.progress / Math.max(me.total, 1)) * 100}%` }}
-              />
-            </div>
+
+          {/* Both bars on every screen size. The opponent's bar used to be
+              lg:hidden on the assumption their full board was shown instead,
+              which left desktop players with no sense of the race at all. */}
+          <div className="flex items-center gap-4 lg:gap-8 w-full">
+            <ProgressBar
+              label={isCoop ? `${me.name} (you)` : 'You'}
+              value={me.progress}
+              total={me.total}
+              tone="bg-gold"
+            />
+            <ProgressBar
+              label={opponent?.name || 'Partner'}
+              value={opponent?.progress ?? 0}
+              total={opponent?.total ?? 0}
+              tone="bg-accent"
+            />
           </div>
-          <div className="flex-1 lg:hidden">
-            <span className="text-xs font-bold text-ink uppercase tracking-wider mb-1 block">
-              {opponent?.name || 'Partner'}
+
+          {isCoop && (
+            <span className="hidden lg:block shrink-0 font-body font-bold text-sm text-ink/60 whitespace-nowrap">
+              Together
             </span>
-            <div className="w-full h-3 bg-surface border-2 border-ink rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent transition-all duration-500"
-                style={{
-                  width: `${((opponent?.progress ?? 0) / Math.max(opponent?.total ?? 1, 1)) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
+          )}
         </div>
       </div>
 

@@ -34,32 +34,84 @@ export default function SignInPage() {
     setShowGuestPrompt(true);
   };
 
+  const trimmedName = guestName.trim();
+  const nameIsValid = trimmedName.length >= 2;
+
   const confirmGuest = () => {
-    const name = guestName.trim() || 'Guest';
+    if (!nameIsValid) return;
     localStorage.setItem('nhako_guest_mode', 'true');
-    localStorage.setItem('nhako_guest_name', name);
+    localStorage.setItem('nhako_guest_name', trimmedName);
     router.push('/');
   };
 
   if (showGuestPrompt) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto h-screen relative">
-        <h1 className="text-3xl font-display text-ink mb-2">What's your name?</h1>
-        <p className="text-ink/80 mb-8 font-body font-medium text-lg text-center">
-          So your friend knows who they're racing.
+      <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto min-h-screen relative">
+        <h1 className="text-3xl font-display text-ink mb-2 text-center">What should we call you?</h1>
+        <p className="text-ink/80 mb-8 font-body font-medium text-base text-center">
+          Your partner sees this name when you race.
         </p>
-        <input 
-          type="text" 
-          value={guestName}
-          onChange={e => setGuestName(e.target.value)}
-          placeholder="Enter name"
-          maxLength={15}
-          className="w-full mb-4 bg-surface border-2 border-ink rounded-xl px-4 py-3 font-bold text-ink outline-none text-center text-lg"
-          autoFocus
-        />
-        <Button variant="primary" fullWidth onClick={confirmGuest}>
-          Start Playing
-        </Button>
+
+        {/* Submitting on Enter matters here: the on-screen keyboard covers the
+            button on a phone, so tapping "Go" was a dead end. */}
+        <form
+          className="w-full flex flex-col items-center"
+          onSubmit={e => {
+            e.preventDefault();
+            confirmGuest();
+          }}
+        >
+          <label htmlFor="guest-name" className="sr-only">
+            Display name
+          </label>
+          <input
+            id="guest-name"
+            type="text"
+            value={guestName}
+            onChange={e => setGuestName(e.target.value.replace(/\s{2,}/g, ' '))}
+            placeholder="e.g. Kim"
+            maxLength={15}
+            enterKeyHint="go"
+            autoComplete="nickname"
+            autoCapitalize="words"
+            aria-describedby="guest-name-help"
+            className="w-full bg-surface border-2 border-ink rounded-xl px-4 py-3 font-bold text-ink outline-none text-center text-lg min-h-[52px]"
+            autoFocus
+          />
+          <div
+            id="guest-name-help"
+            className="w-full flex justify-between items-center mt-2 mb-6 px-1 text-xs font-body font-bold"
+          >
+            <span className={trimmedName.length > 0 && !nameIsValid ? 'text-accent' : 'text-ink/50'}>
+              {trimmedName.length > 0 && !nameIsValid
+                ? 'At least 2 characters'
+                : 'Shown to your partner'}
+            </span>
+            <span className="text-ink/40 tabular-nums">{guestName.length}/15</span>
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            fullWidth
+            disabled={!nameIsValid}
+            className={nameIsValid ? '' : 'opacity-50'}
+          >
+            Start Playing
+          </Button>
+        </form>
+
+        <button
+          onClick={() => setShowGuestPrompt(false)}
+          className="mt-6 text-ink/60 font-body font-bold underline hover:text-ink min-h-[44px]"
+        >
+          Back
+        </button>
+
+        <p className="text-ink/50 font-body text-xs text-center mt-6 leading-relaxed">
+          Playing as a guest keeps your progress on this device only. Sign in
+          with Google later to save it.
+        </p>
       </div>
     );
   }

@@ -30,23 +30,25 @@ export function FloatingNav() {
   if (!pathname) return null;
 
   const isHidden = pathname === '/sign-in';
-  
-  // Rule for active gameplay: Standard and Level play matches, Race play matches (but not lobby/ready/results)
-  // Standard setup isn't active play, so standard setup should show full nav. Wait, standard has [...slug].
-  // Let's assume standard gameplay is always active timed for simplicity, or we check if there's an active timer.
-  // design.md §7.1: "Minimized to a single small pause/menu button (top-left) during active, timed Level gameplay and Race gameplay."
-  // For now, let's look at paths:
+
+  /*
+   * Active, timed gameplay. Leaving mid-puzzle loses the attempt, so nav clicks
+   * are intercepted with a confirmation sheet (see handleNav).
+   */
   const isLevelGameplay = pathname.startsWith('/level-path/') && pathname !== '/level-path';
-  const isRaceGameplay = pathname.match(/^\/play\/race\/[^\/]+$/) && !pathname.endsWith('/lobby') && !pathname.endsWith('/ready') && !pathname.endsWith('/results');
-  const isDailyGameplay = pathname === '/daily'; // Wait, daily could be "already played" state. We'll refine this when we build the daily screen, but for now we'll check it roughly. Or we can have a context for "is active gameplay".
-  // Let's use a simpler check: if it's race gameplay or level gameplay.
+  const isRaceGameplay = /^\/play\/race\/[^/]+$/.test(pathname) && !pathname.endsWith('/lobby');
   const isStandardGameplay = pathname.startsWith('/play/standard/');
+  const inGameplay = isLevelGameplay || isRaceGameplay || isStandardGameplay;
 
-  // For this step, we will use a global event or context later if needed, but path based works for Race/Level.
-  // Determine if we're in active gameplay to intercept navigation
-  const isMinimized = isLevelGameplay || isRaceGameplay || isStandardGameplay;
-
-  const showNavItems = !isMinimized || isOpen;
+  /*
+   * Collapsing to a single button exists to stop the nav covering the board on
+   * a phone. A desktop has room to spare, so the rail stays open there —
+   * collapsing it left the screen looking empty with one stray button.
+   * Handled with CSS rather than a media-query hook so SSR output matches.
+   */
+  const showNavItems = !inGameplay || isOpen;
+  const navItemsVisibility = inGameplay && !isOpen ? 'hidden md:flex' : 'flex';
+  const isMinimized = inGameplay;
 
   const handleNav = (e: React.MouseEvent, href: string) => {
     if (isMinimized && href !== pathname) {
@@ -143,17 +145,22 @@ export function FloatingNav() {
         )}
       </AnimatePresence>
 
-      <div className={`flex flex-row md:flex-col items-center gap-2 relative ${isMinimized ? 'justify-start items-start' : 'justify-center'}`}>
+      {/*
+        On a phone the expanded pill stacks ABOVE the toggle (flex-col-reverse,
+        toggle being the last child). Laying them out side by side pushed six
+        controls across a 375px screen and clipped the row.
+      */}
+      <div className="flex flex-col-reverse md:flex-col items-center justify-center gap-2 relative">
         
         <AnimatePresence>
-          {showNavItems && (
+          {(showNavItems || inGameplay) && (
             <motion.div 
               key="nav-bar"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={softBounce}
-              className="flex flex-row md:flex-col items-center gap-2 overflow-hidden bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]"
+              className={`${navItemsVisibility} flex-row md:flex-col items-center gap-2 overflow-hidden bg-surface p-2 border-2 border-ink rounded-[28px] shadow-[4px_5px_0_0_var(--ink)]`}
             >
               <NavLink href="/daily" icon={<FlameSvg className="w-6 h-6" />} isActive={pathname.startsWith('/daily')} onClick={(e) => handleNav(e, '/daily')} />
               <NavLink href="/level-path" icon={<MapSvg className="w-6 h-6" />} isActive={pathname.startsWith('/level-path')} onClick={(e) => handleNav(e, '/level-path')} />
@@ -211,7 +218,9 @@ export function FloatingNav() {
           <motion.button 
             whileTap={{ scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' }}
             onClick={() => { setIsOpen(!isOpen); if (showMixer) setShowMixer(false); }}
-            className={`w-14 h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-full text-ink z-20`}
+            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isOpen}
+            className={`md:hidden w-14 h-14 flex items-center justify-center bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] rounded-full text-ink z-20`}
           >
             {isOpen ? <CloseSvg className="w-6 h-6" /> : (
               <PauseSvg className="w-6 h-6" />

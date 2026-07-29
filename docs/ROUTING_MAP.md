@@ -7,7 +7,7 @@ Visible on almost all screens (except `/sign-in`).
 
 * **Home Button (Blob icon)**:
   * In Lobby/Menus -> Links to `/` (Home)
-  * In Active Gameplay -> Triggers `window.confirm` ("Leave this puzzle?"). If OK -> navigates to `/`.
+  * In Active Gameplay -> Opens an in-app confirmation sheet ("Leave this puzzle?"). Confirm -> navigates to `/`.
 * **Daily Badge (Flame icon)**: Links to `/daily`
 * **Level Path (Map icon)**: Links to `/level-path`
 * **Race (Race flags icon)**: Links to `/play/race/lobby`
@@ -57,10 +57,11 @@ Visible on almost all screens (except `/sign-in`).
 * **Join Room Tab**: State change (`setMode('join')`).
 * **Create Room Tab**: State change (`setMode('create')`).
 * **Join Race Button**: Triggers `router.push('/play/race/[code]')`.
-* **Start New Room Button**: Generates code, saves `is_leader_[code]` in sessionStorage, triggers `router.push('/play/race/[code]')`.
+* **Start New Room Button**: Generates a 6-character crypto-random code (ambiguous glyphs excluded), saves `is_leader_[code]` in sessionStorage, triggers `router.push('/play/race/[code]')`.
 
 ## `/play/race/[roomCode]`
 * **Lobby Phase**:
+  * **Leader Mode Selection** (Race / Together): State change + Realtime broadcast.
   * **Leader Difficulty Selection**: State change + Realtime broadcast.
   * **Guest Difficulty Selection**: Disabled/Read-only.
   * **Ready Button**: State change + Realtime broadcast.
@@ -83,4 +84,13 @@ Visible on almost all screens (except `/sign-in`).
 * **Volume Sliders**: State change (`setVolume`) + writes to localStorage.
 * **Start Ambience Button**: Initializes `AudioContext` (state change).
 * **Sign Out Button**: Triggers `supabase.auth.signOut()` + `router.push('/')`.
-* **Delete My Data Button**: Triggers `window.confirm` -> backend deletion -> `router.push('/')`.
+* **Delete My Data Button**: Expands an inline confirmation -> deletes the user's rows across all tables -> clears `nhako_*` keys -> `router.push('/sign-in')`.
+
+## Notes
+
+* Room codes are 6 characters. Joining a code nobody hosts shows a "No room"
+  screen after a short discovery window rather than waiting forever.
+* Race modes: `race` (separate boards) and `coop` (one shared board, finds
+  pooled, both players earn a "together" butterfly).
+* The board is keyboard-operable: Tab to focus it, arrow keys to move, Enter to
+  start and finish a word, Escape to cancel.

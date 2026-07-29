@@ -115,7 +115,8 @@ export default function LevelPathPage() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={softBounce}
-              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface border-t-2 border-l-2 border-r-2 border-ink rounded-tl-[32px] rounded-tr-[24px] p-6 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-12"
+              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface border-t-2 border-l-2 border-r-2 border-ink rounded-tl-[32px] rounded-tr-[24px] p-6 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
+              style={{ paddingBottom: 'max(3rem, calc(env(safe-area-inset-bottom) + 2rem))' }}
             >
               <div className="w-12 h-1.5 bg-ink/20 rounded-full mx-auto mb-6" />
               <button 
@@ -204,7 +205,11 @@ function ChapterView({
               const offset = offsets[levelIndex % offsets.length];
 
               return (
-                <div key={levelId} className="relative flex justify-center items-center w-full" style={{ left: `${offset}px` }}>
+                <div
+                  key={levelId}
+                  className="relative flex justify-center items-center w-full"
+                  style={{ left: `calc(${offset}px * var(--level-wind, 1))` }}
+                >
                   
                   {isCurrent && (
                     <>

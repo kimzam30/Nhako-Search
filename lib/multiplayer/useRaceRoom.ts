@@ -56,6 +56,8 @@ const LEADER_DISCOVERY_MS = 6000;
 const LEADER_GRACE_MS = 5000;
 const COUNTDOWN_MS = 3000;
 const CHAT_TTL_MS = 3000;
+/** How often the lobby re-reads presence in case an event was missed. */
+const PRESENCE_RECONCILE_MS = 1000;
 
 export function raceDurationSeconds(difficulty: Difficulty): number {
   return difficulty === 'easy' ? 180 : difficulty === 'medium' ? 150 : 120;
@@ -157,8 +159,37 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
 
     const applyOpponent = (state: PlayerState | undefined) => {
       if (!state || state.id === userId) return;
+      // Skip identical payloads so the reconciliation loop below does not
+      // re-render on every tick.
+      const prev = opponentRef.current;
+      if (
+        prev &&
+        prev.id === state.id &&
+        prev.isReady === state.isReady &&
+        prev.difficulty === state.difficulty &&
+        prev.mode === state.mode &&
+        prev.name === state.name &&
+        prev.progress === state.progress &&
+        prev.total === state.total &&
+        prev.foundWords.length === state.foundWords.length
+      ) {
+        return;
+      }
       opponentRef.current = state;
       setRaceState(prev => ({ ...prev, opponent: state }));
+    };
+
+    /** Reads the opponent straight out of presence, ignoring event delivery. */
+    const readOpponentFromPresence = (): PlayerState | undefined => {
+      const presence = channel.presenceState() as Record<
+        string,
+        Array<{ state?: PlayerState }>
+      >;
+      for (const [key, entries] of Object.entries(presence)) {
+        const state = entries?.[0]?.state;
+        if (state && key !== userId) return state;
+      }
+      return undefined;
     };
 
     const finish = (winnerId: string) => {
@@ -298,9 +329,28 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
           if (!seenLeaderRef.current) setConnection('not-found');
         }, LEADER_DISCOVERY_MS);
 
+    /*
+     * Presence reconciliation.
+     *
+     * Relying on every `presence sync` and `state_update` event arriving proved
+     * unreliable in the wild: after the initial snapshot a client would keep
+     * rendering stale opponent data — the leader never saw "ready", the guest
+     * never saw a difficulty change — until the page was reloaded. The frames
+     * were confirmed on the wire, so the loss was on the delivery/apply side.
+     *
+     * Presence is authoritative and cheap to read locally, so poll it while the
+     * lobby is open. applyOpponent() ignores identical payloads, making this a
+     * no-op except when something was genuinely missed.
+     */
+    const reconcile = setInterval(() => {
+      if (statusRef.current !== 'lobby' && statusRef.current !== 'countdown') return;
+      applyOpponent(readOpponentFromPresence());
+    }, PRESENCE_RECONCILE_MS);
+
     return () => {
       subscribedRef.current = false;
       clearLeaveTimer();
+      clearInterval(reconcile);
       if (discovery) clearTimeout(discovery);
       chatTimersRef.current.forEach(clearTimeout);
       chatTimersRef.current = [];
@@ -308,9 +358,15 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
         channel.send({ type: 'broadcast', event: 'room_closed', payload: {} });
       }
       supabase.removeChannel(channel);
-      channelRef.current = null;
+      // Only clear the shared ref if it still points at THIS channel; a newer
+      // effect may already have installed its own.
+      if (channelRef.current === channel) channelRef.current = null;
     };
-  }, [roomCode, userId, isLeader, pushChat]);
+    // `isLeader` and `pushChat` are intentionally omitted: both are stable for
+    // the life of the room, and listing them risks tearing down and rebuilding
+    // a live channel mid-race.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomCode, userId]);
 
   // Leaving is a navigation side effect, kept out of the channel setup.
   useEffect(() => {

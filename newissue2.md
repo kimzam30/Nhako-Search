@@ -2,7 +2,8 @@
 
 **Date:** 2026-07-29
 **Scope:** the merged result of phases 1–8, now on `main` at commit `cfd441d`
-**Supersedes:** `newissue.md` (the original audit). Items closed there are not repeated.
+**Supersedes:** the original audit, removed from the tree once every item in it was
+closed. Recover it with `git show HEAD~1:newissue.md` if you want the history.
 
 > **Read this first.** I could not run `npm run build`, `npm start`, `npm run lint`
 > or `npx playwright test`. There is no Node runtime in my environment — `node`,
@@ -34,34 +35,78 @@ That CRLF churn is now fixed permanently by a new `.gitattributes` (§5).
 
 ---
 
-## 1b. First real build — one error, fixed
+## 1c. Live two-device session — findings
 
-The first `npm run build` failed with a genuine compile error, and it was mine:
+Tested against the deployed build with a real second client. Confirmed the build
+is live (6-character codes, Phase 1–6 CSS, new icons).
 
-```
-./lib/levels/progress.ts:34:19
-the name `existing` is defined multiple times
-```
+### The lobby stops syncing after the first snapshot — REPRODUCED
 
-In Phase 4 I added `const { data: existing }` to keep the best stars on replay,
-without noticing the function already declared `const { data: existing }` lower
-down for the butterfly check. Two `const`s, one scope. Renamed to
-`existingProgress` and `existingButterfly`.
+The reported symptom ("the room creator has to refresh before Start works") is
+real, and the Phase 2 fix did not fully close it.
 
-This is exactly the class of error my static checks could not see — imports
-resolved, props matched, delimiters balanced, and the code was still invalid.
-I have since added a scope-aware duplicate-declaration check and swept the whole
-codebase: no other instance.
+What I established, using a raw WebSocket observer joined to the same room:
 
-**Note on where you built.** The failing run was inside
-`.claude/worktrees/word-search-audit-06c78f`, which is the old agent worktree
-pinned to `cfd441d` — it does not contain the post-merge fixes. It is also the
-source of the "multiple lockfiles" warning. Build from the repository root
-instead, and remove the worktree once you are happy (§7).
+| Check | Result |
+|---|---|
+| Guest sends on ready-up | Yes — `state_update` broadcast **and** `presence_diff`, both carrying `isReady: true` |
+| Leader applies it | No — still "NOT READY" after 6+ seconds |
+| Leader's own UI on a difficulty click | Updates locally |
+| Leader's frames on that click | None sent |
+| Leader alone in a fresh room | Sends normally at 0s and 13s |
+| Guest sees leader's later difficulty change | No — frozen at the value from when it joined |
+
+So both clients apply their **initial** presence snapshot and nothing after it.
+Frames are provably on the wire; the loss is on the deliver/apply side, and it is
+timing-dependent — a solo leader works fine.
+
+I could not pin the exact trigger from outside a production build, so rather than
+guess at a root cause I made the lobby stop depending on every event arriving:
+
+- **Presence is reconciled on a 1s interval** while the lobby or countdown is
+  open. Presence is authoritative and read locally, so a missed event
+  self-corrects within a second instead of needing a reload.
+- `applyOpponent` ignores identical payloads, so the loop costs nothing when
+  everything is already in sync.
+- The channel effect no longer lists `isLeader`/`pushChat` as dependencies (both
+  are stable for the room's life) and no longer nulls a shared ref a newer effect
+  may already own — two ways it could tear down a live channel.
+
+**This needs verifying on two devices after deploy.** It is a convergence fix,
+not a proven root-cause fix.
+
+### Desktop had no opponent progress bar
+
+The opponent's bar was `lg:hidden`, on the assumption desktop showed the
+partner's whole board instead. The result: the desktop player — the one who
+joined — had no sense of the race at all, while the phone showed both bars. Both
+bars now render at every width with a `value/total` readout, and the status bar
+spans the full column instead of sitting in a narrow floating box.
+
+### The two players were on different boards
+
+Your screenshots show desktop on 8×8 / 6 words and phone on 10×10 / 8 words in
+the same room. Same root cause: the joiner never received the leader's
+difficulty, so it built a grid from its own default. The reconciliation above
+should fix it — worth re-checking explicitly.
 
 ---
 
-## 2. Bugs found and fixed in this pass
+## 1d. UI changes from your feedback
+
+| Area | Change |
+|---|---|
+| Desktop nav | The rail no longer collapses on desktop. Collapsing to one button exists to stop the nav covering the board on a phone; on a wide screen it just left a stray button in empty space. Done in CSS so SSR output still matches. |
+| Phone in-game nav | The expanded pill now stacks **above** the toggle instead of beside it. Six controls in a row overflowed a 375px screen. |
+| Level path on phone | Node winding was a fixed ±60px, which reads as a trail on desktop but as scattered nodes on a phone, where it is a third of the viewport. Now scaled by `--level-wind` (0.45 phone → 1 desktop). |
+| Level sheet on phone | Bottom padding respects `env(safe-area-inset-bottom)` so "Play Level" clears the gesture bar. |
+| Guest sign-in | Submits on Enter (the on-screen keyboard covered the button), validates a 2-character minimum, shows a live character count, adds a Back link, and states plainly that guest progress is device-only. |
+
+Not changed, as you asked: game logic, the grid, and swipe-to-select.
+
+---
+
+## 2. Bugs found and fixed in the previous pass
 
 ### 2.1 PWA icons were still 404 — my miss
 
@@ -113,7 +158,7 @@ Nothing here is a crash. Ordered by what I would fix first.
 |---|---|---|
 | 3.1 | **iOS install is still second-class** | `apple-touch-icon.png` now exists, but iOS ignores `manifest.json` for install prompts and there is no splash-screen set. Add `apple-mobile-web-app-*` meta and startup images if you want a real iOS home-screen app. |
 | 3.2 | **Race results remain self-reported** | RLS now restricts inserts to the leader and constrains `winner` to a participant, but the leader's client still decides who won. Unforgeable results need a server-side authority (an Edge Function), which is outside the RM0 free-tier comfort zone. Acceptable for two trusted players — but know it. |
-| 3.3 | **No error boundary** | A render error anywhere shows Next's default error screen. A themed `app/error.tsx` and `app/global-error.tsx` would keep the app feeling finished. |
+| 3.3 |   **No error boundary** | A render error anywhere shows Next's default error screen. A themed `app/error.tsx` and `app/global-error.tsx` would keep the app feeling finished. |
 | 3.4 | **No `not-found.tsx`** | `/level-path/does-not-exist` renders a bare "Level not found" div outside the design system. |
 | 3.5 | **Level unlock is brittle** | `getStars(previous) > 0` gates progression. Completion always awards at least 1 star today, so it works — but any future path that records a 0-star completion would wall the player permanently. Gate on existence, not star count. |
 
@@ -201,23 +246,12 @@ validated without a production server — see §7.
 
 ## 7. What you must run
 
-I could not execute any of this. **Run it from the repository root, not the
-worktree.** PowerShell 5.1 does not support `&&`, so use separate lines:
+I could not execute any of this. In order:
 
-```powershell
-cd D:\Projects\KimProjects\NhakoSearch
+```bash
 npm install
 npm run lint
 npm run build
-```
-
-Once the build is green, delete the stale agent worktree — it holds a second
-`package-lock.json`, which is what triggers Next's "multiple lockfiles" warning
-and inferred-workspace-root confusion:
-
-```powershell
-git worktree remove .claude/worktrees/word-search-audit-06c78f --force
-git worktree prune
 ```
 
 **Where I expect trouble, most likely first:**

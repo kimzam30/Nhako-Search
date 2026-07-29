@@ -127,6 +127,18 @@ body::after {
 :root {
   --content-max: 100%;
   --nav-gutter: 1.5rem;
+  /*
+   * How far level nodes swing off the path line. Fixed pixel offsets read as a
+   * winding trail on a wide screen but as randomly scattered nodes on a phone,
+   * where +/-60px is a third of the viewport.
+   */
+  --level-wind: 0.45;
+}
+@media (min-width: 480px) {
+  :root { --level-wind: 0.7; }
+}
+@media (min-width: 768px) {
+  :root { --level-wind: 1; }
 }
 @media (min-width: 768px) {
   :root {
