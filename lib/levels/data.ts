@@ -12,6 +12,8 @@ export interface LevelData {
   chapter: string;
   difficulty: LevelDifficulty;
   words: string[];
+  /** Backfill for the generator if a word clashes or cannot be placed. */
+  reserve: string[];
 }
 
 /** Cheap facts about a level: no word list, so no shuffling. */
@@ -150,6 +152,7 @@ export function getLevel(levelId: string): LevelData | undefined {
     chapter: meta.chapter,
     difficulty,
     words: shuffled.slice(0, Math.min(wordCount, shuffled.length)),
+    reserve: shuffled.slice(wordCount),
   };
   wordCache.set(levelId, level);
   return level;

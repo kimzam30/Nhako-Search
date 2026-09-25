@@ -64,7 +64,7 @@ test.describe('Solo gameplay', () => {
 
     const remainingText = await page.getByText(/\d+ left/).textContent();
     const remaining = parseInt(remainingText!.match(/(\d+) left/)![1], 10);
-    const listed = await page.locator('.flex.flex-wrap > div').count();
+    const listed = await page.locator('ul[aria-label="Words to find"] > li').count();
     expect(remaining).toBe(listed);
   });
 
@@ -79,13 +79,16 @@ test.describe('Solo gameplay', () => {
 test.describe('Audio mixer', () => {
   test('game sounds have their own channel', async ({ page }) => {
     await page.goto('/settings');
-    await page.getByRole('button', { name: 'Sound Mixer' }).click();
-    await expect(page.getByText('Game Sounds', { exact: true })).toBeVisible();
+    const sfx = page.getByLabel('Game sounds', { exact: true });
+    await expect(sfx).toBeVisible();
 
-    const stored = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('nhako_audio_volumes') || '{}')
-    );
-    expect(typeof stored.sfx).toBe('number');
+    // Nothing is written until the player changes the mix (writing defaults on
+    // mount used to overwrite a saved mix before it loaded).
+    await sfx.fill('35');
+    // Persisting happens in an effect after the render, so poll for it.
+    await expect
+      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('nhako_audio_volumes') || '{}').sfx))
+      .toBe(35);
   });
 });
 
@@ -99,8 +102,10 @@ test.describe('Co-op mode', () => {
       timeout: 10000,
     });
 
-    await leader.getByRole('button', { name: 'Together' }).click();
+    await leader.getByRole('radio', { name: 'Together' }).click();
     await expect(guest.getByText(/Together\s*·/)).toBeVisible({ timeout: 10000 });
+    // The start button only offers to start once the partner is ready.
+    await guest.getByRole('button', { name: 'Ready Up' }).click();
     await expect(leader.getByRole('button', { name: 'Start Together' })).toBeVisible({
       timeout: 10000,
     });
@@ -117,7 +122,8 @@ test.describe('Co-op mode', () => {
     await expect(guest.getByText('Leader', { exact: false }).first()).toBeVisible({
       timeout: 10000,
     });
-    await leader.getByRole('button', { name: 'Together' }).click();
+    await leader.getByRole('radio', { name: 'Together' }).click();
+    await expect(guest.getByText(/Together\s*·/)).toBeVisible({ timeout: 10000 });
     await guest.getByRole('button', { name: 'Ready Up' }).click();
 
     const start = leader.getByRole('button', { name: 'Start Together' });
@@ -143,7 +149,7 @@ test.describe('Co-op mode', () => {
         cells.set(`${el.dataset.x},${el.dataset.y}`, el.textContent || '');
       });
       const size = Math.sqrt(cells.size);
-      const words = [...document.querySelectorAll('.flex.flex-wrap div')]
+      const words = [...document.querySelectorAll('ul[aria-label="Words to find"] > li')]
         .map(d => (d.textContent || '').trim())
         .filter(w => /^[A-Z]{3,}$/.test(w));
       const dirs = [[1, 0], [0, 1], [1, 1], [-1, 1], [-1, 0], [0, -1], [-1, -1], [1, -1]];
@@ -176,7 +182,7 @@ test.describe('Co-op mode', () => {
 
     // The guest's copy of that word should strike through without them doing anything.
     await expect(
-      guest.locator('.text-ink\\/40').filter({ hasText: word }).first()
+      guest.locator('li[data-found]').filter({ hasText: word }).first()
     ).toBeVisible({ timeout: 10000 });
 
     await leader.context().close();
@@ -198,9 +204,11 @@ test.describe('Real statistics', () => {
     });
     await page.goto('/daily');
 
-    // Seven dots, and only the three recorded days are filled.
-    const filled = await page.locator('.bg-accent.border-ink').count();
-    expect(filled).toBe(3);
+    // Seven days, and only the three recorded days are marked played.
+    const days = page.getByRole('list', { name: 'Last 7 days' }).getByRole('listitem');
+    await expect(days).toHaveCount(7);
+    // Each item reads "<weekday initial>played" or "<initial>not played".
+    await expect(days.filter({ hasText: /^[A-Z]played$/ })).toHaveCount(3);
   });
 
   test('words found is derived from level difficulty, not a flat multiplier', async ({ page }) => {

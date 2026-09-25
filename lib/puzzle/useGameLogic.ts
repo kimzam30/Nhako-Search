@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Grid, generateGrid, Difficulty, GridCell } from './generator';
 
 export interface FocusPosition {
@@ -9,6 +9,10 @@ export interface FocusPosition {
 export interface GameLogicOptions {
   /** Fired when a selection resolves, so callers can add sound/haptics. */
   onResolve?: (matched: string | null) => void;
+  /** Words already found on this board (e.g. restored after a reload). */
+  initialFound?: string[];
+  /** Backfill words, see generateGrid. */
+  reserve?: string[];
 }
 
 export function useGameLogic(
@@ -17,8 +21,10 @@ export function useGameLogic(
   seedStr: string,
   options: GameLogicOptions = {}
 ) {
-  const [grid] = useState<Grid>(() => generateGrid(words, difficulty, seedStr));
-  const [foundWords, setFoundWords] = useState<string[]>([]);
+  const [grid] = useState<Grid>(() => generateGrid(words, difficulty, seedStr, options.reserve));
+  const [foundWords, setFoundWords] = useState<string[]>(() =>
+    (options.initialFound ?? []).filter(w => grid.placedWords.some(pw => pw.word === w))
+  );
   const [startCell, setStartCell] = useState<GridCell | null>(null);
   const [currentCell, setCurrentCell] = useState<GridCell | null>(null);
   /** Letters revealed by hints, keyed "x,y". */
@@ -26,8 +32,12 @@ export function useGameLogic(
   const [hintsUsed, setHintsUsed] = useState(0);
 
   // Held in a ref so changing the callback never invalidates the commit path.
+  // Assigned in an effect, not during render: writing a ref while rendering is
+  // a React violation and can tear under concurrent rendering.
   const onResolveRef = useRef(options.onResolve);
-  onResolveRef.current = options.onResolve;
+  useEffect(() => {
+    onResolveRef.current = options.onResolve;
+  }, [options.onResolve]);
   // Keyboard cursor. Separate from the selection anchor so players can look
   // around the grid without committing to a word.
   const [focus, setFocus] = useState<FocusPosition>({ x: 0, y: 0 });
@@ -63,11 +73,16 @@ export function useGameLogic(
     let matched: string | null = null;
 
     if (selected.length > 0) {
-      const word = selected.map(c => c.letter).join('');
-      const wordReversed = [...word].reverse().join('');
+      const first = selected[0];
+      const last = selected[selected.length - 1];
 
+      // Match on position, not just spelling: a word must be traced where it
+      // was placed, so a chance repeat elsewhere in the filler is not a find.
       const found = grid.placedWords.find(
-        pw => (pw.word === word || pw.word === wordReversed) && !foundWords.includes(pw.word)
+        pw =>
+          !foundWords.includes(pw.word) &&
+          ((first.x === pw.startX && first.y === pw.startY && last.x === pw.endX && last.y === pw.endY) ||
+            (first.x === pw.endX && first.y === pw.endY && last.x === pw.startX && last.y === pw.startY))
       );
 
       if (found) {

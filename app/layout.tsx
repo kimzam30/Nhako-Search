@@ -53,11 +53,15 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  // The board is a precision drag target; zooming mid-drag misaligns it.
+  // Zoom stays available (accessibility); the board itself sets touch-none.
   maximumScale: 5,
+  // Draw edge to edge on notched phones; the chrome pads itself with
+  // env(safe-area-inset-*) instead of leaving white bars.
+  viewportFit: "cover",
 };
 
-import { FloatingNav } from "@/components/nav/FloatingNav";
+import { TabBar } from "@/components/nav/TabBar";
+import { GameBar } from "@/components/nav/GameBar";
 import { SignatureFooter } from "@/components/footer/SignatureFooter";
 
 export default function RootLayout({
@@ -83,16 +87,17 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col font-body pb-24 bg-background text-ink">
+      <body className="min-h-dvh flex flex-col font-body bg-background text-ink">
         <PwaRegister />
         <MergeClient />
         <MotionConfig reducedMotion="user">
           <AmbientAudioProvider>
-            <div className="app-shell flex flex-col flex-1 relative">
+            <GameBar />
+            <main className="app-shell flex flex-col flex-1 relative">
               {children}
-            </div>
+            </main>
             <SignatureFooter />
-            <FloatingNav />
+            <TabBar />
           </AmbientAudioProvider>
         </MotionConfig>
       </body>

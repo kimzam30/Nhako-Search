@@ -375,3 +375,48 @@ treat "renders nothing during an active drag" as the default assumption to dispr
 possibility to rule out by reading code.
 
 **11.8 "Standard (Free Play)" is renamed to "Free Play"** everywhere it appears in UI copy.
+
+---
+
+## 12. Native interaction layer (2026-09-26)
+
+Applied from the ui-ux-pro-max and appllama design passes. The brand (palette,
+fonts, sticker shadows, hand-drawn radii) is unchanged; this is about how the
+app *behaves* on a phone or tablet.
+
+**Navigation**
+- `components/nav/TabBar.tsx` — real tab bar: bottom on phones and tablets, left
+  rail from 1024px. Icon + label, `aria-current`, re-tap scrolls to top. Sized in
+  px so it survives large system text. Reserves its own space with an in-flow
+  spacer; pages never pad for it.
+- `components/nav/GameBar.tsx` — gameplay is immersive: no tab bar, a top bar
+  with Close (asks first, then Back if there is in-app history, else replace to
+  the parent) and Sound (mixer sheet). Pages hand their title to it with
+  `useSetGameTitle` (`lib/nav/gameTitle.ts`).
+- One-way doors use `replace`: sign-in, sign-out, delete-data, win-sheet links.
+- `lib/nav/routes.ts` is the one place that decides which screens are gameplay.
+
+**Surfaces**
+- `components/ui/Sheet.tsx` — the bottom sheet: drag handle (flick or 120px to
+  dismiss), scrim, Escape, focus in/out, body scroll lock, safe-area padding.
+  Used for level info, leave-game, sound, butterfly details, delete confirm.
+- `ButtonLink` (in `components/ui/Button.tsx`) — never wrap `<Button>` in `<Link>`.
+
+**Tokens** (`app/globals.css`) — all pass WCAG AA in both themes:
+`--ink-2` secondary text · `--on-accent` text on pink/gold/danger fills ·
+`--accent-ink` pink used as text · `--danger`. `color-scheme` follows the theme so
+native controls match.
+
+**Motion & touch**
+- Press feedback on press-in: `.press` (scale .97, 120ms) and `.sticker` (sticker
+  pushed into its shadow). No bouncy springs on taps.
+- `touch-action: manipulation`, no tap highlight, no text selection on controls,
+  no rubber-band in the installed app.
+- Safe areas via `viewport-fit=cover` and `--safe-top` / `--safe-bottom`.
+- Decorative infinite animations removed from chrome; the in-app splash timer is
+  gone (it cost ~1s of LCP).
+
+**Verified** on 320/375 phones, 812px landscape, 820/1180 tablets, 1440 desktop:
+no horizontal overflow, no tap target under 44px outside the letter grid, tab bar
+fully on screen, and no clipping at 150% text size. axe-core: 0 violations on 10
+routes in light and dark.

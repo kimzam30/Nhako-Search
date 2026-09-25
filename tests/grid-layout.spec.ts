@@ -186,8 +186,10 @@ test('[phone] dragging across a row selects that row, not a drifting one', async
   await page.mouse.down();
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
 
-  // A valid horizontal selection renders highlight lines.
-  await expect(page.locator('svg line').first()).toBeVisible();
+  // A valid horizontal selection renders a highlight stroke. This is a <path>,
+  // not a <line>: the hand-drawn wobble moved into path geometry when the
+  // feTurbulence filter was removed for performance.
+  await expect(page.locator('svg path[d]').first()).toBeVisible();
 
   await page.mouse.up();
 });

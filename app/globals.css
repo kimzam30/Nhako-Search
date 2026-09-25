@@ -8,7 +8,11 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-found: var(--found);
-  --color-gold: var(--gold);
+ --color-gold: var(--gold);
+  --color-ink-2: var(--ink-2);
+  --color-on-accent: var(--on-accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
   
   --font-display: var(--font-fredoka);
   --font-body: var(--font-nunito);
@@ -23,6 +27,16 @@
   --accent-soft: #FFC1D9;
   --found: #7FCB9C;
   --gold: #FFD166;
+  /* Secondary text. ink/60 failed contrast (3.99:1); these clear 4.5:1 on
+     both the page and card surfaces. */
+  --ink-2: #774C6D;
+  /* Text on accent-coloured fills. The ink token is near-white in dark mode,
+     which put 1.83:1 text on every primary button. */
+  --on-accent: #2A0F26;
+  /* Accent as TEXT. Plain accent is 2.45:1 on the light page. */
+  --accent-ink: #B02A63;
+  --danger: #FB7185;
+  color-scheme: light;
 }
 
 :root.dark {
@@ -33,12 +47,64 @@
   --accent-soft: #4A2A52;
   --found: #6FE3A6;
   --gold: #C77DFF;
+  --ink-2: #C2ABBC;
+  --accent-ink: #FF8FC0;
+  color-scheme: dark;
+}
+
+html {
+  /* Native feel: no grey flash on tap, no font inflation on rotate. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background-color: var(--bg);
   color: var(--ink);
   font-family: var(--font-body), sans-serif;
+  /* Removes the 300ms double-tap-zoom delay on every control. */
+  touch-action: manipulation;
+}
+
+/* Installed app: no rubber-band bounce revealing the browser behind the app. */
+@media (display-mode: standalone) {
+  html, body {
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Controls are not text: a long-press should not start a selection. */
+button,
+[role='button'],
+a,
+nav {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/*
+ * Press feedback lands on press-in, fast, and never shifts layout.
+ * Strong ease-out; exits are the same curve, just reversed.
+ */
+.press {
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1), background-color 150ms ease-out;
+}
+.press:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .press,
+  .press:active {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Counters, clocks and scores never jiggle as digits change. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 /*
@@ -87,7 +153,9 @@ body::after {
  */
 .grid-board {
   width: min(100%, 450px);
-  width: max(200px, min(100%, 450px, 100dvh - 330px));
+  /* 720px cap: 450px left a tablet's board using under half the screen. The
+     height term keeps board + word list on one screen in landscape. */
+  width: max(200px, min(100%, 720px, 100dvh - 300px));
 }
 
 /*
@@ -157,35 +225,46 @@ body::after {
   margin-inline: auto;
 }
 
-/* Bottom-centre pill on phones; left rail from tablet up. */
-.floating-nav {
-  position: fixed;
-  z-index: 40;
-  bottom: var(--nav-gutter);
-  left: 50%;
-  transform: translateX(-50%);
-}
-@media (min-width: 768px) {
-  .floating-nav {
-    bottom: auto;
-    top: 50%;
-    /* Sit just outside the content column, but never off-screen. */
-    left: max(var(--nav-gutter), calc(50% - var(--content-max) / 2 - 5rem));
-    transform: translateY(-50%);
-  }
+/*
+ * Navigation chrome.
+ *
+ * Phones and tablets get a real bottom tab bar (icon + label, safe-area
+ * aware); from 1024px up it becomes a left rail. The tab bar reserves its own
+ * space with an in-flow spacer (see TabBar), so pages never hide content
+ * behind it and immersive gameplay screens, which hide it, get the room back.
+ */
+:root {
+  --tabbar-h: 64px;
+  --rail-w: 88px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Reserve room for the rail until the viewport is wide enough for it to sit
- * beside the centred column rather than on top of it. */
-@media (min-width: 768px) {
-  body {
-    padding-bottom: 0;
-    padding-left: 6rem;
-  }
+.tabbar {
+  position: fixed;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: var(--safe-bottom);
 }
-@media (min-width: 1400px) {
+.tabbar-spacer {
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  flex: none;
+}
+
+@media (min-width: 1024px) {
+  .tabbar {
+    top: 0;
+    right: auto;
+    width: var(--rail-w);
+    padding-bottom: 0;
+  }
+  .tabbar-spacer {
+    display: none;
+  }
   body {
-    padding-left: 0;
+    padding-left: var(--rail-w);
   }
 }
 
@@ -198,5 +277,40 @@ body::after {
 @supports (container-type: inline-size) {
   .letter-cell {
     font-size: calc(100cqw / var(--cols, 10) * 0.56);
+  }
+}
+
+/* The sticker press for link-buttons (Button does the same via framer). */
+.sticker {
+  box-shadow: 4px 5px 0 0 var(--ink);
+  transition: transform 100ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.sticker:active {
+  transform: translate(3px, 4px);
+  box-shadow: 0 0 0 0 var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sticker { transition: none; }
+}
+
+/*
+ * Volume sliders: a 44px-tall hit area around a chunky hand-drawn track, with
+ * native accent-color so the platform control still does the work.
+ */
+.mixer-range {
+  accent-color: var(--accent);
+  height: 44px;
+  cursor: pointer;
+  background: transparent;
+}
+
+/* A primary action pinned just above the tab bar (or the screen edge once the
+   tab bar becomes a side rail). */
+.bottom-cta {
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom));
+}
+@media (min-width: 1024px) {
+  .bottom-cta {
+    bottom: 0;
   }
 }

@@ -100,7 +100,7 @@ test.describe('Keyboard play', () => {
         cells.set(`${el.dataset.x},${el.dataset.y}`, el.textContent || '');
       });
       const size = Math.sqrt(cells.size);
-      const words = [...document.querySelectorAll('.flex.flex-wrap div')]
+      const words = [...document.querySelectorAll('ul[aria-label="Words to find"] > li')]
         .map(d => (d.textContent || '').trim())
         .filter(w => /^[A-Z]{3,}$/.test(w));
 
@@ -140,7 +140,7 @@ test.describe('Keyboard play', () => {
     await page.keyboard.press('Enter');
 
     // A found word is struck through in the list.
-    await expect(page.locator('.text-ink\\/40').filter({ hasText: word }).first()).toBeVisible({
+    await expect(page.locator('li[data-found]').filter({ hasText: word }).first()).toBeVisible({
       timeout: 5000,
     });
   });
@@ -162,7 +162,7 @@ test.describe('Responsive layout', () => {
       await page.getByRole('heading', { name: 'NhakoSearch' }).first().waitFor();
 
       const boxes = await page.evaluate(() => {
-        const nav = document.querySelector('.floating-nav');
+        const nav = document.querySelector('nav.tabbar');
         const shell = document.querySelector('.app-shell');
         if (!nav || !shell) return null;
         const n = nav.getBoundingClientRect();
@@ -190,7 +190,7 @@ test.describe('Responsive layout', () => {
 
     const fits = await page.evaluate(() => {
       const grid = document.querySelector('.grid.relative.z-10')!.getBoundingClientRect();
-      const list = document.querySelector('.flex.flex-wrap')?.getBoundingClientRect();
+      const list = document.querySelector('ul[aria-label="Words to find"]')?.getBoundingClientRect();
       return {
         gridBottom: grid.bottom,
         listBottom: list?.bottom ?? 0,

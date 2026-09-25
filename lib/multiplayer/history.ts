@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/multiplayer/supabase';
+import { readJSON, writeJSON } from '@/lib/storage';
+import type { CollectionEntry } from '@/lib/types';
 
 /**
  * Grants the "together" butterfly for clearing a co-op board.
@@ -12,23 +14,22 @@ export async function awardTogetherButterfly(roomCode: string, gameDate: string)
   const { data: user } = await supabase.auth.getUser();
 
   if (user.user) {
-    const { data: existing } = await supabase
-      .from('butterfly_collection')
-      .select('id')
-      .eq('user_id', user.user.id)
-      .eq('butterfly_style_id', styleId);
-    if (existing && existing.length > 0) return;
-
-    await supabase.from('butterfly_collection').insert({
-      user_id: user.user.id,
-      butterfly_style_id: styleId,
-      earned_from: 'Solved together',
-    });
+    // Upsert rather than select-then-insert: both players clear the board at
+    // the same instant, and the effect that calls this can fire more than
+    // once, so the old check-then-act could award the same butterfly twice.
+    await supabase.from('butterfly_collection').upsert(
+      {
+        user_id: user.user.id,
+        butterfly_style_id: styleId,
+        earned_from: 'Solved together',
+      },
+      { onConflict: 'user_id,butterfly_style_id', ignoreDuplicates: true }
+    );
     return;
   }
 
-  const collection = JSON.parse(localStorage.getItem('nhako_collection') || '[]');
-  if (collection.some((c: { butterfly_style_id?: string }) => c.butterfly_style_id === styleId)) {
+  const collection = readJSON<CollectionEntry[]>('nhako_collection', []);
+  if (collection.some(c => c.butterfly_style_id === styleId)) {
     return;
   }
   collection.push({
@@ -36,7 +37,7 @@ export async function awardTogetherButterfly(roomCode: string, gameDate: string)
     earned_from: 'Solved together',
     earned_at: new Date().toISOString(),
   });
-  localStorage.setItem('nhako_collection', JSON.stringify(collection));
+  writeJSON('nhako_collection', collection);
 }
 
 /**

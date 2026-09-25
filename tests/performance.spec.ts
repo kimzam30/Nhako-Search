@@ -48,7 +48,10 @@ test('the highlight still wobbles — the hand-drawn look survives', async ({ pa
   await page.mouse.move(box.x + box.width * 3.5, box.y + box.height / 2, { steps: 6 });
 
   const offLine = await page.evaluate(() => {
-    const path = document.querySelector('svg path[d]');
+    // Scope to the board's own overlay. A bare `svg path[d]` matches the first
+    // path in the document, which is a butterfly icon in the garland above the
+    // grid — it has nothing to do with the highlight stroke.
+    const path = document.querySelector('.grid.relative.z-10 svg path[d]');
     if (!path) return -1;
     const d = path.getAttribute('d') || '';
     const pts = [...d.matchAll(/([-\d.]+) ([-\d.]+)/g)].map(m => [

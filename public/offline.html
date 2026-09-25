@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFF6F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#241326" media="(prefers-color-scheme: dark)">
+<title>Offline · NhakoSearch</title>
+<style>
+  :root { --bg: #FFF6F8; --ink: #4A1942; --surface: #FFE3ED; --accent: #FF6FA5; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #241326; --ink: #FFE9F4; --surface: #341B3B; --accent: #FF8FC0; } }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+    background: var(--bg); color: var(--ink);
+    font: 600 17px/1.5 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    width: 100%; max-width: 360px; text-align: center; padding: 32px 24px;
+    background: var(--surface); border: 2px solid var(--ink);
+    border-radius: 22px 9px 26px 13px; box-shadow: 4px 5px 0 0 var(--ink);
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; }
+  p { margin: 0 0 24px; opacity: .8; }
+  a {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 48px; width: 100%;
+    border-radius: 14px; border: 2px solid var(--ink); background: var(--accent); color: #2A0F26;
+    text-decoration: none; font-weight: 800; box-shadow: 0 4px 0 var(--ink);
+  }
+  a:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <h1>You&rsquo;re offline</h1>
+  <p>NhakoSearch needs a connection for this page. Pages you have already opened still work.</p>
+  <a href="/">Try again</a>
+</main>
+</body>
+</html>

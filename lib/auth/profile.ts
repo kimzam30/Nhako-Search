@@ -3,7 +3,7 @@ import { supabase } from '@/lib/multiplayer/supabase';
 export async function getUserProfile() {
   const { data: user } = await supabase.auth.getUser();
   if (user?.user) {
-    const { data: profile } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', user.user.id).single();
+    const { data: profile } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', user.user.id).maybeSingle();
     return {
       displayName: profile?.display_name || user.user.user_metadata?.name || 'Player',
       avatarUrl: profile?.avatar_url || user.user.user_metadata?.avatar_url || '',

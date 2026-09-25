@@ -50,17 +50,26 @@ function cyrb128(str: string) {
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-export function generateGrid(words: string[], difficulty: Difficulty, seedStr: string): Grid {
+/**
+ * `reserve` words are only used to backfill when a first-choice word cannot be
+ * placed or clashes with another; they never change a puzzle that did not need
+ * them, so existing level boards stay identical.
+ */
+export function generateGrid(
+  words: string[],
+  difficulty: Difficulty,
+  seedStr: string,
+  reserve: string[] = []
+): Grid {
   const seedNum = cyrb128(seedStr)[0];
   const random = mulberry32(seedNum);
 
   let width = 8, height = 8;
-  let directions: [number, number][] = [];
+  // Unknown difficulties (e.g. a hand-edited URL) fall back to easy rather
+  // than leaving `directions` empty, which crashed the page.
+  let directions: [number, number][] = [[1, 0], [0, 1]];
 
-  if (difficulty === 'easy') {
-    width = 8; height = 8;
-    directions = [[1, 0], [0, 1]];
-  } else if (difficulty === 'medium') {
+  if (difficulty === 'medium') {
     width = 10; height = 10;
     directions = [[1, 0], [0, 1], [1, 1], [-1, 1]];
   } else if (difficulty === 'hard') {
@@ -93,13 +102,26 @@ export function generateGrid(words: string[], difficulty: Difficulty, seedStr: s
     [shuffledWords[i], shuffledWords[j]] = [shuffledWords[j], shuffledWords[i]];
   }
 
+  // Never put two words in one puzzle where one contains the other (RAIN and
+  // DRAIN, READ and BREAD): finding the short one inside the long one counted
+  // as a find, and the highlight landed somewhere else.
+  const reversed = (w: string) => [...w].reverse().join('');
+  const clashes = (a: string, b: string) =>
+    a.includes(b) || b.includes(a) || a.includes(reversed(b)) || b.includes(reversed(a));
+  const chosen: string[] = [];
+  const reserveWords: string[] = [];
+  for (const w of shuffledWords) {
+    if (chosen.length < wordCount && !chosen.some(c => clashes(c, w))) chosen.push(w);
+    else reserveWords.push(w);
+  }
   // Sort by length descending for easier placement
-  const cleanWords = shuffledWords
-    .slice(0, Math.min(wordCount, shuffledWords.length))
-    .sort((a, b) => b.length - a.length);
-  // Spares used to backfill if a first-choice word cannot be placed, so the
-  // puzzle still offers the expected number of words.
-  const reserveWords = shuffledWords.slice(wordCount);
+  const cleanWords = chosen.sort((a, b) => b.length - a.length);
+  const normalise = (w: string) => w.toUpperCase().replace(/[^A-Z]/g, '');
+  for (const w of reserve.map(normalise)) {
+    if (w.length >= 3 && w.length <= maxLength && !eligible.includes(w) && !reserveWords.includes(w)) {
+      reserveWords.push(w);
+    }
+  }
 
   const grid: string[][] = Array(height).fill(null).map(() => Array(width).fill(''));
   const placedWords: PlacedWord[] = [];
@@ -191,23 +213,59 @@ export function generateGrid(words: string[], difficulty: Difficulty, seedStr: s
   // fewer, which previously capped the race progress bar below 100%.
   for (const word of reserveWords) {
     if (placedWords.length >= wordCount) break;
+    if (placedWords.some(pw => clashes(pw.word, word))) continue;
     tryPlaceWord(word);
   }
 
   // Fill remainder
-  const cells: GridCell[][] = [];
+  const isFiller: boolean[][] = grid.map(row => row.map(c => c === ''));
   for (let y = 0; y < height; y++) {
-    const row: GridCell[] = [];
     for (let x = 0; x < width; x++) {
-      if (grid[y][x] === '') {
-        const randLetter = ALPHABET[Math.floor(random() * ALPHABET.length)];
-        row.push({ letter: randLetter, x, y });
-      } else {
-        row.push({ letter: grid[y][x], x, y });
+      if (isFiller[y][x]) grid[y][x] = ALPHABET[Math.floor(random() * ALPHABET.length)];
+    }
+  }
+
+  // Random filler can spell a placed word a second time. That decoy used to
+  // count as a find (14 of the 360 levels had one), so re-roll a filler letter
+  // inside every extra occurrence until each word appears exactly once.
+  const ALL_DIRS: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]];
+  for (let pass = 0; pass < 50; pass++) {
+    let changed = false;
+    for (const pw of placedWords) {
+      const L = pw.word.length;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          for (const [dx, dy] of ALL_DIRS) {
+            const ex = x + dx * (L - 1);
+            const ey = y + dy * (L - 1);
+            if (ex < 0 || ey < 0 || ex >= width || ey >= height) continue;
+            const own =
+              (x === pw.startX && y === pw.startY && ex === pw.endX && ey === pw.endY) ||
+              (x === pw.endX && y === pw.endY && ex === pw.startX && ey === pw.startY);
+            if (own) continue;
+            let match = true;
+            const filler: [number, number][] = [];
+            for (let i = 0; i < L; i++) {
+              const cx = x + dx * i;
+              const cy = y + dy * i;
+              if (grid[cy][cx] !== pw.word[i]) { match = false; break; }
+              if (isFiller[cy][cx]) filler.push([cx, cy]);
+            }
+            if (!match || filler.length === 0) continue;
+            const [fx, fy] = filler[Math.floor(random() * filler.length)];
+            const current = grid[fy][fx];
+            let next = current;
+            while (next === current) next = ALPHABET[Math.floor(random() * ALPHABET.length)];
+            grid[fy][fx] = next;
+            changed = true;
+          }
+        }
       }
     }
-    cells.push(row);
+    if (!changed) break;
   }
+
+  const cells: GridCell[][] = grid.map((row, y) => row.map((letter, x) => ({ letter, x, y })));
 
   return { width, height, cells, placedWords };
 }

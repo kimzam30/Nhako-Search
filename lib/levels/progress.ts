@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/multiplayer/supabase';
 import type { CollectionEntry, LevelProgressRow } from '@/lib/types';
+import { readJSON, writeJSON } from '@/lib/storage';
+
+type LocalLevels = Record<string, { stars?: number; best_time_seconds?: number }>;
 
 export async function saveLevelProgress(levelId: string, stars: number, timeSeconds: number) {
   const { data: user } = await supabase.auth.getUser();
@@ -30,34 +33,37 @@ export async function saveLevelProgress(levelId: string, stars: number, timeSeco
       );
     if (error) console.error('Save level error:', error);
     
-    // Earn butterfly for completing level
-    const { data: existingButterfly } = await supabase
+    // Earn butterfly for completing level.
+    //
+    // Upsert, not select-then-insert: the old check-then-act let two calls
+    // close together (a double-fired effect, a fast replay) both read zero
+    // rows and both insert, which really did duplicate awards in production.
+    // Requires butterfly_collection_user_style_key — see 003_integrity.sql.
+    const { error: butterflyError } = await supabase
       .from('butterfly_collection')
-      .select('id')
-      .eq('user_id', user.user.id)
-      .eq('butterfly_style_id', butterflyId);
-
-    if (!existingButterfly || existingButterfly.length === 0) {
-      await supabase.from('butterfly_collection').insert({
-        user_id: user.user.id,
-        butterfly_style_id: butterflyId,
-        earned_from: `Level ${levelId}`
-      });
-    }
+      .upsert(
+        {
+          user_id: user.user.id,
+          butterfly_style_id: butterflyId,
+          earned_from: `Level ${levelId}`,
+        },
+        { onConflict: 'user_id,butterfly_style_id', ignoreDuplicates: true }
+      );
+    if (butterflyError) console.error('Award butterfly error:', butterflyError);
   } else {
     // Fallback to local storage for guest
-    const saved = JSON.parse(localStorage.getItem('nhako_levels') || '{}');
+    const saved = readJSON<LocalLevels>('nhako_levels', {});
     const prevTime = saved[levelId]?.best_time_seconds;
     saved[levelId] = {
       stars: Math.max(saved[levelId]?.stars || 0, stars),
       best_time_seconds: typeof prevTime === 'number' ? Math.min(prevTime, timeSeconds) : timeSeconds,
     };
-    localStorage.setItem('nhako_levels', JSON.stringify(saved));
-    
-    const collection = JSON.parse(localStorage.getItem('nhako_collection') || '[]');
-    if (!(collection as CollectionEntry[]).find(c => c.butterfly_style_id === butterflyId)) {
+    writeJSON('nhako_levels', saved);
+
+    const collection = readJSON<CollectionEntry[]>('nhako_collection', []);
+    if (!collection.find(c => c.butterfly_style_id === butterflyId)) {
       collection.push({ butterfly_style_id: butterflyId, earned_from: `Level ${levelId}`, earned_at: new Date().toISOString() });
-      localStorage.setItem('nhako_collection', JSON.stringify(collection));
+      writeJSON('nhako_collection', collection);
     }
   }
 }
@@ -69,7 +75,7 @@ export async function loadLevelProgress(): Promise<LevelProgressRow[]> {
     if (error) console.error('Load levels error:', error);
     return data || [];
   } else {
-    const saved = JSON.parse(localStorage.getItem('nhako_levels') || '{}');
-    return Object.keys(saved).map(id => ({ level_id: id, ...saved[id] }));
+    const saved = readJSON<LocalLevels>('nhako_levels', {});
+    return Object.keys(saved).map(id => ({ level_id: id, stars: saved[id]?.stars ?? 0, best_time_seconds: saved[id]?.best_time_seconds }));
   }
 }

@@ -64,8 +64,8 @@ test.describe('Race mode — two clients', () => {
     });
 
     // Leader -> guest: difficulty change must propagate.
-    await leader.getByRole('button', { name: 'hard', exact: true }).click();
-    await expect(guest.getByText(/Diff:\s*hard/i)).toBeVisible({ timeout: 10000 });
+    await leader.getByRole('radio', { name: 'hard', exact: true }).click();
+    await expect(guest.getByText(/Race\s*·\s*hard/i)).toBeVisible({ timeout: 10000 });
 
     // Guest -> leader: ready-up must propagate. This is the regression that
     // left "Start Race" permanently disabled.
@@ -82,8 +82,10 @@ test.describe('Race mode — two clients', () => {
     await expect(guest.getByText(/^(3|2|1|GO!)$/)).toBeVisible({ timeout: 5000 });
 
     // Both land in gameplay.
-    await leader.locator('[data-x="0"][data-y="0"]').waitFor({ state: 'visible', timeout: 15000 });
-    await guest.locator('[data-x="0"][data-y="0"]').waitFor({ state: 'visible', timeout: 15000 });
+    // On desktop the partner's read-only board is shown too; wait for our own.
+    const ownCell = '[role="grid"][tabindex="0"] [data-x="0"][data-y="0"]';
+    await leader.locator(ownCell).waitFor({ state: 'visible', timeout: 15000 });
+    await guest.locator(ownCell).waitFor({ state: 'visible', timeout: 15000 });
 
     // Same seed must mean the same grid — otherwise the two players are
     // racing on different boards.
@@ -130,6 +132,8 @@ test.describe('Race mode — two clients', () => {
       timeout: 10000,
     });
 
+    // Close the tab the way a person does, so unload handlers run.
+    await leader.close({ runBeforeUnload: true });
     await leader.context().close();
 
     await guest.waitForURL('**/play/race/lobby', { timeout: 20000 });
@@ -141,7 +145,7 @@ test.describe('Room codes', () => {
   test('join button stays disabled until the code is complete', async ({ page }) => {
     await page.goto('/play/race/lobby');
     const input = page.getByLabel('Room code');
-    const join = page.getByRole('button', { name: 'Join Race' });
+    const join = page.getByRole('button', { name: 'Join', exact: true });
 
     await expect(join).toBeDisabled();
     await input.fill('ACD');

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { ChatSvg } from '@/components/ui/Icons';
@@ -21,25 +21,22 @@ interface ChatWidgetProps {
 
 export function ChatWidget({ messages, onSend, activeUserId, partnerName }: ChatWidgetProps) {
   const [showTray, setShowTray] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  // Derived, not counted in effects: partner messages newer than the last
+  // time the tray was opened.
+  const [seenAt, setSeenAt] = useState(0);
+  const unreadCount = showTray
+    ? 0
+    : messages.filter(m => m.sender !== activeUserId && m.time > seenAt).length;
 
-  // Get the most recent message that is NOT from the current user
-  const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-
-  useEffect(() => {
-    if (latestMessage && latestMessage.sender !== activeUserId && !showTray) {
-      setUnreadCount(c => c + 1);
-    }
-  }, [latestMessage, activeUserId, showTray]);
-
-  useEffect(() => {
-    if (showTray) setUnreadCount(0);
-  }, [showTray]);
+  const toggleTray = () => {
+    if (!showTray) setSeenAt(Date.now());
+    setShowTray(!showTray);
+  };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+    <div className="fixed right-4 z-50 flex flex-col items-end gap-4 pointer-events-none" style={{ bottom: 'max(1rem, calc(var(--safe-bottom) + 0.5rem))' }}>
       {/* Toast Messages - Floating up from the widget */}
-      <div className="flex flex-col items-end gap-2 w-[280px] pointer-events-none">
+      <div className="flex flex-col items-end gap-2 w-[260px] pointer-events-none" aria-live="polite">
         <AnimatePresence>
           {messages.slice(-3).map(msg => (
             <motion.div
@@ -70,7 +67,7 @@ export function ChatWidget({ messages, onSend, activeUserId, partnerName }: Chat
               <motion.button
                 key={text}
                 whileTap={{ scale: 0.9 }} transition={softBounce}
-                onClick={() => { onSend(text); setShowTray(false); }}
+                onClick={() => { onSend(text); setSeenAt(Date.now()); setShowTray(false); }}
                 className="bg-accent-soft px-3 py-2 rounded-xl border-2 border-ink font-body text-ink font-bold text-sm min-h-[44px] shadow-[2px_2px_0_0_var(--ink)] active:translate-y-[2px] active:shadow-none"
               >
                 {text}
@@ -83,10 +80,12 @@ export function ChatWidget({ messages, onSend, activeUserId, partnerName }: Chat
       {/* Trigger Button */}
       <motion.button 
         whileTap={{ scale: 0.9 }} transition={softBounce}
-        onClick={() => setShowTray(!showTray)}
+        onClick={toggleTray}
+        aria-label={unreadCount > 0 ? `Quick messages, ${unreadCount} new` : 'Quick messages'}
+        aria-expanded={showTray}
         className="relative w-14 h-14 rounded-full bg-gold border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] active:translate-y-1 active:shadow-[0px_0px_0_0_var(--ink)] flex items-center justify-center pointer-events-auto"
       >
-        <ChatSvg className="w-6 h-6 text-ink" />
+        <ChatSvg className="w-6 h-6 text-on-accent" />
         
         {/* Unread Badge */}
         <AnimatePresence>

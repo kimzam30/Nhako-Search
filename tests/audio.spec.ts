@@ -9,16 +9,19 @@ import { test, expect } from '@playwright/test';
  * the control surface and assert nothing is fetched.
  */
 
-const CHANNELS = ['Lofi', 'Rain', 'Thunder', 'Wind', 'Birds'];
+/** Settings shows the mixer inline; wait for it to hydrate. */
+async function openMixer(page: import('@playwright/test').Page) {
+  await page.getByLabel('Master volume').waitFor({ state: 'visible' });
+}
 
 test('settings exposes every channel and all presets', async ({ page }) => {
   await page.goto('/settings');
 
-  const mixer = page.getByRole('button', { name: 'Sound Mixer' });
-  await mixer.click();
+  await openMixer(page);
 
-  for (const label of ['Master Volume', 'Lofi Beats', 'Rain Drops', 'Thunder', 'Wind Swirl', 'Morning Birds']) {
-    await expect(page.getByText(label, { exact: true })).toBeVisible();
+  // Every slider is reachable by its label (they were unlabelled before).
+  for (const label of ['Master volume', 'Lofi beats', 'Rain', 'Thunder', 'Wind', 'Morning birds', 'Game sounds']) {
+    await expect(page.getByLabel(label, { exact: true })).toBeVisible();
   }
 
   for (const preset of ['Focus', 'Meadow', 'Thunderstorm', 'Quiet Night']) {
@@ -28,7 +31,7 @@ test('settings exposes every channel and all presets', async ({ page }) => {
 
 test('a preset rewrites the whole mix and persists it', async ({ page }) => {
   await page.goto('/settings');
-  await page.getByRole('button', { name: 'Sound Mixer' }).click();
+  await openMixer(page);
 
   await page.getByRole('button', { name: 'Thunderstorm' }).click();
 
@@ -45,7 +48,7 @@ test('a preset rewrites the whole mix and persists it', async ({ page }) => {
 
   // Survives a reload.
   await page.reload();
-  await page.getByRole('button', { name: 'Sound Mixer' }).click();
+  await openMixer(page);
   const afterReload = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('nhako_audio_volumes') || '{}')
   );
@@ -62,10 +65,10 @@ test('an older saved mix is upgraded rather than discarded', async ({ page }) =>
     );
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Sound Mixer' }).click();
+  await openMixer(page);
 
   // Existing values kept, missing channel filled from defaults.
-  await expect(page.getByText('42%')).toBeVisible();
+  await expect(page.getByLabel('Lofi beats', { exact: true })).toHaveValue('42');
   const merged = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('nhako_audio_volumes') || '{}')
   );
@@ -80,28 +83,23 @@ test('no audio files are requested — ambience is generated', async ({ page }) 
   });
 
   await page.goto('/settings');
-  await page.getByRole('button', { name: 'Sound Mixer' }).click();
+  await openMixer(page);
   await page.getByRole('button', { name: 'Focus' }).click();
   await page.waitForTimeout(1500);
 
   expect(audioRequests).toEqual([]);
 });
 
-test('the nav mixer includes every channel', async ({ page }) => {
+test('the in-game sound sheet includes every channel', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto('/');
-  // Nav mixer only appears during gameplay.
   await page.goto('/play/standard/standard/easy');
 
-  const navToggle = page.locator('div.fixed.bottom-6 > div > button');
-  await navToggle.waitFor({ state: 'visible' });
-  await navToggle.click();
+  // Gameplay is immersive: Sound lives in the top bar and opens a sheet.
+  await page.getByRole('button', { name: 'Sound' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Sound' });
+  await expect(sheet).toBeVisible();
 
-  // The volume button sits inside the expanded pill.
-  const volumeBtn = page.locator('div.fixed.bottom-6 button').last();
-  await volumeBtn.click();
-
-  for (const label of ['Master', ...CHANNELS]) {
-    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+  for (const label of ['Master volume', 'Lofi beats', 'Rain', 'Thunder', 'Wind', 'Morning birds', 'Game sounds']) {
+    await expect(sheet.getByLabel(label, { exact: true })).toBeVisible();
   }
 });

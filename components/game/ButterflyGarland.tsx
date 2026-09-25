@@ -11,7 +11,7 @@ interface Props {
 
 export function ButterflyGarland({ count, total }: Props) {
   return (
-    <div className="flex items-center justify-center gap-2 mb-4 h-12 w-full max-w-sm border-b-2 border-dashed border-ink/20 pb-2">
+    <div className="flex items-center justify-center gap-2 h-9 w-full max-w-sm border-b-2 border-dashed border-ink/20 pb-1" role="img" aria-label={`${count} of ${total} words found`}>
       {Array.from({ length: total }).map((_, i) => {
         const isEarned = i < count;
         return (
@@ -25,7 +25,7 @@ export function ButterflyGarland({ count, total }: Props) {
             transition={softBounce}
             className={`flex items-center justify-center ${isEarned ? 'text-accent' : 'text-ink grayscale'}`}
           >
-            <ButterflySvg className="w-6 h-6" />
+            <ButterflySvg className="w-5 h-5" />
           </motion.div>
         );
       })}

@@ -64,11 +64,10 @@ test.describe('Delete My Data', () => {
     });
 
     await page.goto('/settings');
-    await page.getByRole('button', { name: 'Account' }).click();
-    await page.getByRole('button', { name: 'Delete My Data' }).click();
+    await page.getByRole('button', { name: 'Delete my data' }).click();
 
     await expect(page.getByRole('button', { name: 'Delete everything' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Keep it' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Keep my data' })).toBeVisible();
     expect(nativeDialogFired).toBe(false);
   });
 
@@ -78,9 +77,8 @@ test.describe('Delete My Data', () => {
       localStorage.setItem('nhako_levels', JSON.stringify({ 'c1-l1': { stars: 3 } }));
     });
 
-    await page.getByRole('button', { name: 'Account' }).click();
-    await page.getByRole('button', { name: 'Delete My Data' }).click();
-    await page.getByRole('button', { name: 'Keep it' }).click();
+    await page.getByRole('button', { name: 'Delete my data' }).click();
+    await page.getByRole('button', { name: 'Keep my data' }).click();
 
     const levels = await page.evaluate(() => localStorage.getItem('nhako_levels'));
     expect(levels).toContain('c1-l1');
@@ -95,8 +93,7 @@ test.describe('Delete My Data', () => {
       localStorage.setItem('unrelated_third_party_key', 'keep-me');
     });
 
-    await page.getByRole('button', { name: 'Account' }).click();
-    await page.getByRole('button', { name: 'Delete My Data' }).click();
+    await page.getByRole('button', { name: 'Delete my data' }).click();
     await page.getByRole('button', { name: 'Delete everything' }).click();
 
     await page.waitForURL('**/sign-in', { timeout: 15000 });

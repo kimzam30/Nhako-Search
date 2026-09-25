@@ -1,17 +1,20 @@
 'use client';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { ButtonLink } from '@/components/ui/Button';
 
 const THEMES = [
-  { id: 'standard', name: 'Mixed Pack', color: 'bg-surface' },
+  { id: 'standard', name: 'Mixed pack', color: 'bg-surface' },
   { id: 'garden', name: 'Garden', color: 'bg-[#7FCB9C]/30' },
-  { id: 'rainy-day', name: 'Rainy Day', color: 'bg-[#FFD166]/30' },
-  { id: 'cozy-cottage', name: 'Cozy Cottage', color: 'bg-[#FFC1D9]/30' },
-  { id: 'night-sky', name: 'Night Sky', color: 'bg-[#4A1942]/10' },
-  { id: 'date-night', name: 'Date Night', color: 'bg-[#FF6FA5]/30' }
+  { id: 'rainy-day', name: 'Rainy day', color: 'bg-[#FFD166]/30' },
+  { id: 'cozy-cottage', name: 'Cozy cottage', color: 'bg-[#FFC1D9]/40' },
+  { id: 'night-sky', name: 'Night sky', color: 'bg-[#4A1942]/10 dark:bg-[#4A1942]/60' },
+  { id: 'date-night', name: 'Date night', color: 'bg-[#FF6FA5]/30' },
+];
+
+const DIFFICULTIES = [
+  { id: 'easy', label: 'Easy', detail: '8×8 · 6 words' },
+  { id: 'medium', label: 'Medium', detail: '10×10 · 8 words' },
+  { id: 'hard', label: 'Hard', detail: '13×13 · 10 words' },
 ];
 
 export default function StandardSetupPage() {
@@ -19,65 +22,70 @@ export default function StandardSetupPage() {
   const [diff, setDiff] = useState('easy');
 
   return (
-    <div className="flex flex-col items-center flex-1 p-6 bg-transparent w-full max-w-lg mx-auto">
-      <h1 className="text-3xl font-display text-ink mb-8">Free Play</h1>
-      
-      <div className="w-full mb-8 relative">
-        <div className="flex justify-between items-end mb-4">
-          <h2 className="text-lg font-bold font-body text-ink">Choose a Theme</h2>
-          <motion.span 
-            animate={{ opacity: [0.4, 0.8, 0.4], x: [0, 4, 0] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className="text-[10px] font-bold text-ink/50 uppercase tracking-widest pb-1"
-          >
-            Scroll for more →
-          </motion.span>
-        </div>
-        
-        <div className="relative -mx-6 px-6">
-          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
-            {THEMES.map(t => (
-              <motion.div 
-                key={t.id}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setTheme(t.id)}
-                className="snap-center shrink-0 w-40"
-              >
-                <Card 
-                  className={`h-32 flex items-center justify-center text-center cursor-pointer transition-all ${t.color} ${theme === t.id ? 'border-4' : 'border-2 opacity-60'}`}
-                  style={{ borderRadius: '15px 225px 15px 255px/255px 15px 225px 15px' }}
-                  noShadow={theme !== t.id}
-                >
-                  <span className="font-display font-bold text-ink text-xl">{t.name}</span>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-          {/* Gradient Edge */}
-          <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-        </div>
-      </div>
+    <div className="flex flex-col w-full max-w-lg md:max-w-2xl mx-auto px-5 pb-28" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
+      <h1 className="text-4xl font-display text-ink mb-6">Free play</h1>
 
-      <div className="w-full mb-12">
-        <h2 className="text-lg font-bold font-body text-ink mb-4">Difficulty</h2>
-        <div className="flex bg-surface border-2 border-ink rounded-[20px] p-1 shadow-[4px_5px_0_0_var(--ink)]">
-          {['easy', 'medium', 'hard'].map(d => (
+      {/* All six themes visible at once. The old sideways strip hid half of
+          them behind a pulsing "scroll for more" hint. */}
+      <h2 id="theme-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2 mb-3">
+        Theme
+      </h2>
+      <div role="radiogroup" aria-labelledby="theme-label" className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+        {THEMES.map(t => {
+          const selected = theme === t.id;
+          return (
             <button
-              key={d}
-              onClick={() => setDiff(d)}
-              className={`flex-1 py-3 text-center rounded-xl font-bold font-body capitalize transition-colors ${diff === d ? 'bg-accent text-ink shadow-sm' : 'text-ink/60 hover:bg-white/50'}`}
+              key={t.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setTheme(t.id)}
+              className={`press h-24 flex items-center justify-center text-center px-3 border-ink ${t.color} ${
+                selected ? 'border-[3px] shadow-[4px_5px_0_0_var(--ink)]' : 'border-2 border-ink/40'
+              }`}
+              style={{ borderRadius: '15px 225px 15px 255px/255px 15px 225px 15px' }}
             >
-              {d}
+              <span className="font-display font-bold text-ink text-lg leading-tight">{t.name}</span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      <Link href={`/play/standard/${theme}/${diff}`} className="w-full mt-auto mb-20">
-        <Button variant="primary" fullWidth className="text-xl py-4 shadow-[4px_5px_0_0_var(--ink)]">
-          Start Puzzle
-        </Button>
-      </Link>
+      <h2 id="difficulty-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2 mb-3">
+        Difficulty
+      </h2>
+      <div
+        role="radiogroup"
+        aria-labelledby="difficulty-label"
+        className="grid grid-cols-3 gap-1 p-1 bg-surface border-2 border-ink rounded-[20px] shadow-[4px_5px_0_0_var(--ink)]"
+      >
+        {DIFFICULTIES.map(d => (
+          <button
+            key={d.id}
+            type="button"
+            role="radio"
+            aria-checked={diff === d.id}
+            onClick={() => setDiff(d.id)}
+            className={`press min-h-[56px] flex flex-col items-center justify-center rounded-2xl transition-colors ${
+              diff === d.id ? 'bg-accent text-on-accent' : 'text-ink'
+            }`}
+          >
+            <span className="font-body font-extrabold">{d.label}</span>
+            <span className={`text-[11px] font-bold tabular ${diff === d.id ? 'text-on-accent' : 'text-ink-2'}`}>{d.detail}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Primary action pinned above the tab bar, where the thumb already is. */}
+      <div
+        className="bottom-cta fixed left-0 right-0 lg:left-[var(--rail-w)] z-30 px-5 pb-3 pt-3 bg-gradient-to-t from-background via-background to-transparent"
+      >
+        <div className="max-w-lg md:max-w-2xl mx-auto">
+          <ButtonLink href={`/play/standard/${theme}/${diff}`} fullWidth className="text-xl py-4">
+            Start puzzle
+          </ButtonLink>
+        </div>
+      </div>
     </div>
   );
 }

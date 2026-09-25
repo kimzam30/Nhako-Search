@@ -1,7 +1,7 @@
 'use client';
 import { supabase } from '@/lib/multiplayer/supabase';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ButterflySvg } from '@/components/ui/Icons';
 import { motion } from 'framer-motion';
@@ -12,6 +12,14 @@ export default function SignInPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
   const [guestName, setGuestName] = useState('');
+
+  // Signing in is a one-way door: someone who already has a session never
+  // sees this screen, and Back from Home can never land on it again.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) router.replace('/');
+    });
+  }, [router]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -39,16 +47,20 @@ export default function SignInPage() {
 
   const confirmGuest = () => {
     if (!nameIsValid) return;
-    localStorage.setItem('nhako_guest_mode', 'true');
-    localStorage.setItem('nhako_guest_name', trimmedName);
-    router.push('/');
+    try {
+      localStorage.setItem('nhako_guest_mode', 'true');
+      localStorage.setItem('nhako_guest_name', trimmedName);
+    } catch {
+      /* private mode: the name lasts for this visit only */
+    }
+    router.replace('/');
   };
 
   if (showGuestPrompt) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto min-h-screen relative">
+      <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto min-h-dvh relative" style={{ paddingTop: 'max(1.5rem, var(--safe-top))', paddingBottom: 'max(1.5rem, var(--safe-bottom))' }}>
         <h1 className="text-3xl font-display text-ink mb-2 text-center">What should we call you?</h1>
-        <p className="text-ink/80 mb-8 font-body font-medium text-base text-center">
+        <p className="text-ink-2 mb-8 font-body font-bold text-base text-center">
           Your partner sees this name when you race.
         </p>
 
@@ -75,19 +87,19 @@ export default function SignInPage() {
             autoComplete="nickname"
             autoCapitalize="words"
             aria-describedby="guest-name-help"
-            className="w-full bg-surface border-2 border-ink rounded-xl px-4 py-3 font-bold text-ink outline-none text-center text-lg min-h-[52px]"
+            className="w-full bg-surface border-2 border-ink rounded-xl px-4 py-3 font-bold text-ink outline-none focus:border-accent text-center text-lg min-h-[52px]"
             autoFocus
           />
           <div
             id="guest-name-help"
             className="w-full flex justify-between items-center mt-2 mb-6 px-1 text-xs font-body font-bold"
           >
-            <span className={trimmedName.length > 0 && !nameIsValid ? 'text-accent' : 'text-ink/50'}>
+            <span className={trimmedName.length > 0 && !nameIsValid ? 'text-accent-ink' : 'text-ink-2'}>
               {trimmedName.length > 0 && !nameIsValid
                 ? 'At least 2 characters'
                 : 'Shown to your partner'}
             </span>
-            <span className="text-ink/40 tabular-nums">{guestName.length}/15</span>
+            <span className="text-ink-2 tabular-nums">{guestName.length}/15</span>
           </div>
 
           <Button
@@ -103,12 +115,12 @@ export default function SignInPage() {
 
         <button
           onClick={() => setShowGuestPrompt(false)}
-          className="mt-6 text-ink/60 font-body font-bold underline hover:text-ink min-h-[44px]"
+          className="press mt-4 px-4 text-ink-2 font-body font-bold underline min-h-[48px]"
         >
           Back
         </button>
 
-        <p className="text-ink/50 font-body text-xs text-center mt-6 leading-relaxed">
+        <p className="text-ink-2 font-body text-sm text-center mt-6 leading-relaxed">
           Playing as a guest keeps your progress on this device only. Sign in
           with Google later to save it.
         </p>
@@ -117,12 +129,12 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto h-screen relative">
+    <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto min-h-dvh relative" style={{ paddingTop: 'max(1.5rem, var(--safe-top))', paddingBottom: 'max(1.5rem, var(--safe-bottom))' }}>
       <div className="flex flex-col items-center justify-center text-center z-10 w-full mb-16">
         
         {/* Doodle Illustration: Two butterflies meeting */}
         <div className="relative w-48 h-32 mb-8 flex items-center justify-center">
-          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 100">
+          <svg aria-hidden="true" className="absolute inset-0 w-full h-full" viewBox="0 0 200 100">
             <path 
               d="M 50 60 Q 100 80 150 60" 
               fill="none" 
@@ -149,7 +161,7 @@ export default function SignInPage() {
         </div>
 
         <h1 className="text-3xl font-display text-ink mb-2">Welcome</h1>
-        <p className="text-ink/80 mb-8 font-body font-medium text-lg leading-snug">
+        <p className="text-ink-2 mb-8 font-body font-bold text-lg leading-snug">
           Save your collection and <br/> race your favorite person.
         </p>
 
@@ -171,7 +183,7 @@ export default function SignInPage() {
         
         <button 
           onClick={handleGuestContinue}
-          className="w-full text-ink/70 font-body font-bold py-2 underline hover:text-ink transition-colors active:scale-95 duration-100"
+          className="press w-full min-h-[48px] text-ink-2 font-body font-bold underline"
         >
           Continue as guest
         </button>

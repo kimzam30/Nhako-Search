@@ -1,271 +1,223 @@
 'use client';
-import { motion, AnimatePresence } from 'framer-motion';
-import { softBounce } from '@/components/motion/springs';
-import { CHAPTERS, ALL_LEVEL_IDS } from '@/lib/levels/data';
+import { motion } from 'framer-motion';
+import { CHAPTERS, ALL_LEVEL_IDS, getLevelMeta } from '@/lib/levels/data';
 import { loadLevelProgress } from '@/lib/levels/progress';
 import type { LevelProgressRow } from '@/lib/types';
-import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
-import { StarSvg, CloseSvg } from '@/components/ui/Icons';
-import { Button } from '@/components/ui/Button';
-
-// A simple lock icon for closed nodes
-const LockSvg = ({ className = '' }: { className?: string }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect>
-    <path d="M7 11V7a5 5 0 0110 0v4"></path>
-  </svg>
-);
-
-// Player marker (a small doodle bug or character)
-const PlayerMarkerSvg = ({ className = '' }: { className?: string }) => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <circle cx="12" cy="12" r="6" />
-    <path d="M12 2 L12 6 M12 18 L12 22 M2 12 L6 12 M18 12 L22 12" />
-  </svg>
-);
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { StarSvg, LockSvg } from '@/components/ui/Icons';
+import { ButtonLink } from '@/components/ui/Button';
+import { Sheet } from '@/components/ui/Sheet';
 
 const CHAPTER_COLORS: Record<string, string> = {
-  'garden': 'bg-[#7FCB9C]/20', // found color
-  'rainy-day': 'bg-[#FFD166]/20', // gold
-  'cozy-cottage': 'bg-[#FFC1D9]/20', // accent-soft
-  'night-sky': 'bg-[#4A1942]/10', // ink
-  'date-night': 'bg-[#FF6FA5]/20', // accent
+  'garden': 'bg-[#7FCB9C]/20',
+  'rainy-day': 'bg-[#FFD166]/20',
+  'cozy-cottage': 'bg-[#FFC1D9]/20',
+  'night-sky': 'bg-[#4A1942]/10',
+  'date-night': 'bg-[#FF6FA5]/20',
 };
 
+// Winding offset pattern, scaled per breakpoint by --level-wind.
+const OFFSETS = [0, 30, 60, 40, -10, -50, -60, -30];
+
 export default function LevelPathPage() {
-  const [progress, setProgress] = useState<LevelProgressRow[]>([]);
+  const [progress, setProgress] = useState<LevelProgressRow[] | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-  
+
   useEffect(() => {
-    loadLevelProgress().then(setProgress);
+    let cancelled = false;
+    loadLevelProgress().then(rows => {
+      if (!cancelled) setProgress(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const getStars = (levelId: string) => {
-    const p = progress.find(p => p.level_id === levelId);
-    return p ? p.stars : 0;
-  };
+  const starsById = useMemo(
+    () => new Map((progress ?? []).map(p => [p.level_id, p.stars ?? 0])),
+    [progress]
+  );
+  const getStars = (id: string) => starsById.get(id) ?? 0;
 
-  const flatLevels = ALL_LEVEL_IDS;
-  
-  // Find the highest unlocked level
-  let highestUnlockedIndex = 0;
-  for (let i = 0; i < flatLevels.length; i++) {
-    if (i === 0) continue;
-    if (getStars(flatLevels[i-1]) > 0) {
-      highestUnlockedIndex = i;
-    } else {
-      break;
-    }
-  }
+  // A level unlocks once the one before it has stars.
+  const highestUnlockedIndex = useMemo(() => {
+    let i = 0;
+    while (i + 1 < ALL_LEVEL_IDS.length && (starsById.get(ALL_LEVEL_IDS[i]) ?? 0) > 0) i++;
+    return i;
+  }, [starsById]);
 
-  // Winding offset pattern
-  const offsets = [0, 30, 60, 40, -10, -50, -60, -30];
+  const currentId = ALL_LEVEL_IDS[highestUnlockedIndex];
+  const selectedMeta = selectedLevel ? getLevelMeta(selectedLevel) : undefined;
 
   return (
-    <div className="flex flex-col items-center flex-1 w-full relative pb-32">
+    // overflow-x-clip: each level row is shifted sideways by its winding offset,
+    // which widened the page on phones and pushed the fixed tab bar's labels
+    // below the screen. `clip` (not `hidden`) keeps the sticky header working.
+    <div className="flex flex-col items-center flex-1 w-full relative overflow-x-clip">
       {/* Background zones */}
-      <div className="absolute inset-0 w-full h-full -z-10 flex flex-col">
+      <div className="absolute inset-0 w-full h-full -z-10 flex flex-col" aria-hidden="true">
         {CHAPTERS.map(chapter => {
-          const colorKey = chapter.id.replace(/c\d+/, '').trim(); // if id is c1, c7, etc... wait, CHAPTER_COLORS uses names or old ids.
-          // Let's map dynamically using chapter name
           const themeName = chapter.name.toLowerCase().replace(' ii', '').replace(' ', '-');
-          return <div key={chapter.id} className={`flex-1 w-full ${CHAPTER_COLORS[themeName] || 'bg-background'}`} />
+          return <div key={chapter.id} className={`flex-1 w-full ${CHAPTER_COLORS[themeName] || 'bg-background'}`} />;
         })}
       </div>
 
-      <div className="flex flex-col items-center w-full max-w-lg mx-auto p-4 pt-10">
-        <h1 className="text-3xl font-display text-ink mb-10 bg-surface/80 px-6 py-2 rounded-2xl border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] backdrop-blur-sm sticky top-4 z-20" style={{ borderRadius: '255px 15px 225px 15px/15px 225px 15px 255px' }}>
+      <div className="flex flex-col items-center w-full max-w-lg mx-auto px-4" style={{ paddingTop: 'max(1rem, var(--safe-top))' }}>
+        <h1
+          className="text-3xl font-display text-ink mb-8 bg-surface/90 px-6 py-2 rounded-2xl border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] backdrop-blur-sm sticky z-20"
+          style={{ top: 'max(0.75rem, var(--safe-top))', borderRadius: '22px 9px 26px 13px' }}
+        >
           Level Path
         </h1>
 
-        <div className="flex flex-col w-full relative items-center pb-20">
-          
-          {/* Path line background */}
-          <div className="absolute top-0 bottom-0 w-2 bg-ink/10 rounded-full" />
-
-          {CHAPTERS.map((chapter) => (
-            <ChapterView 
+        <div className="flex flex-col w-full relative items-center pb-10">
+          <div className="absolute top-0 bottom-0 w-2 bg-ink/10 rounded-full" aria-hidden="true" />
+          {CHAPTERS.map(chapter => (
+            <ChapterView
               key={chapter.id}
               chapter={chapter}
-              flatLevels={flatLevels}
               highestUnlockedIndex={highestUnlockedIndex}
+              currentId={progress ? currentId : null}
               getStars={getStars}
-              offsets={offsets}
               onSelectLevel={setSelectedLevel}
             />
           ))}
         </div>
       </div>
 
-
-      {/* Level Info Bottom Sheet Modal */}
-      <AnimatePresence>
-        {selectedLevel && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-[60]"
-              onClick={() => setSelectedLevel(null)}
-            />
-            <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={softBounce}
-              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface border-t-2 border-l-2 border-r-2 border-ink rounded-tl-[32px] rounded-tr-[24px] p-6 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
-              style={{ paddingBottom: 'max(3rem, calc(env(safe-area-inset-bottom) + 2rem))' }}
-            >
-              <div className="w-12 h-1.5 bg-ink/20 rounded-full mx-auto mb-6" />
-              <button 
-                onClick={() => setSelectedLevel(null)}
-                className="absolute top-6 right-6 text-ink/60 hover:text-ink"
-              >
-                <CloseSvg className="w-6 h-6" />
-              </button>
-              
-              <h3 className="text-sm font-bold text-ink/60 uppercase tracking-widest mb-1">
-                {CHAPTERS.find(c => c.levels.includes(selectedLevel))?.name}
-              </h3>
-              <h2 className="text-4xl font-display text-ink mb-6">Level {selectedLevel.split('-l')[1]}</h2>
-              
-              <div className="flex gap-2 mb-8">
-                {Array.from({length: 3}).map((_, i) => (
-                  <StarSvg key={i} className={`w-8 h-8 ${i < getStars(selectedLevel) ? 'text-gold drop-shadow-sm' : 'text-ink/10'}`} filled={i < getStars(selectedLevel)} />
-                ))}
-              </div>
-              
-              <div className="flex gap-4 items-center bg-background border-2 border-ink/10 p-4 rounded-xl mb-8">
-                <span className="font-bold text-ink/70">Goal:</span>
-                <span className="text-ink font-medium font-body text-lg">Find all words</span>
-              </div>
-
-              <Link href={`/level-path/${selectedLevel}`}>
-                <Button variant="primary" fullWidth className="text-xl py-4">
-                  Play Level
-                </Button>
-              </Link>
-            </motion.div>
-          </>
+      <Sheet open={!!selectedLevel} onClose={() => setSelectedLevel(null)} title={selectedMeta ? `Level ${selectedMeta.numberInChapter}` : undefined}>
+        {selectedLevel && selectedMeta && (
+          <div className="flex flex-col gap-5">
+            <p className="text-sm font-extrabold text-ink-2 uppercase tracking-widest -mt-1">
+              {selectedMeta.chapter} · {selectedMeta.difficulty}
+            </p>
+            <div className="flex gap-2" role="img" aria-label={`${getStars(selectedLevel)} of 3 stars`}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <StarSvg
+                  key={i}
+                  className={`w-9 h-9 ${i < getStars(selectedLevel) ? 'text-gold' : 'text-ink/15'}`}
+                  filled={i < getStars(selectedLevel)}
+                />
+              ))}
+            </div>
+            <p className="font-body font-bold text-ink-2">Find every word. Under a minute earns three stars.</p>
+            <ButtonLink href={`/level-path/${selectedLevel}`} fullWidth className="text-xl py-4">
+              {getStars(selectedLevel) > 0 ? 'Play again' : 'Play level'}
+            </ButtonLink>
+          </div>
         )}
-      </AnimatePresence>
+      </Sheet>
     </div>
   );
 }
 
 interface ChapterViewProps {
   chapter: { id: string; name: string; levels: string[] };
-  flatLevels: string[];
   highestUnlockedIndex: number;
+  currentId: string | null;
   getStars: (levelId: string) => number;
-  offsets: number[];
   onSelectLevel: (levelId: string) => void;
 }
 
-function ChapterView({
-  chapter,
-  flatLevels,
-  highestUnlockedIndex,
-  getStars,
-  offsets,
-  onSelectLevel,
-}: ChapterViewProps) {
-  const ref = useRef<HTMLDivElement>(null);
+function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSelectLevel }: ChapterViewProps) {
+  const ref = useRef<HTMLElement>(null);
+  const currentRef = useRef<HTMLButtonElement>(null);
+  const containsCurrent = currentId ? chapter.levels.includes(currentId) : false;
   const [isVisible, setIsVisible] = useState(false);
+  const visible = isVisible || containsCurrent;
 
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      setIsVisible(entry.isIntersecting);
-    }, { rootMargin: '1000px 0px' });
-    
+    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), {
+      rootMargin: '1000px 0px',
+    });
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
+  // Open the map where the player left off, like a native game's world map,
+  // instead of at Garden level 1 every time.
+  useEffect(() => {
+    if (containsCurrent && currentRef.current) {
+      currentRef.current.scrollIntoView({ block: 'center' });
+    }
+  }, [containsCurrent]);
+
   // Approximate height: header (~90px) + levels * gap (112px) + padding
-  const estimatedHeight = 90 + (chapter.levels.length * 112) + 60;
+  const estimatedHeight = 90 + chapter.levels.length * 112 + 60;
 
   return (
-    <div ref={ref} className="flex flex-col w-full relative mb-12" style={{ minHeight: `${estimatedHeight}px` }}>
-      {isVisible ? (
+    <section ref={ref} aria-label={chapter.name} className="flex flex-col w-full relative mb-12" style={{ minHeight: `${estimatedHeight}px` }}>
+      {visible ? (
         <>
-          <h2 className="text-2xl font-display text-ink bg-surface py-2 px-6 rounded-xl text-center shadow-[4px_5px_0_0_var(--ink)] border-2 border-ink self-center z-10 mb-8" style={{ borderRadius: '15px 225px 15px 255px/255px 15px 225px 15px', transform: 'rotate(-2deg)' }}>
+          <h2
+            className="text-2xl font-display text-ink bg-surface py-2 px-6 rounded-xl text-center shadow-[4px_5px_0_0_var(--ink)] border-2 border-ink self-center z-10 mb-8"
+            style={{ borderRadius: '15px 225px 15px 255px/255px 15px 225px 15px' }}
+          >
             {chapter.name}
           </h2>
-          
-          <div className="flex flex-col items-center gap-12 py-4 relative">
-            {chapter.levels.map((levelId: string) => {
-              const levelIndex = flatLevels.indexOf(levelId);
+
+          <ol className="flex flex-col items-center gap-12 py-4 relative">
+            {chapter.levels.map(levelId => {
+              const levelIndex = ALL_LEVEL_IDS.indexOf(levelId);
+              const number = (getLevelMeta(levelId)?.numberInChapter ?? 0).toString();
               const stars = getStars(levelId);
               const isUnlocked = levelIndex <= highestUnlockedIndex;
-              const isCurrent = levelIndex === highestUnlockedIndex;
-              
-              const offset = offsets[levelIndex % offsets.length];
+              const isCurrent = levelId === currentId;
+              const offset = OFFSETS[levelIndex % OFFSETS.length];
 
               return (
-                <div
+                <li
                   key={levelId}
                   className="relative flex justify-center items-center w-full"
                   style={{ left: `calc(${offset}px * var(--level-wind, 1))` }}
                 >
-                  
                   {isCurrent && (
-                    <>
-                      <motion.div 
-                        className="absolute w-20 h-20 bg-accent/30 rounded-full"
-                        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                      />
-                      <motion.div 
-                        className="absolute -top-6 z-20 drop-shadow-md"
-                        animate={{ y: [0, -6] }}
-                        transition={{ 
-                          duration: 0.5, 
-                          repeat: Infinity, 
-                          repeatType: "reverse",
-                          ease: "easeInOut"
-                        }}
-                      >
-                        <PlayerMarkerSvg />
-                      </motion.div>
-                    </>
+                    <motion.span
+                      className="absolute w-20 h-20 bg-accent/30 rounded-full"
+                      animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0, 0.5] }}
+                      transition={{ repeat: Infinity, duration: 2.4 }}
+                      aria-hidden="true"
+                    />
                   )}
-
-                  <motion.button 
-                    whileTap={isUnlocked ? { scale: 0.9, y: 2, boxShadow: '0 0 0 0 var(--ink)' } : {}} 
-                    transition={softBounce}
-                    onClick={() => {
-                      if (isUnlocked) onSelectLevel(levelId);
-                    }}
+                  <button
+                    ref={isCurrent ? currentRef : undefined}
+                    type="button"
+                    onClick={() => isUnlocked && onSelectLevel(levelId)}
                     aria-disabled={!isUnlocked}
-                    className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-4 relative z-10 
-                      ${isUnlocked ? 'bg-surface border-ink shadow-[4px_5px_0_0_var(--ink)] cursor-pointer hover:bg-white' 
-                                   : 'bg-surface/50 border-ink/20 opacity-70 pointer-events-none'}`}
+                    aria-current={isCurrent ? 'step' : undefined}
+                    aria-label={
+                      isUnlocked
+                        ? `Level ${number}${stars ? `, ${stars} star${stars > 1 ? 's' : ''}` : isCurrent ? ', next' : ''}`
+                        : `Level ${number}, locked`
+                    }
+                    className={`press w-16 h-16 flex flex-col items-center justify-center border-4 relative z-10 ${
+                      isUnlocked
+                        ? 'bg-surface border-ink shadow-[4px_5px_0_0_var(--ink)] cursor-pointer'
+                        : 'bg-surface/60 border-ink/25 cursor-not-allowed'
+                    }`}
                     style={{ borderRadius: '45% 55% 40% 60% / 55% 45% 60% 40%' }}
                   >
                     {isUnlocked ? (
                       <>
-                        <span className="font-display font-bold text-ink text-xl">{levelId.split('-l')[1]}</span>
+                        <span className="font-display font-bold text-ink text-xl tabular">{number}</span>
                         {stars > 0 && (
-                          <div className="absolute -bottom-3 flex gap-[2px] bg-surface rounded-full px-1 border border-ink/20">
-                            {Array.from({length: 3}).map((_, i) => (
+                          <span className="absolute -bottom-3 flex gap-[2px] bg-surface rounded-full px-1 border border-ink/20" aria-hidden="true">
+                            {Array.from({ length: 3 }).map((_, i) => (
                               <StarSvg key={i} className={`w-3 h-3 ${i < stars ? 'text-gold' : 'text-ink/20'}`} filled={i < stars} />
                             ))}
-                          </div>
+                          </span>
                         )}
                       </>
                     ) : (
-                      <LockSvg className="w-6 h-6 text-ink/30" />
+                      <LockSvg className="w-6 h-6 text-ink-2" />
                     )}
-                  </motion.button>
-                </div>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ol>
         </>
       ) : null}
-    </div>
+    </section>
   );
 }

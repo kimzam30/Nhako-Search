@@ -1,123 +1,124 @@
 'use client';
-import { GameClient } from '@/components/game/GameClient';
-import { getDailySeed, saveDailyChallenge, checkDailyStreak, getRecentDailyHistory } from '@/lib/daily/logic';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { FlameSvg, StarSvg } from '@/components/ui/Icons';
-import standardPool from '@/lib/words/standard.json';
+import {
+  checkDailyStreak,
+  gameDateString,
+  gameDayLabel,
+  getDailyStars,
+  getRecentDailyHistory,
+} from '@/lib/daily/logic';
+
+interface DailyView {
+  streak: number;
+  playedToday: boolean;
+  history: boolean[];
+  stars: number | null;
+  label: string;
+  initials: string[];
+}
+
+/** Weekday initials for the last seven game days, oldest first. */
+function recentDayInitials(): string[] {
+  const today = Date.parse(`${gameDateString()}T00:00:00Z`);
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(today - (6 - i) * 86_400_000).toLocaleDateString('en-US', { weekday: 'narrow', timeZone: 'UTC' })
+  );
+}
 
 export default function DailyChallengePage() {
-  const [streakData, setStreakData] = useState({ streak: 0, playedToday: false, history: [] as boolean[] });
-  const [loading, setLoading] = useState(true);
-  const [playing, setPlaying] = useState(false);
+  const [view, setView] = useState<DailyView | null>(null);
 
   useEffect(() => {
-    // Real play history, so the strip can show actual gaps.
+    let cancelled = false;
     Promise.all([checkDailyStreak(), getRecentDailyHistory(7)]).then(([data, history]) => {
-      setStreakData({ ...data, history });
-      setLoading(false);
+      // Dates are computed here, never during render: this page is prerendered
+      // at build time, so a render-time date would be the build's date.
+      if (!cancelled) {
+        setView({ ...data, history, stars: getDailyStars(), label: gameDayLabel(), initials: recentDayInitials() });
+      }
     });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleComplete = async (stars: number, time: number) => {
-    await saveDailyChallenge();
-    const [data, history] = await Promise.all([checkDailyStreak(), getRecentDailyHistory(7)]);
-    setStreakData({ ...data, history });
-    setPlaying(false);
-  };
-
-  if (loading) return <div className="p-4 flex justify-center w-full min-h-screen items-center font-display text-2xl text-ink">Loading...</div>;
-
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-
-  if (streakData.playedToday && !playing) {
-    return (
-      <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-lg mx-auto pb-20">
-        <h1 className="text-4xl font-display text-ink mb-2 text-center">Daily Challenge</h1>
-        <p className="font-accent text-ink/70 text-2xl mb-8 -rotate-2">{today}</p>
-        
-        <Card className="flex flex-col gap-6 text-center items-center justify-center py-10 w-full mb-8">
-          <h2 className="text-2xl font-display text-ink">Puzzle Completed!</h2>
-          
-          <div className="flex gap-2 mb-2">
-             {Array.from({length: 3}).map((_, i) => (
-                <StarSvg key={i} className="text-gold w-10 h-10 drop-shadow-sm" filled />
-             ))}
-          </div>
-
-          <div className="flex items-center gap-2 bg-surface border-2 border-ink px-4 py-2 rounded-xl">
-            <FlameSvg className="w-6 h-6 text-accent" />
-            <span className="font-display font-bold text-ink text-xl">{streakData.streak} Day Streak</span>
-          </div>
-          
-          <p className="text-ink/60 font-body mt-2">Come back tomorrow for a new puzzle.</p>
-        </Card>
-
-        <Link href="/" className="w-full">
-          <Button variant="secondary" fullWidth className="py-4 text-xl">
-            Back Home
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
-  if (!playing) {
-    return (
-      <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-lg mx-auto pb-20">
-        <h1 className="text-4xl font-display text-ink mb-2 text-center">Daily Challenge</h1>
-        <p className="font-accent text-ink/70 text-2xl mb-8 -rotate-2">{today}</p>
-        
-        <Card className="flex flex-col gap-6 text-center items-center py-8 w-full mb-8 bg-accent-soft">
-          <div className="flex items-center gap-2 mb-4">
-            <FlameSvg className="w-10 h-10 text-accent" />
-            <span className="font-display font-bold text-ink text-3xl">{streakData.streak}</span>
-          </div>
-          
-          {/* Calendar Strip */}
-          <div className="flex gap-2">
-            {streakData.history.map((played, i) => (
-              <div 
-                key={i} 
-                className={`w-4 h-4 rounded-full border-2 ${played ? 'bg-accent border-ink' : 'bg-surface border-ink/20'}`} 
-              />
-            ))}
-          </div>
-          <p className="text-xs font-bold text-ink/60 uppercase tracking-widest mt-2">Last 7 Days</p>
-        </Card>
-
-        <Button variant="primary" fullWidth onClick={() => setPlaying(true)} className="py-4 text-xl mb-4">
-          Play Today's Puzzle
-        </Button>
-        
-        <Link href="/" className="w-full">
-          <Button variant="secondary" fullWidth className="border-ink/20 hover:bg-surface">
-            Not Right Now
-          </Button>
-        </Link>
-      </div>
-    );
-  }
+  // The game day's own date, not the device's: outside UTC+8 the header used
+  // to show a different day from the puzzle underneath it.
+  const label = view?.label ?? '\u00a0';
+  const initials = view?.initials ?? Array.from({ length: 7 }, () => '\u00a0');
 
   return (
-    <div className="flex flex-col flex-1 bg-background items-center w-full mt-12 pb-20">
-      <div className="w-full flex justify-between items-center mb-6 max-w-lg px-4 absolute top-6">
-        <h1 className="text-2xl font-display text-ink/80 bg-surface px-4 py-1 rounded-full border-2 border-ink shadow-sm">Daily</h1>
-        <div className="flex items-center gap-1 bg-surface px-3 py-1 rounded-full border-2 border-ink shadow-sm">
-          <FlameSvg className="w-4 h-4 text-accent" />
-          <span className="font-bold text-ink font-body">{streakData.streak}</span>
+    <div
+      className="flex flex-col w-full max-w-lg mx-auto px-5 pb-6"
+      style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}
+    >
+      <h1 className="text-4xl font-display text-ink">Daily challenge</h1>
+      <p className="font-accent text-ink-2 text-2xl mb-6 -rotate-1">{label}</p>
+
+      <Card className={`flex flex-col items-center gap-5 text-center py-8 ${view?.playedToday ? '' : 'bg-accent-soft'}`}>
+        {view?.playedToday ? (
+          <>
+            <h2 className="text-2xl font-display text-ink">Puzzle completed</h2>
+            {view.stars !== null && (
+              <div className="flex gap-2" role="img" aria-label={`${view.stars} of 3 stars`}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <StarSvg
+                    key={i}
+                    className={`w-10 h-10 ${i < view.stars! ? 'text-gold' : 'text-ink/20'}`}
+                    filled={i < view.stars!}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : null}
+
+        <div className="flex items-center gap-2" aria-label={`${view?.streak ?? 0} day streak`}>
+          <FlameSvg className="w-9 h-9 text-accent-ink" />
+          <span className="font-display font-bold text-ink text-4xl tabular">{view?.streak ?? ' '}</span>
+          <span className="font-body font-extrabold text-ink-2">day streak</span>
         </div>
-      </div>
-      
-      <div className="pt-8 w-full h-full">
-        <GameClient 
-          words={standardPool.medium} 
-          difficulty="medium" 
-          seedStr={getDailySeed()}
-          onComplete={handleComplete}
-        />
+
+        {/* Last seven days. Each dot carries its day and state in text, so the
+            strip does not rely on colour alone. */}
+        <ol className="flex gap-[6px] sm:gap-2" aria-label="Last 7 days">
+          {initials.map((d, i) => {
+            const played = view?.history[i] ?? false;
+            return (
+              <li key={i} className="flex flex-col items-center gap-1">
+                <span
+                  className={`w-[28px] h-[28px] rounded-full border-2 flex items-center justify-center ${
+                    played ? 'bg-accent border-ink' : 'bg-surface border-ink/25'
+                  }`}
+                >
+                  {played && <span className="w-2 h-2 rounded-full bg-on-accent" />}
+                </span>
+                <span className="text-[11px] font-extrabold text-ink-2" aria-hidden="true">
+                  {d}
+                </span>
+                <span className="sr-only">{played ? 'played' : 'not played'}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </Card>
+
+      <div className="flex flex-col gap-3 mt-8">
+        {view?.playedToday ? (
+          <>
+            <p className="text-center text-ink-2 font-body font-bold">A new puzzle arrives tomorrow.</p>
+            <ButtonLink href="/daily/play" variant="secondary" fullWidth>
+              Play it again
+            </ButtonLink>
+          </>
+        ) : (
+          <ButtonLink href="/daily/play" fullWidth className="py-4 text-xl">
+            Play today&rsquo;s puzzle
+          </ButtonLink>
+        )}
       </div>
     </div>
   );

@@ -134,3 +134,6 @@ desktop.ini
 .turbo/
 .vercel
 coverage/
+
+# graphify output (symlinked into the batcave vault)
+graphify-out

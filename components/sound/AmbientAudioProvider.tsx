@@ -69,56 +69,79 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
   const ctxRef = useRef<AudioContext | null>(null);
   const engineRef = useRef<AmbienceEngine | null>(null);
   const startingRef = useRef(false);
+  /*
+   * Game sounds get their own context. They used to share the ambience one,
+   * so resuming it for a single "miss" also restarted music the player had
+   * just paused, while the mixer still said OFF.
+   */
+  const sfxCtxRef = useRef<AudioContext | null>(null);
   const sfxGainRef = useRef<GainNode | null>(null);
   const volumesRef = useRef<AudioVolumes>(defaultVolumes);
 
-  /**
-   * Creates the AudioContext on demand. Game interactions are user gestures,
-   * so effects can play even if the player never started the ambience.
-   */
-  const ensureContext = useCallback((): AudioContext | null => {
-    if (ctxRef.current) return ctxRef.current;
+  const newContext = (): AudioContext | null => {
     const AudioContextClass =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return null;
+    return AudioContextClass ? new AudioContextClass() : null;
+  };
 
-    const ctx = new AudioContextClass();
-    ctxRef.current = ctx;
+  /** The ambience context, created on the first gesture that needs it. */
+  const ensureContext = useCallback((): AudioContext | null => {
+    if (!ctxRef.current) ctxRef.current = newContext();
+    return ctxRef.current;
+  }, []);
 
+  /**
+   * The effects context. Game interactions are user gestures, so effects can
+   * play even if the player never started the ambience.
+   */
+  const ensureSfxContext = useCallback((): AudioContext | null => {
+    if (sfxCtxRef.current) return sfxCtxRef.current;
+    const ctx = newContext();
+    if (!ctx) return null;
     const sfxGain = ctx.createGain();
     sfxGain.gain.value = (volumesRef.current.sfx / 100) * (volumesRef.current.master / 100);
     sfxGain.connect(ctx.destination);
+    sfxCtxRef.current = ctx;
     sfxGainRef.current = sfxGain;
-
     return ctx;
   }, []);
 
   const playSfx = useCallback(
     (name: EffectName) => {
-      const ctx = ensureContext();
+      if (volumesRef.current.sfx <= 0 || volumesRef.current.master <= 0) return;
+      const ctx = ensureSfxContext();
       const dest = sfxGainRef.current;
       if (!ctx || !dest) return;
-      if (volumesRef.current.sfx <= 0 || volumesRef.current.master <= 0) return;
       // A suspended context would swallow the effect silently.
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       playEffect(ctx, dest, name);
     },
-    [ensureContext]
+    [ensureSfxContext]
   );
 
-  // Hydrate saved volumes on the client only.
   useEffect(() => {
+    // Hydrating from storage after mount is deliberate: reading it during the
+    // first render would differ from the server HTML and break hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVolumes(readStoredVolumes());
   }, []);
+
+  /*
+   * The persist effect below also runs on mount, while state is still
+   * `defaultVolumes`, and would write those defaults straight over the saved
+   * mix before hydration lands — losing the user's settings on reload. Skipping
+   * its first run is enough: every genuine change after that still persists.
+   */
+  const skipFirstPersist = useRef(true);
 
   // Persist, and push every change into the running graph.
   useEffect(() => {
     volumesRef.current = volumes;
-    if (sfxGainRef.current && ctxRef.current) {
+    if (sfxGainRef.current && sfxCtxRef.current) {
       sfxGainRef.current.gain.setTargetAtTime(
         (volumes.sfx / 100) * (volumes.master / 100),
-        ctxRef.current.currentTime,
+        sfxCtxRef.current.currentTime,
         0.05
       );
     }
@@ -126,6 +149,11 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
     if (engine) {
       engine.setMasterGain(volumes.master / 100);
       for (const id of CHANNEL_IDS) engine.setChannelGain(id, volumes[id] / 100);
+    }
+    // See skipFirstPersist above.
+    if (skipFirstPersist.current) {
+      skipFirstPersist.current = false;
+      return;
     }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(volumes));
@@ -190,6 +218,8 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
       engineRef.current = null;
       ctxRef.current?.close().catch(() => {});
       ctxRef.current = null;
+      sfxCtxRef.current?.close().catch(() => {});
+      sfxCtxRef.current = null;
     };
   }, []);
 

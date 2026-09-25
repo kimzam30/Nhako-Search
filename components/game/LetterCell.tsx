@@ -37,7 +37,7 @@ export function LetterCell({ cell, id, isFocused, isSelected, isHinted, onPointe
       data-focused={isFocused || undefined}
       className={`letter-cell w-full h-full min-w-0 min-h-0 flex items-center justify-center leading-none rounded-lg font-display font-bold select-none cursor-pointer touch-none text-ink hover:bg-surface/50 ${
         isFocused ? 'cell-cursor' : ''
-      } ${isSelected ? 'bg-accent/20' : ''} ${isHinted ? 'ring-2 ring-gold ring-inset text-gold' : ''}`}
+      } ${isSelected ? 'bg-accent/20' : ''} ${isHinted ? 'ring-2 ring-gold ring-inset text-accent-ink' : ''}`}
     >
       {cell.letter}
     </motion.div>

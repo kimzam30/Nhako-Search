@@ -41,23 +41,23 @@ export default function RaceLobbyPage() {
   };
 
   return (
-    <div className="flex flex-col flex-1 p-6 bg-transparent items-center justify-center w-full max-w-sm mx-auto h-screen relative">
-      <h1 className="text-4xl font-display text-ink mb-8">Race a Friend</h1>
+    <div className="flex flex-col flex-1 px-5 pb-6 bg-transparent items-center justify-center w-full max-w-sm mx-auto relative" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
+      <h1 className="text-4xl font-display text-ink mb-8">Race a friend</h1>
       
       {/* Segmented Control */}
-      <div className="flex w-full bg-surface border-2 border-ink rounded-[20px] p-1 shadow-[4px_5px_0_0_var(--ink)] mb-8">
-        <button
-          onClick={() => setMode('join')}
-          className={`flex-1 py-3 text-center rounded-xl font-bold font-body transition-colors ${mode === 'join' ? 'bg-accent text-ink shadow-sm' : 'text-ink/60 hover:bg-white/50'}`}
-        >
-          Join Room
-        </button>
-        <button
-          onClick={() => setMode('create')}
-          className={`flex-1 py-3 text-center rounded-xl font-bold font-body transition-colors ${mode === 'create' ? 'bg-accent text-ink shadow-sm' : 'text-ink/60 hover:bg-white/50'}`}
-        >
-          Create Room
-        </button>
+      <div role="tablist" aria-label="Join or create" className="grid grid-cols-2 gap-1 w-full bg-surface border-2 border-ink rounded-[20px] p-1 shadow-[4px_5px_0_0_var(--ink)] mb-8">
+        {(['join', 'create'] as const).map(m => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => setMode(m)}
+            className={`press min-h-[48px] rounded-2xl font-extrabold font-body transition-colors ${mode === m ? 'bg-accent text-on-accent' : 'text-ink-2'}`}
+          >
+            {m === 'join' ? 'Join room' : 'Create room'}
+          </button>
+        ))}
       </div>
 
       <motion.div 
@@ -69,7 +69,7 @@ export default function RaceLobbyPage() {
       >
         {mode === 'join' ? (
           <form onSubmit={handleJoin} className="flex flex-col gap-6 w-full items-center">
-            <p className="text-ink/80 font-body font-medium text-center">
+            <p className="text-ink-2 font-body font-bold text-center">
               Enter the {ROOM_CODE_LENGTH}-character room code from your friend.
             </p>
             <input
@@ -79,6 +79,7 @@ export default function RaceLobbyPage() {
               autoComplete="off"
               spellCheck={false}
               aria-label="Room code"
+              enterKeyHint="go"
               placeholder="CODE"
               value={roomCode}
               onChange={e => setRoomCode(normaliseRoomCode(e.target.value))}
@@ -90,21 +91,20 @@ export default function RaceLobbyPage() {
               disabled={!isValidRoomCode(roomCode)}
               fullWidth
               variant="primary"
-              className={!isValidRoomCode(roomCode) ? 'opacity-50' : ''}
             >
-              Join Race
+              Join
             </Button>
           </form>
         ) : (
           <div className="flex flex-col items-center gap-6 w-full relative">
-            <p className="text-ink/80 font-body font-medium text-center">Create a new room and invite your friend.</p>
+            <p className="text-ink-2 font-body font-bold text-center">Create a new room and invite your friend.</p>
             {errorMsg && (
-              <p className="text-red-500 font-bold text-sm bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20 w-full text-center">
+              <p role="alert" className="text-accent-ink font-bold text-sm bg-accent/10 px-4 py-2 rounded-lg border border-accent/30 w-full text-center">
                 {errorMsg}
               </p>
             )}
-            <Button onClick={handleCreate} fullWidth variant="primary" className="py-6 text-xl">
-              Start New Room
+            <Button onClick={handleCreate} fullWidth variant="primary" className="py-5 text-xl">
+              Start a new room
             </Button>
           </div>
         )}

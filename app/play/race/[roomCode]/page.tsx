@@ -1,13 +1,13 @@
 'use client';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRaceRoom, raceDurationSeconds, TOGETHER, type RoomMode } from '@/lib/multiplayer/useRaceRoom';
 import { GameClient } from '@/components/game/GameClient';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { ButterflyGarland } from '@/components/game/ButterflyGarland';
 import { supabase } from '@/lib/multiplayer/supabase';
-import { ButterflySvg } from '@/components/ui/Icons';
+import { ButterflySvg, ShareSvg } from '@/components/ui/Icons';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ChatWidget } from '@/components/multiplayer/ChatWidget';
@@ -35,7 +35,7 @@ function ProgressBar({
         <span className="text-xs font-bold text-ink uppercase tracking-wider truncate">
           {label}
         </span>
-        <span className="text-xs font-bold text-ink/50 tabular-nums shrink-0">
+        <span className="text-xs font-bold text-ink-2 tabular-nums shrink-0">
           {total > 0 ? `${value}/${total}` : '—'}
         </span>
       </div>
@@ -50,6 +50,39 @@ function ProgressBar({
         <div className={`h-full ${tone} transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Invite through the system share sheet (native on phones), falling back to
+ * copying the link where Web Share is unavailable (most desktops).
+ */
+function InviteButton({ roomCode }: { roomCode: string }) {
+  const [copied, setCopied] = useState(false);
+  const invite = async () => {
+    const url = `${window.location.origin}/play/race/${roomCode}`;
+    const text = `Come find words with me! Room ${roomCode}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'NhakoSearch', text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* the user dismissed the share sheet */
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={invite}
+      className="press shrink-0 flex items-center gap-2 min-h-[44px] px-4 rounded-full border-2 border-ink bg-surface font-body font-extrabold text-ink"
+    >
+      <ShareSvg className="w-5 h-5" />
+      <span aria-live="polite">{copied ? 'Copied' : 'Invite'}</span>
+    </button>
   );
 }
 
@@ -126,21 +159,63 @@ function RaceRoom({
   const racePool =
     (standardPool as Record<string, string[]>)[roomDifficulty] ?? standardPool.easy;
 
+  // Finds are kept per board for the tab's life, so a reload mid-race puts
+  // the player straight back where they were instead of on a blank board.
+  const foundKey = raceState.seedStr ? `nhako_race_found_${raceState.seedStr}` : null;
+  const initialFoundWords = useMemo<string[] | undefined>(() => {
+    if (!foundKey) return undefined;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(foundKey) || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch {
+      return [];
+    }
+  }, [foundKey]);
+
   const handleProgress = useCallback(
     (progress: number, foundWords: string[], total: number) => {
       updateMyState({ progress, total, foundWords });
+      if (foundKey) {
+        try {
+          sessionStorage.setItem(foundKey, JSON.stringify(foundWords));
+        } catch {
+          /* private mode */
+        }
+      }
     },
-    [updateMyState]
+    [updateMyState, foundKey]
   );
 
-  // Only the leader writes history, so a match produces exactly one row.
+  /*
+   * Which match, if any, has already been written.
+   *
+   * Only the leader writes history — but "leader-only" alone is not enough to
+   * get exactly one row. `opponent` is a fresh object every time an incoming
+   * state_update is applied, so it changes identity in this dependency array;
+   * a last progress frame arriving just after the leader flips to `finished`
+   * (the normal ordering when the leader wins) re-ran this effect and wrote a
+   * second row for the same match, inflating Wins.
+   *
+   * Keying on the round means a genuine rematch still records.
+   */
+  const savedRoundRef = useRef<number | null>(null);
   useEffect(() => {
     if (!isFinished || !opponent || !me.isLeader || !raceState.winner) return;
     if (raceState.winner === TOGETHER) return; // co-op is not a win/loss record
+    if (savedRoundRef.current === raceState.round) return;
+    savedRoundRef.current = raceState.round;
     import('@/lib/multiplayer/history').then(({ saveRaceHistory }) => {
       saveRaceHistory(me.id, opponent.id, raceState.winner!, roomDifficulty, roomDifficulty);
     });
-  }, [isFinished, opponent, me.isLeader, me.id, raceState.winner, roomDifficulty]);
+  }, [
+    isFinished,
+    opponent,
+    me.isLeader,
+    me.id,
+    raceState.winner,
+    raceState.round,
+    roomDifficulty,
+  ]);
 
   // Both players record their own "together" butterfly.
   useEffect(() => {
@@ -153,11 +228,25 @@ function RaceRoom({
     });
   }, [clearedTogether, roomCode]);
 
+  if (connection === 'full') {
+    return (
+      <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-sm mx-auto gap-6 text-center">
+        <h1 className="text-3xl font-display text-ink">Room {roomCode} is full</h1>
+        <p className="font-body text-ink-2 font-bold">
+          Two players are already in this room. Start your own and share the code.
+        </p>
+        <Button variant="primary" fullWidth onClick={() => router.push('/play/race/lobby')}>
+          Back to Lobby
+        </Button>
+      </div>
+    );
+  }
+
   if (connection === 'not-found') {
     return (
       <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-sm mx-auto gap-6 text-center">
         <h1 className="text-3xl font-display text-ink">No room {roomCode}</h1>
-        <p className="font-body text-ink/70 font-bold">
+        <p className="font-body text-ink-2 font-bold">
           Nobody is hosting that code. Check the letters, or start your own room.
         </p>
         <Button variant="primary" fullWidth onClick={() => router.push('/play/race/lobby')}>
@@ -169,114 +258,80 @@ function RaceRoom({
 
   // ------------------------------------------------------------------ lobby
   if (raceState.status === 'lobby') {
+    const segment = (active: boolean) =>
+      `press min-h-[44px] rounded-xl font-body font-extrabold capitalize transition-colors ${
+        active ? 'bg-accent text-on-accent shadow-[0_2px_0_var(--ink)]' : 'text-ink-2'
+      }`;
     return (
-      <div className="flex flex-col flex-1 p-4 pt-12 pb-24 bg-background items-center justify-start overflow-y-auto w-full max-w-lg mx-auto">
-        <h1 className="text-4xl font-display text-ink mb-2 shrink-0">Room: {roomCode}</h1>
-        <p className="font-body text-ink/70 mb-8 font-bold shrink-0">
-          {opponent ? `Round ${raceState.round}` : 'Waiting for your partner to join...'}
+      <div className="flex flex-col w-full max-w-lg mx-auto px-5 pb-8">
+        <div className="flex items-end justify-between gap-3 mb-1">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-widest text-ink-2">Room code</p>
+            <h1 className="text-4xl font-display text-ink tracking-[0.15em] tabular" aria-label={`Room ${roomCode.split('').join(' ')}`}>
+              {roomCode}
+            </h1>
+          </div>
+          <InviteButton roomCode={roomCode} />
+        </div>
+        <p className="font-body text-ink-2 mb-6 font-bold" aria-live="polite">
+          {opponent ? `Round ${raceState.round}` : 'Waiting for your partner to join…'}
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 w-full mb-8 shrink-0">
-          <Card className="flex-1 flex flex-col gap-4 text-center items-center justify-center py-6">
-            <h2 className="text-xl font-bold font-display text-ink">{me.name} (You)</h2>
-            {me.isLeader ? (
-              <div className="flex flex-col gap-2 w-full">
-                <span className="text-xs font-bold uppercase tracking-widest text-ink/50">Mode</span>
-                <div className="flex gap-2 w-full mb-2">
-                  {(['race', 'coop'] as RoomMode[]).map(m => (
-                    <button
-                      key={m}
-                      onClick={() => updateMyState({ mode: m })}
-                      className={`flex-1 py-2 rounded-xl border-2 font-body font-bold min-h-[44px] transition-colors ${
-                        me.mode === m
-                          ? 'bg-accent border-ink text-ink shadow-[0_2px_0_var(--ink)]'
-                          : 'bg-surface border-ink/30 text-ink/70'
-                      }`}
-                    >
-                      {m === 'race' ? 'Race' : 'Together'}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-xs font-bold uppercase tracking-widest text-ink/50">Difficulty</span>
-                {(['easy', 'medium', 'hard'] as Difficulty[]).map(d => (
-                  <button
-                    key={d}
-                    onClick={() => updateMyState({ difficulty: d })}
-                    className={`py-2 rounded-xl border-2 capitalize font-body font-bold w-full transition-colors ${
-                      me.difficulty === d
-                        ? 'bg-accent border-ink text-ink shadow-[0_2px_0_var(--ink)]'
-                        : 'bg-surface border-ink/30 text-ink/70'
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="py-4 font-bold font-body text-ink text-lg capitalize border-2 border-ink rounded-xl bg-surface w-full">
-                {roomMode === 'coop' ? 'Together' : 'Race'} · {roomDifficulty}
-              </div>
-            )}
-
-            {me.isLeader ? (
-              <Button
-                variant="primary"
-                fullWidth
-                onClick={startRaceAsLeader}
-                disabled={!opponent || !opponent.isReady}
-                className="mt-4"
-              >
-                {opponent?.isReady
-                  ? isCoop
-                    ? 'Start Together'
-                    : 'Start Race'
-                  : 'Waiting for Partner...'}
-              </Button>
-            ) : (
-              <Button
-                variant={me.isReady ? 'secondary' : 'primary'}
-                fullWidth
-                onClick={() => updateMyState({ isReady: !me.isReady })}
-                className="mt-4"
-              >
-                {me.isReady ? 'Ready!' : 'Ready Up'}
-              </Button>
-            )}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <Card className="!p-4 flex flex-col gap-2 text-center items-center">
+            <h2 className="text-lg font-bold font-display text-ink truncate max-w-full">{me.name} (You)</h2>
+            <span className={`text-sm font-extrabold ${me.isLeader || me.isReady ? 'text-accent-ink' : 'text-ink-2'}`}>
+              {me.isLeader ? 'LEADER' : me.isReady ? 'READY' : 'NOT READY'}
+            </span>
           </Card>
-
-          <Card className="flex-1 flex flex-col gap-4 text-center items-center justify-center py-8 bg-surface/50 opacity-80">
-            <h2 className="text-xl font-bold font-display text-ink">
-              {opponent?.name || 'Waiting...'}
+          <Card className="!p-4 flex flex-col gap-2 text-center items-center" noShadow={!opponent}>
+            <h2 className="text-lg font-bold font-display text-ink truncate max-w-full">
+              {opponent?.name || 'Waiting…'}
             </h2>
             {opponent ? (
-              <>
-                <div
-                  className={`w-full py-4 rounded-xl border-2 font-display text-xl bg-surface ${
-                    opponent.isReady
-                      ? 'text-accent border-accent bg-accent/10'
-                      : 'border-ink/30 text-ink/50'
-                  }`}
-                >
-                  {opponent.isReady ? 'READY' : 'NOT READY'}
-                </div>
-                <div className="w-full py-2 rounded-xl font-display text-sm bg-transparent text-ink/50">
-                  {opponent.isLeader ? 'LEADER' : 'GUEST'}
-                </div>
-              </>
+              <span className={`text-sm font-extrabold ${opponent.isReady ? 'text-accent-ink' : 'text-ink-2'}`}>
+                {opponent.isReady ? 'READY' : 'NOT READY'}
+              </span>
             ) : (
-              <div className="relative w-16 h-16 my-auto">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
-                  className="absolute inset-0"
-                >
-                  <ButterflySvg className="w-8 h-8 text-ink/30 absolute -top-4 -left-4" />
-                  <ButterflySvg className="w-6 h-6 text-ink/20 absolute -bottom-2 -right-2" />
-                </motion.div>
-              </div>
+              <ButterflySvg className="w-6 h-6 text-ink/25" />
             )}
           </Card>
         </div>
+
+        {me.isLeader ? (
+          <Card className="!p-4 flex flex-col gap-3 mb-6">
+            <span id="mode-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2">Mode</span>
+            <div role="radiogroup" aria-labelledby="mode-label" className="grid grid-cols-2 gap-1 p-1 bg-background border-2 border-ink rounded-2xl">
+              {(['race', 'coop'] as RoomMode[]).map(m => (
+                <button key={m} type="button" role="radio" aria-checked={me.mode === m} onClick={() => updateMyState({ mode: m })} className={segment(me.mode === m)}>
+                  {m === 'race' ? 'Race' : 'Together'}
+                </button>
+              ))}
+            </div>
+            <span id="difficulty-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2 mt-1">Difficulty</span>
+            <div role="radiogroup" aria-labelledby="difficulty-label" className="grid grid-cols-3 gap-1 p-1 bg-background border-2 border-ink rounded-2xl">
+              {(['easy', 'medium', 'hard'] as Difficulty[]).map(d => (
+                <button key={d} type="button" role="radio" aria-checked={me.difficulty === d} onClick={() => updateMyState({ difficulty: d })} className={segment(me.difficulty === d)}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <div className="mb-6 py-3 text-center font-bold font-body text-ink text-lg capitalize border-2 border-ink rounded-2xl bg-surface">
+            {roomMode === 'coop' ? 'Together' : 'Race'} · {roomDifficulty}
+          </div>
+        )}
+
+        {me.isLeader ? (
+          <Button variant="primary" fullWidth onClick={startRaceAsLeader} disabled={!opponent || !opponent.isReady} className="py-4 text-xl">
+            {opponent?.isReady ? (isCoop ? 'Start Together' : 'Start Race') : 'Waiting for partner…'}
+          </Button>
+        ) : (
+          <Button variant={me.isReady ? 'secondary' : 'primary'} fullWidth onClick={() => updateMyState({ isReady: !me.isReady })} aria-pressed={me.isReady} className="py-4 text-xl">
+            {me.isReady ? 'Ready!' : 'Ready Up'}
+          </Button>
+        )}
       </div>
     );
   }
@@ -291,7 +346,7 @@ function RaceRoom({
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 1.5, opacity: 0 }}
-          className="text-[120px] font-display text-accent drop-shadow-sm"
+          className="text-[120px] font-display text-accent-ink tabular" aria-live="assertive"
         >
           {secsLeft > 0 ? secsLeft : 'GO!'}
         </motion.div>
@@ -312,9 +367,9 @@ function RaceRoom({
           {clearedTogether
             ? 'Cleared together!'
             : iWon
-              ? 'You found more!'
+              ? 'You won!'
               : `${opponent?.name ?? 'Your partner'} won!`}
-          {(iWon || clearedTogether) && <ButterflySvg className="w-16 h-16 text-accent" />}
+          {(iWon || clearedTogether) && <ButterflySvg className="w-16 h-16 text-accent-ink" />}
         </motion.h1>
 
         <Card className="w-full mb-8 flex flex-col gap-6">
@@ -357,7 +412,7 @@ function RaceRoom({
         <div className="w-full max-w-lg lg:max-w-5xl mx-auto p-4 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-8">
           <div
             className={`font-display text-2xl lg:text-3xl font-bold tabular-nums lg:w-24 shrink-0 transition-colors ${
-              timeLeft <= 10 ? 'text-accent animate-pulse' : 'text-ink'
+              timeLeft <= 10 ? 'text-accent-ink' : 'text-ink'
             }`}
             role="timer"
             aria-label={`${timeLeft} seconds remaining`}
@@ -384,7 +439,7 @@ function RaceRoom({
           </div>
 
           {isCoop && (
-            <span className="hidden lg:block shrink-0 font-body font-bold text-sm text-ink/60 whitespace-nowrap">
+            <span className="hidden lg:block shrink-0 font-body font-bold text-sm text-ink-2 whitespace-nowrap">
               Together
             </span>
           )}
@@ -404,20 +459,25 @@ function RaceRoom({
             hideWinOverlay
             showTimer={false}
             allowHints={false}
+            initialFoundWords={initialFoundWords}
           />
         </div>
 
-        {/* Partner's board, desktop only. Uses the ROOM difficulty so it
-            reconstructs the same grid the partner is actually solving. */}
-        <div className={`${isCoop ? 'hidden' : 'hidden lg:flex'} flex-1 w-full flex-col items-center`}>
-          <h3 className="font-display text-xl text-ink mb-4">{opponent?.name || 'Partner'}</h3>
-          <PartnerGridDisplay
-            words={racePool}
-            difficulty={roomDifficulty}
-            seedStr={raceState.seedStr || 'daily-seed-123'}
-            foundWords={opponent?.foundWords || []}
-          />
-        </div>
+        {/* Partner's board, desktop race only — co-op already shares one board,
+            so building a second, hidden copy there was wasted work. Uses the
+            ROUND difficulty so it reconstructs the grid the partner is solving. */}
+        {!isCoop && raceState.seedStr && (
+          <div className="hidden lg:flex flex-1 w-full flex-col items-center">
+            <h3 className="font-display text-xl text-ink mb-4">{opponent?.name || 'Partner'}</h3>
+            <PartnerGridDisplay
+              key={raceState.seedStr}
+              words={racePool}
+              difficulty={roomDifficulty}
+              seedStr={raceState.seedStr}
+              foundWords={opponent?.foundWords || []}
+            />
+          </div>
+        )}
       </div>
 
       <ChatWidget

@@ -17,9 +17,17 @@ const LOCAL_KEYS = [
   'nhako_last_room_created',
   'nhako_audio_volumes',
   'nhako_theme',
+  'nhako_daily_stars',
 ];
 
-const SESSION_KEY_PREFIXES = ['is_leader_', 'nhako_recent_', 'nhako_guest_id', 'splash_seen'];
+const SESSION_KEY_PREFIXES = [
+  'is_leader_',
+  'nhako_recent_',
+  'nhako_guest_id',
+  'nhako_room_',
+  'nhako_race_found_',
+  'splash_seen',
+];
 
 export interface DeleteDataResult {
   ok: boolean;

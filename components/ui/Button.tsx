@@ -1,49 +1,77 @@
+import Link from 'next/link';
 import { motion, HTMLMotionProps } from 'framer-motion';
-import { softBounce } from '../motion/springs';
 
 interface ButtonProps extends HTMLMotionProps<"button"> {
   variant?: 'primary' | 'secondary' | 'danger';
   fullWidth?: boolean;
 }
 
-export function Button({ 
-  children, 
-  variant = 'primary', 
-  fullWidth = false, 
-  className = '', 
-  ...props 
+/*
+ * The sticker button. Pressing it pushes the sticker into its own shadow —
+ * the brand's press state — on press-IN, in 100ms, with no spring overshoot:
+ * a bouncy release read as lag on a phone.
+ */
+const PRESS = { duration: 0.1, ease: [0.23, 1, 0.32, 1] as const };
+
+export function Button({
+  children,
+  variant = 'primary',
+  fullWidth = false,
+  className = '',
+  disabled,
+  ...props
 }: ButtonProps) {
-  
-  const baseClasses = "relative font-display font-bold text-lg px-6 py-3 border-2 border-ink flex items-center justify-center transition-colors";
+  const baseClasses =
+    "relative font-display font-bold text-lg px-6 py-3 min-h-[48px] border-2 border-ink flex items-center justify-center gap-2 transition-colors duration-150 touch-manipulation select-none disabled:cursor-not-allowed disabled:opacity-50";
   const radiusClass = "rounded-tl-[18px] rounded-tr-[12px] rounded-br-[16px] rounded-bl-[10px]";
   const widthClass = fullWidth ? "w-full" : "";
-  
-  let colorClasses = "";
-  if (variant === 'primary') {
-    colorClasses = "bg-accent text-ink hover:bg-accent-soft";
-  } else if (variant === 'secondary') {
-    colorClasses = "bg-surface text-ink hover:bg-white";
-  } else if (variant === 'danger') {
-    colorClasses = "bg-rose-400 text-ink hover:bg-rose-300";
-  }
+
+  // Text on accent/danger fills uses --on-accent: the ink token turns
+  // near-white in dark mode, which left 1.83:1 text on every primary button.
+  const colorClasses =
+    variant === 'primary'
+      ? 'bg-accent text-on-accent [@media(hover:hover)]:hover:brightness-105'
+      : variant === 'danger'
+        ? 'bg-danger text-on-accent [@media(hover:hover)]:hover:brightness-105'
+        : 'bg-surface text-ink [@media(hover:hover)]:hover:bg-accent-soft';
 
   return (
     <motion.button
-      whileTap={{ 
-        y: 5, 
-        x: 4, 
-        boxShadow: "0px 0px 0 0 var(--ink)",
-        scale: 0.98
-      }}
-      transition={softBounce}
+      whileTap={disabled ? undefined : { y: 4, x: 3, boxShadow: '0px 0px 0 0 var(--ink)' }}
+      transition={PRESS}
+      disabled={disabled}
       className={`${baseClasses} ${radiusClass} ${widthClass} ${colorClasses} ${className}`}
       style={{
-        boxShadow: "4px 5px 0 0 var(--ink)",
-        ...props.style
+        boxShadow: disabled ? '2px 2px 0 0 var(--ink)' : '4px 5px 0 0 var(--ink)',
+        ...props.style,
       }}
       {...props}
     >
       {children}
     </motion.button>
+  );
+}
+
+interface ButtonLinkProps extends React.ComponentProps<typeof Link> {
+  variant?: 'primary' | 'secondary' | 'danger';
+  fullWidth?: boolean;
+}
+
+/**
+ * A link that looks like a Button. Wrapping <Button> in <Link> nested a
+ * button inside an anchor — invalid HTML that screen readers announce twice.
+ */
+export function ButtonLink({ variant = 'primary', fullWidth = false, className = '', ...props }: ButtonLinkProps) {
+  const colorClasses =
+    variant === 'primary'
+      ? 'bg-accent text-on-accent [@media(hover:hover)]:hover:brightness-105'
+      : variant === 'danger'
+        ? 'bg-danger text-on-accent'
+        : 'bg-surface text-ink [@media(hover:hover)]:hover:bg-accent-soft';
+  return (
+    <Link
+      className={`sticker relative font-display font-bold text-lg px-6 py-3 min-h-[48px] border-2 border-ink flex items-center justify-center gap-2 text-center rounded-tl-[18px] rounded-tr-[12px] rounded-br-[16px] rounded-bl-[10px] touch-manipulation ${fullWidth ? 'w-full' : ''} ${colorClasses} ${className}`}
+      {...props}
+    />
   );
 }

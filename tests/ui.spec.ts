@@ -19,7 +19,7 @@ test.describe('UI Regressions', () => {
     }
   });
 
-  test('FloatingNav does not intersect with Play Level button on Level Path', async ({ page }) => {
+  test('Tab bar does not block the Play level button on Level Path', async ({ page }) => {
     // Mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     
@@ -27,14 +27,14 @@ test.describe('UI Regressions', () => {
     await page.goto('http://localhost:3002/level-path');
     
     // Wait for level path nodes
-    const levelButton = page.locator('button', { hasText: '1' }).first();
+    const levelButton = page.getByRole('button', { name: /^Level 1\b/ }).first();
     await levelButton.waitFor({ state: 'visible' });
     
     // Click the first level to open the bottom sheet modal
     await levelButton.click();
     
     // Wait for the modal and Play Level button
-    const playLevelBtn = page.locator('button', { hasText: 'Play Level' });
+    const playLevelBtn = page.getByRole('link', { name: /Play (level|again)/ });
     await playLevelBtn.waitFor({ state: 'visible' });
     await page.waitForTimeout(1000); // Wait for framer-motion slide-up animation
     
@@ -48,47 +48,25 @@ test.describe('UI Regressions', () => {
     await page.waitForURL(/\/level-path\/.+/);
   });
 
-  test('FloatingNav uses custom sheet instead of window.confirm', async ({ page }) => {
-    // Mobile viewport
+  test('Leaving a game uses a custom sheet, not window.confirm', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    
-    // Standard Hard mode URL
     await page.goto('http://localhost:3002/play/standard/standard/hard');
-    
-    // Wait for the floating nav to be visible
-    const floatingNav = page.locator('div.fixed.bottom-6').first();
-    await floatingNav.waitFor({ state: 'visible' });
+    await page.locator('[data-x="0"][data-y="0"]').waitFor({ state: 'visible' });
 
-    // Ensure we capture window.confirm if it is incorrectly called
     let dialogFired = false;
     page.on('dialog', dialog => {
       dialogFired = true;
       dialog.accept();
     });
 
-    // Open Floating Nav Menu (it is minimized)
-    // Find the toggle button (the one with the PauseSvg or CloseSvg)
-    const toggleBtn = page.locator('div.fixed.bottom-6 > div > button');
-    await toggleBtn.waitFor({ state: 'visible' });
-    await toggleBtn.click();
-    
-    // Click Home
-    const homeBtn = page.locator('a[href="/"]');
-    await homeBtn.waitFor({ state: 'visible' });
-    await homeBtn.click();
-    
-    // Wait for the custom sheet to appear
-    const sheetTitle = page.locator('h3', { hasText: 'Leave this puzzle?' });
-    await sheetTitle.waitFor({ state: 'visible' });
-    
+    // Gameplay is immersive: the top bar's Close button is the way out.
+    await page.getByRole('button', { name: 'Leave game' }).click();
+    await expect(page.getByRole('dialog', { name: 'Leave this game?' })).toBeVisible();
     expect(dialogFired).toBe(false);
-    
-    // Click Leave
-    const leaveBtn = page.locator('button', { hasText: 'Leave' });
-    await leaveBtn.click();
-    
-    // Should navigate to Home
-    await page.waitForURL('http://localhost:3002/');
+
+    await page.getByRole('button', { name: 'Leave', exact: true }).click();
+    // A deep-linked game has no in-app history, so Close lands on its parent.
+    await page.waitForURL('http://localhost:3002/play/standard');
   });
 
   test('Grid selection highlight renders during active drag', async ({ page }) => {
@@ -115,8 +93,8 @@ test.describe('UI Regressions', () => {
       // Screenshot mid-drag
       await gridBoard.screenshot({ path: 'test-results/grid-drag.png' });
       
-      // Check if the SVG line exists
-      const line = page.locator('svg line');
+      // The selection is drawn as a hand-drawn path in the overlay.
+      const line = page.locator('[role="grid"] svg path');
       const count = await line.count();
       expect(count).toBeGreaterThan(0);
       
@@ -129,7 +107,7 @@ test.describe('UI Regressions', () => {
     await page.goto('http://localhost:3002/play/standard/standard/easy');
     
     // Wait for WordList to be visible
-    const wordList = page.locator('div.flex.flex-wrap.justify-center.gap-1\\.5').first();
+    const wordList = page.locator('ul[aria-label="Words to find"]').first();
     await wordList.waitFor({ state: 'visible' });
     
     // Verify it is fully visible in the viewport
