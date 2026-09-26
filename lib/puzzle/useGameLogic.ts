@@ -42,11 +42,12 @@ export function useGameLogic(
   // around the grid without committing to a word.
   const [focus, setFocus] = useState<FocusPosition>({ x: 0, y: 0 });
 
-  const getSelectedCells = useCallback(() => {
-    if (!startCell || !currentCell) return [];
+  const getSelectedCells = useCallback((endOverride?: GridCell | null) => {
+    const end = endOverride ?? currentCell;
+    if (!startCell || !end) return [];
 
-    const dx = currentCell.x - startCell.x;
-    const dy = currentCell.y - startCell.y;
+    const dx = end.x - startCell.x;
+    const dy = end.y - startCell.y;
 
     const isHorizontal = dy === 0 && dx !== 0;
     const isVertical = dx === 0 && dy !== 0;
@@ -67,9 +68,13 @@ export function useGameLogic(
     return cells;
   }, [startCell, currentCell, grid]);
 
-  /** Checks the current run against the word list and clears the selection. */
-  const commitSelection = useCallback(() => {
-    const selected = getSelectedCells();
+  /**
+   * Checks the current run against the word list and clears the selection.
+   * `end` is where the pointer was released: a fast flick can lift before the
+   * last move is processed, so the release point is the source of truth.
+   */
+  const commitSelection = useCallback((end?: GridCell | null) => {
+    const selected = getSelectedCells(end);
     let matched: string | null = null;
 
     if (selected.length > 0) {
@@ -110,8 +115,8 @@ export function useGameLogic(
     }
   };
 
-  const onPointerUp = () => {
-    commitSelection();
+  const onPointerUp = (end?: GridCell | null) => {
+    commitSelection(end);
   };
 
   // ------------------------------------------------------------- keyboard
@@ -134,7 +139,7 @@ export function useGameLogic(
       setCurrentCell(cell);
       return null;
     }
-    return commitSelection();
+    return commitSelection(null);
   }, [startCell, grid, focus.x, focus.y, commitSelection]);
 
   const cancelSelection = useCallback(() => {

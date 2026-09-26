@@ -24,7 +24,7 @@ interface AmbientAudioContextType {
   applyPreset: (presetId: string) => void;
   presets: typeof AMBIENCE_PRESETS;
   /** Game feedback. Works whether or not the ambience is running. */
-  playSfx: (name: EffectName) => void;
+  playSfx: (name: EffectName, variant?: number) => void;
 }
 
 const STORAGE_KEY = 'nhako_audio_volumes';
@@ -108,17 +108,34 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const playSfx = useCallback(
-    (name: EffectName) => {
+    (name: EffectName, variant = 0) => {
       if (volumesRef.current.sfx <= 0 || volumesRef.current.master <= 0) return;
       const ctx = ensureSfxContext();
       const dest = sfxGainRef.current;
       if (!ctx || !dest) return;
       // A suspended context would swallow the effect silently.
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-      playEffect(ctx, dest, name);
+      playEffect(ctx, dest, name, variant);
     },
     [ensureSfxContext]
   );
+
+  /*
+   * Every control clicks, like a game UI. One delegated listener instead of
+   * wiring each button: fires on press-IN so the sound lands with the visual
+   * press. Opt out with data-sfx="none" (e.g. controls that play their own).
+   */
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      const target = (e.target as Element | null)?.closest?.('button, a[href], [role="button"], [role="radio"], [role="tab"], label');
+      if (!target || target.closest('[data-sfx="none"]')) return;
+      if ((target as HTMLButtonElement).disabled) return;
+      playSfx('tap');
+    };
+    document.addEventListener('pointerdown', onDown, { passive: true });
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [playSfx]);
 
   useEffect(() => {
     // Hydrating from storage after mount is deliberate: reading it during the

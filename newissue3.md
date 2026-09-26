@@ -366,3 +366,26 @@ Files: `components/ui/Sheet.tsx`, `components/nav/GameBar.tsx`,
 `app/globals.css`, `app/play/race/[roomCode]/page.tsx`.
 Not possible here: Appllama reference-screen study (MCP not connected) and a
 real-device motion/60fps recording (no iOS simulator / Android device).
+
+### Live re-verification of `cd6f65a` (2026-09-26 ~05:15 UTC)
+
+- HYXH8F rows deleted by the user — confirmed (only the two genuine
+  `together-XHRL4T-2026-07-29` rows remain).
+- Live, passing: back closes every sheet with no reload and no duplicate steps
+  (B1–B6); race board 536/480/416px on iPad/iPad-landscape/desktop (was
+  280/184/184); co-op tablet 536px; race-round axe 0 at 1440/820/390 × 2 themes;
+  drag 12/12.
+- **Not live:** the deployed stylesheet (`3szb_4q9kwb62.css`, built 05:11) was
+  generated from the OLD `globals.css` — no `--wing-*` tokens, no landscape
+  board rule — while the JS is new. The committed file and a local build of the
+  same commit both contain the rules. Likely a stale Vercel build cache.
+  Effect: collection butterflies whose colour now comes from the missing tokens
+  fall back to the text colour; landscape-phone board stays 200px.
+  Fix: redeploy in Vercel with "Use existing Build Cache" unticked.
+
+**Resolved after a cache-free Vercel redeploy** (stylesheet `3vfe2stx7um1a.css`):
+all 7 butterfly colours render from the `--wing-*` tokens in both themes;
+landscape-phone board 230px (bottom 368–382 of 390) solo/race/co-op; axe 0 on
+10 routes × light/dark; overflow/tap-target sweep clean. Everything from this
+session is now live and verified on search.nhako.com.
+delete from public.butterfly_collection where butterfly_style_id = 'together-HYXH8F-2026-09-26' and user_id in ('27bacd6f-27dc-49b8-b8d6-01b522b0d0b1','88ccb7c3-d5c9-4000-842a-642b1ec1e53a');

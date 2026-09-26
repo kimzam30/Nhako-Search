@@ -1,6 +1,7 @@
-// Bump on any change to the caching rules: `activate` deletes every other
+// Bump on any change to the caching rules or cached assets (v5: new icon set):
+// `activate` deletes every other
 // cache, which also clears the RSC payloads v3 accumulated.
-const CACHE_NAME = 'nhakosearch-v4';
+const CACHE_NAME = 'nhakosearch-v5';
 
 // The app shell: enough to open the app offline and play a free puzzle.
 const ASSETS_TO_CACHE = [

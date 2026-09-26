@@ -64,7 +64,7 @@ export default function LevelGameplayPage() {
   };
 
   return (
-    <div className="flex flex-col flex-1 px-3 pt-1 pb-4 items-center w-full">
+    <div className="flex flex-col flex-1 px-3 pt-1 pb-2 items-center w-full">
       {/* "Next Level" routes to the same [levelId] page, so React reuses this
           component tree. Without a key the grid stays on the previous level. */}
       <GameClient

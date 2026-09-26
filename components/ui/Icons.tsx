@@ -151,3 +151,26 @@ export const MusicSvg = ({ className = '' }: { className?: string }) => (
     <path d="M17 19C18.7 19 20 17.9 20 16.5C20 15.1 18.7 14 17 14C15.3 14 14 15.1 14 16.5C14 17.9 15.3 19 17 19Z" />
   </svg>
 );
+
+export const WandSvg = ({ className = '' }: { className?: string }) => (
+  <svg {...iconProps} className={className}>
+    <path d="M4.5 19.8L14.2 10.1" />
+    <path d="M13.2 9.1L15.1 7.3C15.6 6.8 16.4 6.8 16.8 7.3L16.9 7.4C17.3 7.8 17.3 8.5 16.9 9L15 10.9" />
+    <path d="M18.5 2.8L19 4.6L20.8 5.1L19 5.6L18.5 7.4L18 5.6L16.2 5.1L18 4.6Z" />
+    <path d="M9 3.5L9.4 4.8L10.6 5.2L9.4 5.6L9 6.9L8.6 5.6L7.4 5.2L8.6 4.8Z" />
+    <path d="M20.2 12.5L20.5 13.4L21.4 13.7L20.5 14L20.2 14.9L19.9 14L19 13.7L19.9 13.4Z" />
+  </svg>
+);
+
+export const ClockSvg = ({ className = '' }: { className?: string }) => (
+  <svg {...iconProps} className={className}>
+    <path d="M12 21.2C17.1 21.3 21.2 17.1 21.1 12C21 6.9 17 3 12 2.9C6.9 2.8 2.9 6.9 2.9 12C2.9 17.1 6.9 21.1 12 21.2Z" />
+    <path d="M12 7.2V12.2L15.2 14.1" />
+  </svg>
+);
+
+export const CheckSvg = ({ className = '' }: { className?: string }) => (
+  <svg {...iconProps} className={className}>
+    <path d="M4.5 12.8L9.3 17.4C9.6 17.7 10.1 17.7 10.4 17.4L19.8 6.8" />
+  </svg>
+);

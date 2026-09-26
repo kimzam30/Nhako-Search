@@ -23,7 +23,7 @@ export default function DailyPlayPage() {
   if (!day) return null;
 
   return (
-    <div className="flex flex-col flex-1 items-center w-full px-3 pt-1 pb-4">
+    <div className="flex flex-col flex-1 items-center w-full px-3 pt-1 pb-2">
       <GameClient
         key={day.seed}
         words={standardPool.medium}

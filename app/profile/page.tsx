@@ -3,7 +3,8 @@ import { supabase } from '@/lib/multiplayer/supabase';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ButterflySvg, GearSvg } from '@/components/ui/Icons';
+import { GearSvg } from '@/components/ui/Icons';
+import { DoodleButterfly } from '@/components/ui/Doodles';
 import { Card } from '@/components/ui/Card';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
@@ -31,13 +32,29 @@ interface Styled extends CollectionEntry {
   title: string;
   color: string;
   bg: string;
+  /** Filled doodle wings (upper, lower): the ink outline carries the contrast. */
+  wings: [string, string];
 }
+
+const WINGS: Record<string, [string, string]> = {
+  'Together butterfly': ['var(--word-7)', 'var(--word-2)'],
+  Daily: ['var(--word-4)', 'var(--word-6)'],
+  'Garden skimmer': ['var(--word-3)', 'var(--word-8)'],
+  'Rainy blue': ['var(--word-5)', 'var(--word-2)'],
+  'Cozy moth': ['var(--word-6)', 'var(--word-1)'],
+  Nightwing: ['var(--word-2)', 'var(--word-5)'],
+  Heartwing: ['var(--word-1)', 'var(--word-7)'],
+  Swallowtail: ['var(--word-4)', 'var(--word-1)'],
+  Monarch: ['var(--word-6)', 'var(--word-4)'],
+};
 
 function styleFor(b: CollectionEntry): Styled {
   const id = b.butterfly_style_id ?? '';
   const chapter = id.match(/level-(c\d+)/)?.[1];
-  if (id.startsWith('together-')) return { ...b, title: 'Together butterfly', color: 'text-wing-together', bg: 'bg-accent/10' };
-  if (id.startsWith('daily-')) return { ...b, title: `Daily · ${id.slice(6)}`, color: 'text-wing-sun', bg: 'bg-background' };
+  if (id.startsWith('together-'))
+    return { ...b, title: 'Together butterfly', color: 'text-wing-together', bg: 'bg-accent/10', wings: WINGS['Together butterfly'] };
+  if (id.startsWith('daily-'))
+    return { ...b, title: `Daily · ${id.slice(6)}`, color: 'text-wing-sun', bg: 'bg-background', wings: WINGS.Daily };
   const byChapter: Record<string, [string, string]> = {
     c1: ['Garden skimmer', 'text-wing-garden'], c7: ['Garden skimmer', 'text-wing-garden'],
     c2: ['Rainy blue', 'text-wing-rainy'], c8: ['Rainy blue', 'text-wing-rainy'],
@@ -47,7 +64,7 @@ function styleFor(b: CollectionEntry): Styled {
     c6: ['Swallowtail', 'text-accent-ink'], c12: ['Swallowtail', 'text-accent-ink'],
   };
   const [title, color] = (chapter && byChapter[chapter]) || ['Monarch', 'text-accent-ink'];
-  return { ...b, title, color, bg: 'bg-background' };
+  return { ...b, title, color, bg: 'bg-background', wings: WINGS[title] ?? WINGS.Monarch };
 }
 
 export default function ProfilePage() {
@@ -208,7 +225,7 @@ export default function ProfilePage() {
                   className="aspect-square bg-ink/5 border-2 border-dashed border-ink/20 flex items-center justify-center"
                   style={{ borderRadius: radius }}
                 >
-                  <ButterflySvg className="w-7 h-7 text-ink/10" />
+                  <DoodleButterfly className="w-8 opacity-25" wing="transparent" wing2="transparent" stroke="var(--ink-2)" />
                 </li>
               );
             }
@@ -221,7 +238,7 @@ export default function ProfilePage() {
                   className={`press w-full aspect-square ${b.bg} border-2 border-ink shadow-[2px_2px_0_0_var(--ink)] flex items-center justify-center relative`}
                   style={{ borderRadius: radius }}
                 >
-                  <ButterflySvg className={`w-7 h-7 sm:w-8 sm:h-8 ${b.color}`} />
+                  <DoodleButterfly className="w-9 sm:w-11" wing={b.wings[0]} wing2={b.wings[1]} />
                   {i === 0 && (
                     <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-accent border-2 border-ink" aria-hidden="true" />
                   )}
@@ -248,7 +265,7 @@ export default function ProfilePage() {
       <Sheet open={!!selected} onClose={() => setSelected(null)} title={selected?.title}>
         {selected && (
           <div className="flex flex-col items-center text-center gap-2 pb-2">
-            <ButterflySvg className={`w-20 h-20 ${selected.color} mb-2`} />
+            <DoodleButterfly className="w-24 mb-2 idle-float" wing={selected.wings[0]} wing2={selected.wings[1]} />
             <p className="text-ink font-body">
               Earned from <strong>{selected.earned_from || 'gameplay'}</strong>
             </p>

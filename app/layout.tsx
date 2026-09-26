@@ -5,6 +5,7 @@ import { AmbientAudioProvider } from "@/components/sound/AmbientAudioProvider";
 import { PwaRegister } from "@/components/PwaRegister";
 import { MotionConfig } from "framer-motion";
 import { MergeClient } from "@/components/MergeClient";
+import { ButterflySky } from "@/components/ambient/ButterflySky";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -72,6 +73,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      // The pre-paint script below adds `dark` before hydration; that is the
+      // point of it, not a mismatch.
+      suppressHydrationWarning
       className={`${fredoka.variable} ${nunito.variable} ${caveat.variable} antialiased`}
     >
       <head>
@@ -92,6 +96,7 @@ export default function RootLayout({
         <MergeClient />
         <MotionConfig reducedMotion="user">
           <AmbientAudioProvider>
+            <ButterflySky />
             <GameBar />
             <main className="app-shell flex flex-col flex-1 relative">
               {children}

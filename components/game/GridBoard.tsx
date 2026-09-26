@@ -17,6 +17,11 @@ function hashNoise(seed: string, index: number): number {
 
 const SKETCH_SEGMENTS = 6;
 
+/** Capsule colour for the i-th placed word: a fixed 8-colour cycle (--word-1..8). */
+export function wordColor(i: number): string {
+  return `var(--word-${(i % 8) + 1})`;
+}
+
 /**
  * A straight run from (x1,y1) to (x2,y2), drawn as a slightly uneven polyline
  * so it reads as hand-drawn. Deviation tapers to zero at both ends so the
@@ -62,7 +67,15 @@ export function GridBoard({
   cancelSelection,
   hintedCells,
   readOnly = false,
-}: ReturnType<typeof useGameLogic> & { readOnly?: boolean }) {
+  gridRef,
+  shake = false,
+}: ReturnType<typeof useGameLogic> & {
+  readOnly?: boolean;
+  /** The letter grid itself, for callers that need cell geometry (flight start). */
+  gridRef?: React.Ref<HTMLDivElement>;
+  /** Plays the NeraOS shake once when it turns true (a miss). */
+  shake?: boolean;
+}) {
   const strokeWidth = 80 / Math.max(grid.width, grid.height);
   const cellIdPrefix = useId().replace(/:/g, '');
 
@@ -70,6 +83,24 @@ export function GridBoard({
     () => new Set(selectedCells.map(c => `${c.x},${c.y}`)),
     [selectedCells]
   );
+
+  /*
+   * Every pointer event is hit-tested against the grid's geometry, never
+   * against the element under the finger. Traced letters scale up and a found
+   * word's letters pop, so a cell's box can overlap its neighbour's; trusting
+   * the event target anchored or ended words on the wrong letter.
+   */
+  const cellAt = (e: React.PointerEvent, el: Element | null) => {
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+    const cellX = Math.floor((e.clientX - rect.left) / (rect.width / grid.width));
+    const cellY = Math.floor((e.clientY - rect.top) / (rect.height / grid.height));
+    if (cellX < 0 || cellX >= grid.width || cellY < 0 || cellY >= grid.height) return null;
+    return grid.cells[cellY][cellX];
+  };
+  const gridEl = (e: React.PointerEvent) =>
+    (e.currentTarget as Element).querySelector('[role="grid"]') ?? (e.currentTarget as Element);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const steps: Record<string, [number, number]> = {
@@ -117,41 +148,70 @@ export function GridBoard({
       startY: number,
       endX: number,
       endY: number,
-      isFound: boolean
+      color: string
     ) => {
       const cx1 = (startX + 0.5) * cellW;
       const cy1 = (startY + 0.5) * cellH;
       const cx2 = (endX + 0.5) * cellW;
       const cy2 = (endY + 0.5) * cellH;
-      return { id, isFound, path: sketchPath(cx1, cy1, cx2, cy2, id, amplitude) };
+      return { id, color, path: sketchPath(cx1, cy1, cx2, cy2, id, amplitude) };
     };
 
-    const list: { id: string; isFound: boolean; path: string }[] = [];
+    const list: { id: string; color: string; path: string }[] = [];
 
-    grid.placedWords.forEach(pw => {
+    grid.placedWords.forEach((pw, i) => {
       if (foundWords.includes(pw.word)) {
-        list.push(toLoop(pw.word, pw.startX, pw.startY, pw.endX, pw.endY, true));
+        list.push(toLoop(pw.word, pw.startX, pw.startY, pw.endX, pw.endY, wordColor(i)));
       }
     });
 
     if (selectedCells.length > 0) {
       const start = selectedCells[0];
       const end = selectedCells[selectedCells.length - 1];
-      list.push(toLoop('selection', start.x, start.y, end.x, end.y, false));
+      list.push(toLoop('selection', start.x, start.y, end.x, end.y, 'var(--accent)'));
     }
 
     return list;
   }, [grid.placedWords, grid.width, grid.height, foundWords, selectedCells]);
 
+  /*
+   * Cells under a found capsule, and the newest word's cells in trace order so
+   * its letters can pop one after another when it lands.
+   */
+  const { capsuleKeys, popOrder, popWord } = useMemo(() => {
+    const keys = new Set<string>();
+    const order = new Map<string, number>();
+    const latest = foundWords[foundWords.length - 1];
+    grid.placedWords.forEach(pw => {
+      if (!foundWords.includes(pw.word)) return;
+      const len = pw.word.length;
+      const sx = Math.sign(pw.endX - pw.startX);
+      const sy = Math.sign(pw.endY - pw.startY);
+      for (let i = 0; i < len; i++) {
+        const key = `${pw.startX + sx * i},${pw.startY + sy * i}`;
+        keys.add(key);
+        if (pw.word === latest) order.set(key, i);
+      }
+    });
+    return { capsuleKeys: keys, popOrder: order, popWord: latest ?? '' };
+  }, [grid.placedWords, foundWords]);
+
   return (
     <div
-      className="bg-surface p-2 sm:p-4 border-2 border-ink flex flex-col touch-none relative shadow-[4px_5px_0_0_var(--ink)] aspect-square grid-board mx-auto"
-      style={{ borderRadius: '12px 18px 8px 16px' }}
-      onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
+      // The board is a no-fly zone for the butterfly sky (ButterflySky).
+      data-no-fly
+      className={`washi bg-surface p-2 sm:p-3 border-2 border-ink flex flex-col touch-none relative shadow-[4px_5px_0_0_var(--ink)] aspect-square grid-board mx-auto ${
+        shake ? 'nera-shake' : ''
+      }`}
+      style={{ borderRadius: '14px 20px 10px 18px' }}
+      onPointerUp={readOnly ? undefined : e => onPointerUp(cellAt(e, gridEl(e)))}
+      // Leaving the board ends the word where it last was, not at the exit point.
+      onPointerLeave={readOnly ? undefined : () => onPointerUp(null)}
+      onPointerCancel={readOnly ? undefined : () => onPointerUp(null)}
     >
       <div
-        className="grid relative z-10 w-full h-full outline-none focus-visible:ring-4 focus-visible:ring-accent rounded-lg"
+        ref={gridRef}
+        className="board-paper grid relative z-10 w-full h-full outline-none ring-2 ring-ink/15 focus-visible:ring-4 focus-visible:ring-accent rounded-[10px]"
         style={{
           // Rows MUST be declared alongside columns. Without this, rows fall back
           // to auto (text line-height), so the grid overflowed its own card and
@@ -160,6 +220,7 @@ export function GridBoard({
           gridTemplateRows: `repeat(${grid.height}, minmax(0, 1fr))`,
           containerType: 'inline-size',
           ['--cols' as string]: grid.width,
+          ['--rows' as string]: grid.height,
         } as CSSProperties}
         // The board is a composite widget: one tab stop, arrow keys move an
         // internal cursor tracked with aria-activedescendant. Before this the
@@ -176,17 +237,26 @@ export function GridBoard({
         aria-colcount={grid.width}
         aria-activedescendant={readOnly ? undefined : `${cellIdPrefix}-${focus.x}-${focus.y}`}
         onKeyDown={readOnly ? undefined : handleKeyDown}
-        onPointerMove={(e) => {
-          // Hit-test against real cell geometry: the grid fills this box exactly,
-          // so a cell is rect.width/grid.width wide and rect.height/grid.height tall.
-          const rect = e.currentTarget.getBoundingClientRect();
-          if (rect.width === 0 || rect.height === 0) return;
-          const cellX = Math.floor((e.clientX - rect.left) / (rect.width / grid.width));
-          const cellY = Math.floor((e.clientY - rect.top) / (rect.height / grid.height));
-          if (cellX >= 0 && cellX < grid.width && cellY >= 0 && cellY < grid.height) {
-            onPointerEnter(grid.cells[cellY][cellX]);
-          }
-        }}
+        onPointerDown={
+          readOnly
+            ? undefined
+            : e => {
+                if (e.button !== 0) return;
+                // Touch implicitly captures to the first element; release it so
+                // moves keep reporting while the finger crosses the board.
+                (e.target as Element).releasePointerCapture?.(e.pointerId);
+                const cell = cellAt(e, e.currentTarget);
+                if (cell) onPointerDown(cell);
+              }
+        }
+        onPointerMove={
+          readOnly
+            ? undefined
+            : e => {
+                const cell = cellAt(e, e.currentTarget);
+                if (cell) onPointerEnter(cell);
+              }
+        }
       >
         {/* SVG Overlay for Loops */}
         <svg aria-hidden="true" focusable="false" className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1, overflow: 'visible' }} viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -200,25 +270,25 @@ export function GridBoard({
           */}
           {loops.map(loop => (
             <g key={loop.id}>
-              {/* Ink outline under the highlighter stroke. */}
+              {/* Inked outline, then the solid capsule: a sticker, not a highlighter. */}
               <motion.path
                 d={loop.path}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 0.2 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: loop.id === 'selection' ? 0.08 : 0.22, ease: [0.23, 1, 0.32, 1] }}
                 stroke="var(--ink)"
-                strokeWidth={strokeWidth + 1.5}
+                strokeOpacity={0.85}
+                strokeWidth={strokeWidth + 1.6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
-                style={{ mixBlendMode: 'multiply' }}
               />
               <motion.path
                 d={loop.path}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 0.4 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                stroke={loop.isFound ? 'var(--found)' : 'var(--accent)'}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: loop.id === 'selection' ? 0.08 : 0.22, ease: [0.23, 1, 0.32, 1] }}
+                stroke={loop.color}
                 strokeWidth={strokeWidth}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -236,14 +306,15 @@ export function GridBoard({
           <div key={y} role="row" aria-rowindex={y + 1} style={{ display: 'contents' }}>
             {row.map(cell => (
               <LetterCell
-                key={cell.x}
+                // Re-keyed when its word lands, so the letter replays its pop.
+                key={popOrder.has(`${cell.x},${cell.y}`) ? `${cell.x}-${popWord}` : cell.x}
                 id={`${cellIdPrefix}-${cell.x}-${cell.y}`}
                 cell={cell}
                 isFocused={focus.x === cell.x && focus.y === cell.y}
                 isSelected={selectedKeys.has(`${cell.x},${cell.y}`)}
+                onCapsule={capsuleKeys.has(`${cell.x},${cell.y}`)}
+                popIndex={popOrder.get(`${cell.x},${cell.y}`)}
                 isHinted={hintedCells.has(`${cell.x},${cell.y}`)}
-                onPointerDown={onPointerDown}
-                onPointerEnter={onPointerEnter}
               />
             ))}
           </div>

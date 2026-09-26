@@ -67,36 +67,52 @@ export function TabBar() {
           sits under it, whatever the page's own padding. */}
       <div className="tabbar-spacer" aria-hidden="true" />
       <nav className="tabbar bg-surface border-t-2 border-ink lg:border-t-0 lg:border-r-2" aria-label="Main">
-        <ul className="flex lg:flex-col h-[var(--tabbar-h)] lg:h-full lg:pt-8 lg:gap-2 max-w-xl mx-auto lg:max-w-none">
-          {tabs.map(tab => (
-            <li key={tab.href} className="flex-1 min-w-0 lg:flex-none">
-              <Link
-                href={tab.href}
-                aria-current={tab.active ? 'page' : undefined}
-                onClick={e => {
-                  // Native tab behaviour: re-tapping the active tab returns to the top.
-                  if (tab.active && pathname === tab.href) {
-                    e.preventDefault();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }
-                }}
-                className={`press flex flex-col items-center justify-center gap-[2px] h-full lg:h-auto lg:py-2 min-h-[48px] min-w-0 px-0.5 font-body text-[11px] font-extrabold tracking-wide ${
-                  tab.active ? 'text-ink' : 'text-ink-2'
-                }`}
-              >
-                {/* Pill sized in px and capped by its column: at large text
-                    sizes rem-based pills overflowed five-across on a phone. */}
-                <span
-                  className={`flex items-center justify-center w-full max-w-[56px] h-[32px] rounded-full transition-colors duration-150 ${
-                    tab.active ? 'bg-accent-soft' : ''
+        <ul className="flex lg:flex-col items-stretch h-[var(--tabbar-h)] lg:h-full lg:pt-8 lg:gap-3 max-w-xl mx-auto lg:max-w-none">
+          {tabs.map(tab => {
+            // Home is the dock's raised centre button, like a game's main
+            // "play" slot; the others are flat tabs with a sticker pill.
+            const isHome = tab.href === '/';
+            return (
+              <li key={tab.href} className="flex-1 min-w-0 lg:flex-none">
+                <Link
+                  href={tab.href}
+                  aria-current={tab.active ? 'page' : undefined}
+                  onClick={e => {
+                    // Native tab behaviour: re-tapping the active tab returns to the top.
+                    if (tab.active && pathname === tab.href) {
+                      e.preventDefault();
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                  className={`press flex flex-col items-center justify-center gap-[2px] h-full lg:h-auto lg:py-2 min-h-[48px] min-w-0 px-0.5 font-body text-[11px] font-extrabold tracking-wide ${
+                    tab.active ? 'text-ink' : 'text-ink-2'
                   }`}
                 >
-                  {tab.icon}
-                </span>
-                <span className="max-w-full truncate">{tab.label}</span>
-              </Link>
-            </li>
-          ))}
+                  {isHome ? (
+                    <span
+                      className={`flex items-center justify-center w-[52px] h-[52px] -mt-6 lg:mt-0 border-2 border-ink shadow-[3px_4px_0_0_var(--ink)] transition-colors duration-150 ${
+                        tab.active ? 'bg-accent text-on-accent' : 'bg-accent-soft text-ink'
+                      }`}
+                      style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
+                    >
+                      {tab.icon}
+                    </span>
+                  ) : (
+                    /* Pill sized in px and capped by its column: at large text
+                       sizes rem-based pills overflowed five-across on a phone. */
+                    <span
+                      className={`flex items-center justify-center w-full max-w-[56px] h-[32px] rounded-full border-2 transition-colors duration-150 ${
+                        tab.active ? 'bg-accent-soft border-ink' : 'border-transparent'
+                      }`}
+                    >
+                      {tab.icon}
+                    </span>
+                  )}
+                  <span className="max-w-full truncate">{tab.label}</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </>

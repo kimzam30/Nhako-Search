@@ -9,6 +9,8 @@ export function SignatureFooter() {
 
   // Hidden during gameplay and on the sign-in screen, which is chromeless.
   if (isGameplayRoute(pathname) || isChromeless(pathname)) return null;
+  // Home is a full-screen lobby laid out to end exactly at the tab bar.
+  if (pathname === '/') return null;
 
   return (
     <div 

@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 
 interface SheetProps {
   open: boolean;
@@ -47,6 +48,12 @@ export function Sheet({ open, onClose, title, label, children }: SheetProps) {
   useEffect(() => {
     onCloseRef.current = onClose;
   });
+
+  // A soft whoosh as the sheet slides up, like any game panel.
+  const { playSfx } = useAmbientAudio();
+  useEffect(() => {
+    if (open) playSfx('whoosh');
+  }, [open, playSfx]);
 
   // Back (Android button, iOS edge swipe, browser Back) closes an open sheet
   // instead of leaving the screen behind it, like a native sheet. The sheet

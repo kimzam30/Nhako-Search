@@ -8,14 +8,21 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { StarSvg, LockSvg } from '@/components/ui/Icons';
 import { ButtonLink } from '@/components/ui/Button';
 import { Sheet, afterSheetClosed } from '@/components/ui/Sheet';
+import { DoodleButterfly, ChapterArt } from '@/components/ui/Doodles';
 
-const CHAPTER_COLORS: Record<string, string> = {
-  'garden': 'bg-[#7FCB9C]/20',
-  'rainy-day': 'bg-[#FFD166]/20',
-  'cozy-cottage': 'bg-[#FFC1D9]/20',
-  'night-sky': 'bg-[#4A1942]/10',
-  'date-night': 'bg-[#FF6FA5]/20',
-};
+/*
+ * Chapter colour, from the capsule palette so it works in both themes. The
+ * old fixed hexes at 10-20% alpha turned a muddy grey on the dark page.
+ */
+function chapterHue(name: string): string {
+  const c = name.toLowerCase();
+  if (c.startsWith('garden')) return 'var(--word-3)';
+  if (c.startsWith('rainy')) return 'var(--word-5)';
+  if (c.startsWith('cozy')) return 'var(--word-6)';
+  if (c.startsWith('night')) return 'var(--word-2)';
+  if (c.startsWith('date')) return 'var(--word-1)';
+  return 'var(--word-4)';
+}
 
 // Winding offset pattern, scaled per breakpoint by --level-wind.
 const OFFSETS = [0, 30, 60, 40, -10, -50, -60, -30];
@@ -49,6 +56,7 @@ export default function LevelPathPage() {
   }, [starsById]);
 
   const currentId = ALL_LEVEL_IDS[highestUnlockedIndex];
+  const totalStars = useMemo(() => (progress ?? []).reduce((n, p) => n + (p.stars ?? 0), 0), [progress]);
   const selectedMeta = selectedLevel ? getLevelMeta(selectedLevel) : undefined;
 
   return (
@@ -58,22 +66,31 @@ export default function LevelPathPage() {
     <div className="flex flex-col items-center flex-1 w-full relative overflow-x-clip">
       {/* Background zones */}
       <div className="absolute inset-0 w-full h-full -z-10 flex flex-col" aria-hidden="true">
-        {CHAPTERS.map(chapter => {
-          const themeName = chapter.name.toLowerCase().replace(' ii', '').replace(' ', '-');
-          return <div key={chapter.id} className={`flex-1 w-full ${CHAPTER_COLORS[themeName] || 'bg-background'}`} />;
-        })}
+        {CHAPTERS.map(chapter => (
+          <div
+            key={chapter.id}
+            className="flex-1 w-full"
+            style={{ background: `color-mix(in srgb, ${chapterHue(chapter.name)} 14%, var(--bg))` }}
+          />
+        ))}
       </div>
 
       <div className="flex flex-col items-center w-full max-w-lg mx-auto px-4" style={{ paddingTop: 'max(1rem, var(--safe-top))' }}>
-        <h1
-          className="text-3xl font-display text-ink mb-8 bg-surface/90 px-6 py-2 rounded-2xl border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] backdrop-blur-sm sticky z-20"
+        {/* HUD: title + total stars, pinned while the map scrolls. */}
+        <div
+          className="sticky z-20 mb-8 flex items-center gap-3 bg-surface/95 pl-5 pr-2 py-1.5 border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] backdrop-blur-sm"
           style={{ top: 'max(0.75rem, var(--safe-top))', borderRadius: '22px 9px 26px 13px' }}
         >
-          Level Path
-        </h1>
+          <h1 className="text-2xl font-display text-ink">Level map</h1>
+          <span className="hud-pill text-sm !shadow-none" aria-label={`${totalStars} stars earned`}>
+            <StarSvg className="w-4 h-4 text-gold" filled />
+            {totalStars}
+          </span>
+        </div>
 
         <div className="flex flex-col w-full relative items-center pb-10">
-          <div className="absolute top-0 bottom-0 w-2 bg-ink/10 rounded-full" aria-hidden="true" />
+          {/* The trail: a dotted pencil line down the middle. */}
+          <div className="absolute top-0 bottom-0 w-0 border-l-[5px] border-dotted border-ink/20" aria-hidden="true" />
           {CHAPTERS.map(chapter => (
             <ChapterView
               key={chapter.id}
@@ -157,6 +174,8 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
     }
   }, [containsCurrent]);
 
+  const hue = chapterHue(chapter.name);
+
   // Approximate height: header (~90px) + levels * gap (112px) + padding
   const estimatedHeight = 90 + chapter.levels.length * 112 + 60;
 
@@ -164,12 +183,26 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
     <section ref={ref} aria-label={chapter.name} className="flex flex-col w-full relative mb-12" style={{ minHeight: `${estimatedHeight}px` }}>
       {visible ? (
         <>
-          <h2
-            className="text-2xl font-display text-ink bg-surface py-2 px-6 rounded-xl text-center shadow-[4px_5px_0_0_var(--ink)] border-2 border-ink self-center z-10 mb-8"
-            style={{ borderRadius: '15px 225px 15px 255px/255px 15px 225px 15px' }}
+          <div
+            className="self-center z-10 mb-8 flex items-center gap-3 bg-surface py-2 pl-2 pr-5 border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] -rotate-1"
+            style={{ borderRadius: '20px 12px 22px 14px' }}
           >
-            {chapter.name}
-          </h2>
+            <span
+              className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-ink"
+              style={{ background: `color-mix(in srgb, ${hue} 45%, var(--surface))` }}
+            >
+              <ChapterArt chapter={chapter.name} className="w-9 h-9" />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-ink-2">
+                Chapter {CHAPTERS.indexOf(chapter) + 1}
+              </span>
+              <h2 className="text-xl font-display font-bold text-ink leading-tight">{chapter.name}</h2>
+            </span>
+            <span className="ml-2 text-xs font-extrabold text-ink-2 tabular">
+              {chapter.levels.filter(id => getStars(id) > 0).length}/{chapter.levels.length}
+            </span>
+          </div>
 
           <ol className="flex flex-col items-center gap-12 py-4 relative">
             {chapter.levels.map(levelId => {
@@ -187,12 +220,18 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
                   style={{ left: `calc(${offset}px * var(--level-wind, 1))` }}
                 >
                   {isCurrent && (
-                    <motion.span
-                      className="absolute w-20 h-20 bg-accent/30 rounded-full"
-                      animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0, 0.5] }}
-                      transition={{ repeat: Infinity, duration: 2.4 }}
-                      aria-hidden="true"
-                    />
+                    <>
+                      <motion.span
+                        className="absolute w-20 h-20 bg-accent/30 rounded-full"
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
+                        transition={{ repeat: Infinity, duration: 2.4 }}
+                        aria-hidden="true"
+                      />
+                      {/* The player marker: your butterfly, perched on the next level. */}
+                      <span className="absolute -top-11 z-20 idle-float pointer-events-none" aria-hidden="true">
+                        <DoodleButterfly className="w-11" />
+                      </span>
+                    </>
                   )}
                   <button
                     ref={isCurrent ? currentRef : undefined}
@@ -205,16 +244,31 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
                         ? `Level ${number}${stars ? `, ${stars} star${stars > 1 ? 's' : ''}` : isCurrent ? ', next' : ''}`
                         : `Level ${number}, locked`
                     }
-                    className={`press w-16 h-16 flex flex-col items-center justify-center border-4 relative z-10 ${
+                    className={`press flex flex-col items-center justify-center relative z-10 ${
+                      isCurrent ? 'w-[76px] h-[76px] border-4' : 'w-16 h-16 border-[3px]'
+                    } ${
                       isUnlocked
-                        ? 'bg-surface border-ink shadow-[4px_5px_0_0_var(--ink)] cursor-pointer'
+                        ? 'border-ink shadow-[4px_5px_0_0_var(--ink)] cursor-pointer'
                         : 'bg-surface/60 border-ink/25 cursor-not-allowed'
                     }`}
-                    style={{ borderRadius: '45% 55% 40% 60% / 55% 45% 60% 40%' }}
+                    style={{
+                      borderRadius: '45% 55% 40% 60% / 55% 45% 60% 40%',
+                      background: isCurrent
+                        ? 'var(--accent)'
+                        : stars > 0
+                          ? `color-mix(in srgb, ${hue} 70%, var(--surface))`
+                          : isUnlocked
+                            ? 'var(--surface)'
+                            : undefined,
+                    }}
                   >
                     {isUnlocked ? (
                       <>
-                        <span className="font-display font-bold text-ink text-xl tabular">{number}</span>
+                        <span
+                          className={`font-display font-bold tabular ${isCurrent ? 'text-2xl text-on-accent' : stars > 0 ? 'text-xl text-on-accent' : 'text-xl text-ink'}`}
+                        >
+                          {number}
+                        </span>
                         {stars > 0 && (
                           <span className="absolute -bottom-3 flex gap-[2px] bg-surface rounded-full px-1 border border-ink/20" aria-hidden="true">
                             {Array.from({ length: 3 }).map((_, i) => (

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { Button } from '@/components/ui/Button';
+import { DoodleButterfly } from '@/components/ui/Doodles';
 import {
   generateRoomCode,
   normaliseRoomCode,
@@ -42,10 +43,34 @@ export default function RaceLobbyPage() {
 
   return (
     <div className="flex flex-col flex-1 px-5 pb-6 bg-transparent items-center justify-center w-full max-w-sm mx-auto relative" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
-      <h1 className="text-4xl font-display text-ink mb-8">Race a friend</h1>
+      <h1 className="text-4xl font-display text-ink mb-4">Race a friend</h1>
+
+      {/* Versus card: two butterflies squaring up, like a PvP lobby. */}
+      <div
+        className="stagger-in relative w-full flex items-center justify-between px-6 py-4 mb-6 border-2 border-ink bg-lav-soft shadow-[4px_5px_0_0_var(--ink)]"
+        style={{ borderRadius: '24px 14px 26px 16px' }}
+        aria-hidden="true"
+      >
+        <span className="flex flex-col items-center gap-1">
+          <DoodleButterfly className="w-16 idle-float" wing="var(--word-1)" wing2="var(--lav)" />
+          <span className="font-display font-bold text-ink text-sm">You</span>
+        </span>
+        <span
+          className="nera-pop flex items-center justify-center w-14 h-14 border-2 border-ink bg-accent text-on-accent font-display font-bold text-2xl shadow-[3px_4px_0_0_var(--ink)] -rotate-6"
+          style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
+        >
+          VS
+        </span>
+        <span className="flex flex-col items-center gap-1">
+          <span className="idle-float [animation-delay:-2s] -scale-x-100">
+            <DoodleButterfly className="w-16" wing="var(--word-5)" wing2="var(--word-3)" />
+          </span>
+          <span className="font-display font-bold text-ink text-sm">Friend</span>
+        </span>
+      </div>
       
       {/* Segmented Control */}
-      <div role="tablist" aria-label="Join or create" className="grid grid-cols-2 gap-1 w-full bg-surface border-2 border-ink rounded-[20px] p-1 shadow-[4px_5px_0_0_var(--ink)] mb-8">
+      <div role="tablist" aria-label="Join or create" className="grid grid-cols-2 gap-1 w-full bg-surface border-2 border-ink rounded-[20px] p-1 shadow-[4px_5px_0_0_var(--ink)] mb-6">
         {(['join', 'create'] as const).map(m => (
           <button
             key={m}

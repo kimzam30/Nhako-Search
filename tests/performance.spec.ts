@@ -92,7 +92,8 @@ test('the home screen does not build every level to render', async ({ page }) =>
   // A cheap proxy for laziness: the label only needs metadata, so navigating
   // home must not be blocked on generating 360 word lists.
   await page.goto('/');
-  await expect(page.getByText(/Level Path/i).first()).toBeVisible();
+  // The lobby's stage names the next level; that needs only level metadata.
+  await expect(page.getByRole('heading', { name: /^Level \d+$/ }).first()).toBeVisible();
 
   const blockingTime = await page.evaluate(() => {
     const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;

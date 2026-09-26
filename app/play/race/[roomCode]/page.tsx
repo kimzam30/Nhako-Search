@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ChatWidget } from '@/components/multiplayer/ChatWidget';
 import { PartnerGridDisplay } from '@/components/game/PartnerGridDisplay';
+import { Petals } from '@/components/game/Petals';
+import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 import { getUserProfile } from '@/lib/auth/profile';
 import { useSetGameTitle } from '@/lib/nav/gameTitle';
 import { getStableGuestId } from '@/lib/multiplayer/identity';
@@ -159,6 +161,21 @@ function RaceRoom({
     const int = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(int);
   }, [raceState.status]);
+
+  // Game audio: a tick per countdown second, a chime on GO, and a fanfare
+  // (or a soft pop) when the round is decided.
+  const { playSfx } = useAmbientAudio();
+  const countdownSecs =
+    raceState.status === 'countdown' && raceState.startTime ? Math.ceil((raceState.startTime - now) / 1000) : null;
+  useEffect(() => {
+    if (countdownSecs === null) return;
+    playSfx(countdownSecs > 0 ? 'countdown' : 'go');
+  }, [countdownSecs, playSfx]);
+  const celebrate = isFinished && (iWon || clearedTogether);
+  useEffect(() => {
+    if (!isFinished) return;
+    playSfx(celebrate ? 'win' : 'pop');
+  }, [isFinished, celebrate, playSfx]);
 
   // The whole pool is passed in; the generator picks a deterministic subset
   // from the shared seed, so both players build an identical grid.
@@ -350,10 +367,12 @@ function RaceRoom({
       <div className="flex flex-col flex-1 bg-background items-center justify-center h-screen w-full">
         <motion.div
           key={secsLeft}
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 1.5, opacity: 0 }}
-          className="text-[120px] font-display text-accent-ink tabular" aria-live="assertive"
+          initial={{ scale: 0.4, opacity: 0, rotate: -12 }}
+          animate={{ scale: 1, opacity: 1, rotate: -3 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 16 }}
+          className="flex items-center justify-center min-w-[180px] h-[180px] px-6 border-[3px] border-ink bg-accent text-on-accent shadow-[6px_7px_0_0_var(--ink)] text-[96px] font-display font-bold tabular"
+          style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
+          aria-live="assertive"
         >
           {secsLeft > 0 ? secsLeft : 'GO!'}
         </motion.div>
@@ -365,6 +384,7 @@ function RaceRoom({
   if (isFinished) {
     return (
       <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-lg mx-auto">
+        {celebrate && <Petals />}
         <motion.h1
           initial={{ scale: 0.8, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
