@@ -16,7 +16,7 @@
  *            electric piano with tape wobble, a sparse melody and vinyl
  *
  * All events go through one look-ahead scheduler, so timing is sample-tight
- * and the same voices can also be rendered offline (renderAmbience) — which is
+ * and the same voices can also be rendered offline (renderAmbience), which is
  * how the test suite checks levels and clipping without a speaker.
  */
 
@@ -831,7 +831,7 @@ function createLofi(ctx: Ctx, out: AudioNode, sample: AudioBuffer | null, getTra
 /**
  * Optional real lofi recording.
  *
- * Null by default so no request is made at all — the generated tracks are the
+ * Null by default so no request is made at all; the generated tracks are the
  * shipped behaviour. Set this to '/audio/lofi.mp3' (and add the file) to use a
  * recording instead; it falls back to generation if the fetch or decode fails.
  */
@@ -857,7 +857,7 @@ export interface AmbienceEngine {
   setChannelGain(id: ChannelId, value01: number, rampSeconds?: number): void;
   setMasterGain(value01: number, rampSeconds?: number): void;
   setLofiTrack(id: string): void;
-  /** Schedules every voice for [from, to) — used by offline rendering. */
+  /** Schedules every voice for [from, to): used by offline rendering. */
   scheduleWindow(from: number, to: number): void;
   dispose(): void;
 }
@@ -965,7 +965,7 @@ export function createAmbienceEngine(
 }
 
 /**
- * Renders the ambience offline — no speaker, no real time. Used by the tests
+ * Renders the ambience offline: no speaker, no real time. Used by the tests
  * to measure levels and catch clipping or silence in any layer.
  */
 export async function renderAmbience(

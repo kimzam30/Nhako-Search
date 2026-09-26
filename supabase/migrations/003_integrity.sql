@@ -9,7 +9,7 @@
 --     INSERT ...                                 -- so insert it
 --
 -- which is check-then-act: two calls close together both read zero rows and
--- both insert. Nothing in the schema stopped them. This was not theoretical —
+-- both insert. Nothing in the schema stopped them. This was not theoretical:
 -- the live database had three duplicated awards (level-c1-l1, level-c1-l2 and
 -- daily-2026-07-11), which inflated the collection count on the profile screen.
 --
@@ -24,7 +24,7 @@
 
 -- ------------------------------------------------------- de-duplicate first
 -- A unique index cannot be created while duplicates exist. Keep the earliest
--- award in each group — that is when the butterfly was genuinely earned — and
+-- award in each group (that is when the butterfly was genuinely earned) and
 -- drop the later copies. Both rows are otherwise identical, so nothing is lost.
 DELETE FROM public.butterfly_collection a
 USING public.butterfly_collection b

@@ -81,7 +81,7 @@ export function generateGrid(
   const wordCount = difficulty === 'easy' ? 6 : difficulty === 'medium' ? 8 : 10;
 
   // Only consider words that can physically fit. A word longer than the grid
-  // can never be placed, and the placement loop drops such words silently —
+  // can never be placed, and the placement loop drops such words silently:
   // e.g. BUTTERFLY (9) in race easy mode (8x8) failed 100% of the time.
   const maxLength = Math.min(width, height);
   const eligible = Array.from(
@@ -93,7 +93,7 @@ export function generateGrid(
   );
 
   // Fisher-Yates, not `sort(() => random() - 0.5)`. That comparator is
-  // inconsistent, so the result depended on the engine's sort algorithm —
+  // inconsistent, so the result depended on the engine's sort algorithm:
   // the same seed produced different grids in different browsers, which
   // desynced the two players in a race.
   const shuffledWords = [...eligible];

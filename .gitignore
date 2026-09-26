@@ -15,7 +15,7 @@
 /.nyc_output
 cypress/videos/
 cypress/screenshots/
-# Playwright output — these were previously committed.
+# Playwright output: these were previously committed.
 /playwright-report/
 /test-results/
 /blob-report/

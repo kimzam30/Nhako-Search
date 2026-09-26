@@ -90,7 +90,7 @@ export default function SettingsPage() {
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(
-        `Could not clear: ${result.failed.join(', ')}. Everything else was deleted and you were signed out — sign in again and retry to finish.`
+        `Could not clear: ${result.failed.join(', ')}. Everything else was deleted and you were signed out. Sign in again and retry to finish.`
       );
       return;
     }
@@ -125,7 +125,7 @@ export default function SettingsPage() {
         </div>
       </Group>
 
-      <Group title="Sound" footer="Every sound is generated live on your device — nothing to download.">
+      <Group title="Sound" footer="Every sound is generated live on your device. Nothing to download.">
         <MixerPanel />
       </Group>
 

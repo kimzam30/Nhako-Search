@@ -61,7 +61,7 @@ function difficultyForIndex(i: number): LevelDifficulty {
 // Eager layer: ids, names and difficulty only.
 //
 // Building all 360 word lists at module load meant every page importing this
-// file — including the home screen, which only needs a chapter name — paid for
+// file (including the home screen, which only needs a chapter name) paid for
 // 360 shuffles of a ~130-word pool before it could render.
 // ---------------------------------------------------------------------------
 

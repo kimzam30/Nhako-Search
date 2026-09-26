@@ -185,7 +185,7 @@ export function GameClient({
   // ----------------------------------------------------------------- hints
   // A hint costs HINT_COST tokens. With too few tokens it is still there, but
   // adds time to the clock instead (more for each one), and every hint has a
-  // cooldown — so hints unstick a player without ever being the fast way.
+  // cooldown, so hints unstick a player without ever being the fast way.
   const { summary } = usePlayer();
   const tokens = summary?.tokens ?? 0;
   const [penalty, setPenalty] = useState(0);
@@ -322,7 +322,7 @@ export function GameClient({
 
   /*
    * Completion. The finish time comes from the clock at the moment the last
-   * word lands — an external input — so it is captured in an effect, as one
+   * word lands (an external input) so it is captured in an effect, as one
    * state write; the sound, haptic and onComplete fire exactly once.
    */
   const complete = totalWords > 0 && allFound.length >= totalWords;

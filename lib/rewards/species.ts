@@ -2,7 +2,7 @@
  * Butterfly species: the design recipe behind every butterfly in the album.
  *
  * Six wing silhouettes x nine wing patterns x colour triples x tail x antenna
- * style. Achievement butterflies are hand-picked recipes (no two share one —
+ * style. Achievement butterflies are hand-picked recipes (no two share one,
  * see tests/species.spec.ts); keepsakes (daily stamps, co-op clears) are
  * derived from their id, so each day's butterfly is its own design and the
  * same day always draws the same one.
@@ -15,7 +15,7 @@ export type Antenna = 'club' | 'curl' | 'feather';
 export interface SpeciesSpec {
   shape: WingShape;
   pattern: WingPattern;
-  /** [upper wing, lower wing, pattern accent] — CSS colours or tokens. */
+  /** [upper wing, lower wing, pattern accent]: CSS colours or tokens. */
   colors: [string, string, string];
   tail?: boolean;
   antenna?: Antenna;

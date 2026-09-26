@@ -62,7 +62,7 @@ export default function StandardPlayPage() {
 
   return (
     <div className="flex flex-col flex-1 px-3 pt-1 pb-2 items-center w-full">
-      {/* key remounts the game so a new seed actually regenerates the grid —
+      {/* key remounts the game so a new seed actually regenerates the grid:
           useGameLogic builds it in a useState initialiser, which only runs on mount. */}
       <GameClient
         key={puzzle.seed}

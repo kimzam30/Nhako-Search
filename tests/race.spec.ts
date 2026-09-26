@@ -6,7 +6,7 @@ import { test, expect, Browser, Page } from '@playwright/test';
  * The bug this locks down: the initial join synced, but every state change
  * afterwards failed in BOTH directions, so "Start Race" could never enable and
  * a race could not be started through the UI at all. Root cause was reading
- * broadcast payloads one level too shallow — Supabase delivers
+ * broadcast payloads one level too shallow; Supabase delivers
  * { type, event, payload }, not the payload itself.
  */
 
@@ -49,7 +49,7 @@ function readGrid(page: Page) {
   );
 }
 
-test.describe('Race mode — two clients', () => {
+test.describe('Race mode: two clients', () => {
   test('ready-up, difficulty and start all propagate between players', async ({ browser }) => {
     const roomCode = makeRoomCode();
     const leader = await openClient(browser, { name: 'Leader', roomCode, leader: true });
@@ -87,7 +87,7 @@ test.describe('Race mode — two clients', () => {
     await leader.locator(ownCell).waitFor({ state: 'visible', timeout: 15000 });
     await guest.locator(ownCell).waitFor({ state: 'visible', timeout: 15000 });
 
-    // Same seed must mean the same grid — otherwise the two players are
+    // Same seed must mean the same grid; otherwise the two players are
     // racing on different boards.
     expect(await readGrid(guest)).toBe(await readGrid(leader));
 
@@ -108,7 +108,7 @@ test.describe('Race mode — two clients', () => {
   test('a guest arriving before the leader is not kicked out', async ({ browser }) => {
     const roomCode = makeRoomCode();
 
-    // Guest first, leader second — the old code bounced the guest on the very
+    // Guest first, leader second: the old code bounced the guest on the very
     // first presence sync because no leader was present yet.
     const guest = await openClient(browser, { name: 'Early', roomCode, leader: false });
     await guest.waitForTimeout(1500);

@@ -9,7 +9,7 @@ import { useSetGameTitle } from '@/lib/nav/gameTitle';
 
 export default function DailyPlayPage() {
   // The seed is today's game day. This route is prerendered at build time, so
-  // it must be read after mount — a render-time seed would be the build date's.
+  // it must be read after mount; a render-time seed would be the build date's.
   const [day, setDay] = useState<{ seed: string; label: string; theme: (typeof THEMES)[number] } | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

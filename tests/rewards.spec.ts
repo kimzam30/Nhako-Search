@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
  * Rewards, album, word freshness, new pages and navigation speed.
  *
  * Boards are solved through the keyboard surface (arrow keys + Enter), reading
- * the letters from the DOM — the same path a keyboard player uses.
+ * the letters from the DOM, the same path a keyboard player uses.
  */
 
 async function solve(page: Page, limit = 99) {

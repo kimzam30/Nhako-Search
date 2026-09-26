@@ -89,7 +89,7 @@ test.describe('Delete My Data', () => {
     await page.evaluate(() => {
       localStorage.setItem('nhako_levels', JSON.stringify({ 'c1-l1': { stars: 3 } }));
       localStorage.setItem('nhako_theme', 'dark');
-      // A key the app does not own — previously destroyed by localStorage.clear().
+      // A key the app does not own, previously destroyed by localStorage.clear().
       localStorage.setItem('unrelated_third_party_key', 'keep-me');
     });
 
@@ -122,7 +122,7 @@ test.describe('Daily challenge day boundary', () => {
       return {
         // 15:30 UTC is still 29 July in UTC+8 (23:30).
         beforeRollover: gameDate('2026-07-29T15:30:00Z'),
-        // 16:30 UTC is 30 July in UTC+8 (00:30) — a new puzzle.
+        // 16:30 UTC is 30 July in UTC+8 (00:30): a new puzzle.
         afterRollover: gameDate('2026-07-29T16:30:00Z'),
       };
     });

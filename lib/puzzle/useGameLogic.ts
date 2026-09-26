@@ -149,7 +149,7 @@ export function useGameLogic(
 
   /**
    * Reveals the first letter of an unfound word and moves the cursor there.
-   * Deliberately only the first letter — enough to break a deadlock without
+   * Deliberately only the first letter: enough to break a deadlock without
    * solving the puzzle.
    */
   const useHint = useCallback(() => {

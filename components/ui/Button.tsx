@@ -7,8 +7,8 @@ interface ButtonProps extends HTMLMotionProps<"button"> {
 }
 
 /*
- * The sticker button. Pressing it pushes the sticker into its own shadow —
- * the brand's press state — on press-IN, in 100ms, with no spring overshoot:
+ * The sticker button. Pressing it pushes the sticker into its own shadow
+ * (the brand's press state) on press-IN, in 100ms, with no spring overshoot:
  * a bouncy release read as lag on a phone.
  */
 const PRESS = { duration: 0.1, ease: [0.23, 1, 0.32, 1] as const };
@@ -59,7 +59,7 @@ interface ButtonLinkProps extends React.ComponentProps<typeof Link> {
 
 /**
  * A link that looks like a Button. Wrapping <Button> in <Link> nested a
- * button inside an anchor — invalid HTML that screen readers announce twice.
+ * button inside an anchor: invalid HTML that screen readers announce twice.
  */
 export function ButtonLink({ variant = 'primary', fullWidth = false, className = '', ...props }: ButtonLinkProps) {
   const colorClasses =

@@ -91,7 +91,7 @@
 
 :root.dark {
   /*
-   * "Night Garden" — designed for the dark, not inverted from the day.
+   * "Night Garden": designed for the dark, not inverted from the day.
    * A midnight-indigo sky, jewel-toned cards, neon-pastel ink for the things
    * that matter, real gold stars, and DARK outlines: at night the stickers are
    * lit from inside rather than drawn in chalk. Text stays warm cream.
@@ -192,7 +192,7 @@ nav {
  * Paper grain.
  *
  * Without an explicit background-size the SVG stretched to the whole viewport,
- * so the browser rasterised a turbulence filter at full screen resolution — on
+ * so the browser rasterised a turbulence filter at full screen resolution; on
  * a large display that is millions of pixels of noise generated on first paint.
  * Tiling a 160px square instead renders a fraction of the pixels, and the finer
  * repeat actually reads more like paper.
@@ -225,7 +225,7 @@ body::after {
 }
 
 /*
- * The puzzle board is sized from its WIDTH, never from leftover flex height —
+ * The puzzle board is sized from its WIDTH, never from leftover flex height:
  * deriving width from height collapsed the board to ~106px on a phone.
  * First declaration is the fallback for browsers without dvh support.
  * The ~330px allowance covers the rest of the game column (garland, gap, word
@@ -240,7 +240,7 @@ body::after {
 }
 
 /* Phone in landscape: the word list sits BESIDE the board (md:flex-row), so
-   only what is ABOVE the board needs reserving (game bar, garland, timer —
+   only what is ABOVE the board needs reserving (game bar, garland, timer:
    measured 152px), not a word list below. The portrait allowance left an
    844x390 board at the 200px floor; this gives 230px with no scrolling. */
 @media (orientation: landscape) and (max-height: 500px) {

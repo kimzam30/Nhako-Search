@@ -46,7 +46,7 @@ export function MergeClient() {
   }, []);
 
   // Achievements: evaluated against every fresh summary. For the first few
-  // seconds of a session nothing is announced — a returning player's backlog
+  // seconds of a session nothing is announced; a returning player's backlog
   // (cached summary, then the fresh one) is stored quietly rather than as a
   // burst of toasts over the home screen.
   const bootedAt = useRef(0);

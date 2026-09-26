@@ -10,7 +10,7 @@ import { readJSON, writeJSON } from '@/lib/storage';
  * off-by-one streaks, and two players in different timezones could get
  * different "daily" puzzles on the same day.
  *
- * UTC+8 (Malaysia) — change this one constant to move the rollover.
+ * UTC+8 (Malaysia). Change this one constant to move the rollover.
  */
 export const GAME_DAY_UTC_OFFSET_MINUTES = 8 * 60;
 
@@ -131,7 +131,7 @@ export async function checkDailyStreak(): Promise<DailyStreak> {
  * Which of the last `days` game-days were actually played, oldest first.
  *
  * The calendar strip used to be `mockHistory` derived from the streak number,
- * so it could never show a gap — a 3-day streak always rendered as three solid
+ * so it could never show a gap: a 3-day streak always rendered as three solid
  * dots regardless of what really happened.
  */
 export async function getRecentDailyHistory(days = 7): Promise<boolean[]> {

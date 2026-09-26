@@ -11,7 +11,7 @@ export async function saveLevelProgress(levelId: string, stars: number, timeSeco
   if (authUser) {
     // Keep the best result. The old code upserted the latest values straight in,
     // so replaying a 3-star level slowly demoted it to 1 star and overwrote the
-    // best time — while the guest path below correctly kept the maximum.
+    // best time, while the guest path below correctly kept the maximum.
     const { data: existingProgress } = await supabase
       .from('level_progress')
       .select('stars, best_time_seconds')

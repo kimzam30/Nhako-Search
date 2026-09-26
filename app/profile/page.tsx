@@ -15,7 +15,7 @@ import { readJournal } from '@/lib/rewards/journal';
 import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, unlockedIds, wordsFound } from '@/lib/rewards/achievements';
 
 /*
- * "You": who you are, how you are doing, and the two collections that grow —
+ * "You": who you are, how you are doing, and the two collections that grow:
  * the butterfly album and your friends. Everything comes from the shared
  * summary, so the tab opens with its numbers already filled in.
  */

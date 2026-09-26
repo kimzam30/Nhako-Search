@@ -4,7 +4,7 @@ import { readJSON, writeJSON } from '@/lib/storage';
 /*
  * Word choice with memory, so back-to-back games feel fresh.
  *
- * Free play used to remember the last 30 words in sessionStorage — lost on
+ * Free play used to remember the last 30 words in sessionStorage, lost on
  * every app restart, and 30 words is only four medium puzzles. Now each
  * theme+difficulty keeps a per-device history (localStorage) covering up to
  * 70% of its pool: a word is not offered again until most of the others have

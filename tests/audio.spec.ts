@@ -47,7 +47,7 @@ test('choosing a lofi track persists it', async ({ page }) => {
 
 /*
  * Every layer rendered offline (no speaker needed): each must actually make
- * sound, sit in a sensible loudness range, and never clip — including all
+ * sound, sit in a sensible loudness range, and never clip, including all
  * channels at 100%, which peaked at 1.24 before the limiter was added.
  */
 test('every ambience layer renders at a sane level without clipping', async ({ page }) => {
@@ -143,7 +143,7 @@ test('an older saved mix is upgraded rather than discarded', async ({ page }) =>
   expect(typeof merged.thunder).toBe('number');
 });
 
-test('no audio files are requested — ambience is generated', async ({ page }) => {
+test('no audio files are requested: ambience is generated', async ({ page }) => {
   const audioRequests: string[] = [];
   page.on('request', req => {
     if (/\.(mp3|wav|ogg|m4a)(\?|$)/i.test(req.url())) audioRequests.push(req.url());

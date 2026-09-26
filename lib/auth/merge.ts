@@ -19,7 +19,7 @@ let inFlight: Promise<boolean> | null = null;
  *  - it upserted the guest's stars and times straight over the account's, so
  *    a 3-star level replayed as a guest for 1 star came back as 1 star;
  *  - it never checked the upsert results (supabase-js returns errors, it does
- *    not throw), yet still deleted the local copy — a failed request lost the
+ *    not throw), yet still deleted the local copy; a failed request lost the
  *    progress for good;
  *  - a permanent `nhako_merged` flag meant a later guest session on the same
  *    device was never merged at all.
@@ -82,7 +82,7 @@ async function runMerge(): Promise<boolean> {
   }
 
   // 2. Butterflies: the unique index decides what is already there. Collapse
-  // duplicates within the batch — a statement must not present one key twice.
+  // duplicates within the batch; a statement must not present one key twice.
   if (localCollection.length > 0) {
     const byStyle = new Map(
       localCollection

@@ -4,7 +4,7 @@ import type { Difficulty } from '@/lib/puzzle/generator';
  * Butterfly tokens: the game's one soft currency.
  *
  * Earned by finishing puzzles, spent on hints. A hint with no tokens is still
- * available — nobody should be stuck — but it costs time instead, and the
+ * available (nobody should be stuck) but it costs time instead, and the
  * cost grows with each one, so spamming hints is never the fast way through.
  * Every hint also has a short cooldown.
  */

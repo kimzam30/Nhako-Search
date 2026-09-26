@@ -1,0 +1,177 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NhakoSearch Launch</title>
+<style>
+  :root {
+    --ink: #1d1d1f;
+    --muted: #6e6e73;
+    --bg: #fbfbfd;
+    --pink: #ff6fae;
+    --violet: #8b6cf0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 1640px; background: var(--bg); }
+  body {
+    font-family: "SF Pro Display", "Inter", system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* soft stage light behind the devices */
+  .glow {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(520px 420px at 62% 58%, rgba(255,120,180,.22), transparent 70%),
+      radial-gradient(560px 460px at 38% 64%, rgba(139,108,240,.20), transparent 70%),
+      radial-gradient(900px 500px at 50% 100%, rgba(255,214,232,.55), transparent 70%);
+  }
+
+  header { position: absolute; top: 92px; left: 0; right: 0; text-align: center; }
+  .brand {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: 22px; font-weight: 600; letter-spacing: -.01em; color: var(--ink);
+  }
+  .brand img { width: 40px; height: 40px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  h1 {
+    margin-top: 30px;
+    font-size: 104px; line-height: 1.0; font-weight: 700; letter-spacing: -.045em;
+  }
+  h1 .grad {
+    background: linear-gradient(95deg, #ff5fa2 0%, #c060e0 55%, #7d6cf2 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub {
+    margin: 26px auto 0; max-width: 700px;
+    font-size: 27px; line-height: 1.32; font-weight: 400; letter-spacing: -.012em; color: var(--muted);
+  }
+
+  /* ---------- iPhone, built in logical points: 1em = 1pt ---------- */
+  .phone {
+    position: absolute;
+    width: 417em; height: 876em;             /* 393x852 screen + 12pt bezel */
+    border-radius: 68em;
+    padding: 12em;
+    background: #0b0b0c;
+    box-shadow:
+      0 0 0 2.2em #b9b9be,                   /* titanium band */
+      0 0 0 3.2em #8e8e93,
+      0 60em 90em -20em rgba(40,20,60,.45),
+      0 30em 40em -20em rgba(40,20,60,.35);
+  }
+  .phone::before {                           /* band highlight */
+    content: ""; position: absolute; inset: -2.2em; border-radius: 70em;
+    background: linear-gradient(135deg, rgba(255,255,255,.7), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(255,255,255,.5));
+    z-index: -1;
+  }
+  .btn { position: absolute; background: linear-gradient(90deg,#8e8e93,#c7c7cc); border-radius: 2em; width: 4em; }
+  .btn.l1 { left: -6.5em; top: 128em; height: 32em; }
+  .btn.l2 { left: -6.5em; top: 190em; height: 62em; }
+  .btn.l3 { left: -6.5em; top: 266em; height: 62em; }
+  .btn.r1 { right: -6.5em; top: 214em; height: 98em; background: linear-gradient(270deg,#8e8e93,#c7c7cc); }
+  .screen {
+    position: relative; width: 393em; height: 852em; border-radius: 56em; overflow: hidden;
+  }
+  .screen img.shot { position: absolute; left: 0; top: 58em; width: 393em; height: 774em; display: block; }
+  .status {
+    position: absolute; top: 0; left: 0; right: 0; height: 58em;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6em 34em 0 50em;
+    font-family: "SF Pro Display", system-ui; font-weight: 600; letter-spacing: -.01em;
+  }
+  .status .time { font-size: 17.5em; }
+  .status .icons { display: flex; gap: 6em; align-items: center; }
+  .status .icons svg { height: 12.5em; width: auto; }
+  .island {
+    position: absolute; top: 11em; left: 50%; transform: translateX(-50%);
+    width: 125em; height: 37em; border-radius: 20em; background: #000; z-index: 3;
+  }
+  .homebar {
+    position: absolute; bottom: 8em; left: 50%; transform: translateX(-50%);
+    width: 139em; height: 5em; border-radius: 3em; z-index: 3;
+  }
+  .light .status { background: #fef2f7; color: #111; }
+  .light .screen { background: #fef2f7; }
+  .light .homebar { background: #111; }
+  .dark .status { background: #1f1333; color: #fff; }
+  .dark .screen { background: #1c1231; }
+  .dark .homebar { background: rgba(255,255,255,.9); }
+
+  .front { font-size: 0.95px; left: 510px; top: 610px; z-index: 2; }
+  .back  { font-size: 0.86px; left: 280px; top: 560px; z-index: 1; }
+
+  footer {
+    position: absolute; left: 0; right: 0; bottom: 64px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; z-index: 5;
+  }
+  .cta {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 16px 30px; border-radius: 999px;
+    background: var(--ink); color: #fff;
+    font-size: 22px; font-weight: 600; letter-spacing: -.01em;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,.4);
+  }
+  .fine { font-size: 17px; color: var(--muted); letter-spacing: -.005em; }
+
+  .features {
+    position: absolute; left: 70px; top: 820px; width: 170px; z-index: 4;
+    display: flex; flex-direction: column; gap: 34px;
+  }
+  .features.right { left: auto; right: 70px; text-align: right; }
+  .feat b { display: block; font-size: 40px; font-weight: 700; letter-spacing: -.035em; line-height: 1; }
+  .feat span { display: block; margin-top: 6px; font-size: 16px; line-height: 1.3; color: var(--muted); }
+  .grad-num {
+    background: linear-gradient(95deg, #ff5fa2, #8b6cf0);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+
+  <header>
+    <div class="brand"><img src="../../public/icons/icon-512.png" alt="">NhakoSearch</div>
+    <h1>Word search.<br><span class="grad">Made for two.</span></h1>
+    <p class="sub">Race each other in real time, or solve one board together. A cozy, hand&#8209;drawn puzzle game that lives right in your browser.</p>
+  </header>
+
+  <div class="features">
+    <div class="feat"><b class="grad-num">360</b><span>levels across a winding garden path</span></div>
+    <div class="feat"><b class="grad-num">12</b><span>themes, from Rainy Day to Night Sky</span></div>
+  </div>
+  <div class="features right">
+    <div class="feat"><b class="grad-num">37</b><span>butterflies to find and collect</span></div>
+    <div class="feat"><b class="grad-num">2</b><span>ways to play together: race or co&#8209;op</span></div>
+  </div>
+
+  <!-- back phone: dark home -->
+  <div class="phone back dark">
+    <i class="btn l1"></i><i class="btn l2"></i><i class="btn l3"></i><i class="btn r1"></i>
+    <div class="screen">
+      <div class="status"><span class="time">9:41</span><span class="icons"><svg width="18" height="12" viewBox="0 0 18 12"><g fill="#fff"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg><svg width="16" height="12" viewBox="0 0 16 12"><path fill="#fff" d="M8 2.2c2.4 0 4.6.9 6.2 2.5l1.2-1.2C13.4 1.4 10.8.4 8 .4S2.6 1.4.6 3.5l1.2 1.2C3.4 3.1 5.6 2.2 8 2.2zm0 3.6c1.4 0 2.7.5 3.7 1.4l1.2-1.2C11.6 4.8 9.9 4 8 4s-3.6.8-4.9 2l1.2 1.2c1-.9 2.3-1.4 3.7-1.4zm0 3.6c-.5 0-1 .2-1.4.6L8 11.4l1.4-1.4c-.4-.4-.9-.6-1.4-.6z"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="#fff" stroke-opacity=".4"/><rect x="2.5" y="2.5" width="19" height="8" rx="2.2" fill="#fff"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2z" fill="#fff" fill-opacity=".45"/></svg></span></div>
+      <div class="island"></div>
+      <img class="shot" src="home-dark.jpg" alt="">
+      <div class="homebar"></div>
+    </div>
+  </div>
+
+  <!-- front phone: light board -->
+  <div class="phone front light">
+    <i class="btn l1"></i><i class="btn l2"></i><i class="btn l3"></i><i class="btn r1"></i>
+    <div class="screen">
+      <div class="status"><span class="time">9:41</span><span class="icons"><svg width="18" height="12" viewBox="0 0 18 12"><g fill="#111"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg><svg width="16" height="12" viewBox="0 0 16 12"><path fill="#111" d="M8 2.2c2.4 0 4.6.9 6.2 2.5l1.2-1.2C13.4 1.4 10.8.4 8 .4S2.6 1.4.6 3.5l1.2 1.2C3.4 3.1 5.6 2.2 8 2.2zm0 3.6c1.4 0 2.7.5 3.7 1.4l1.2-1.2C11.6 4.8 9.9 4 8 4s-3.6.8-4.9 2l1.2 1.2c1-.9 2.3-1.4 3.7-1.4zm0 3.6c-.5 0-1 .2-1.4.6L8 11.4l1.4-1.4c-.4-.4-.9-.6-1.4-.6z"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="#111" stroke-opacity=".4"/><rect x="2.5" y="2.5" width="19" height="8" rx="2.2" fill="#111"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2z" fill="#111" fill-opacity=".45"/></svg></span></div>
+      <div class="island"></div>
+      <img class="shot" src="board-light.jpg" alt="">
+      <div class="homebar"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="cta">Play free at search.nhako.com</div>
+    <div class="fine">No download. Add it to your Home Screen, like any app.</div>
+  </footer>
+</body>
+</html>

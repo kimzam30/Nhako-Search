@@ -14,7 +14,7 @@ import { UserPlusSvg } from '@/components/ui/Icons';
  * private Realtime topic, `user:<id>` (migration 006; RLS lets each player
  * join only their own). Here that becomes: the friend views and the tab-bar
  * badge refresh at once, and a request or an accept is announced with a toast
- * that opens the Friends page — no refresh needed on either side.
+ * that opens the Friends page, no refresh needed on either side.
  *
  * If the socket drops, Supabase rejoins on its own; on every (re)join the
  * friend data is refetched, so nothing sent while offline is missed.

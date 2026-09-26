@@ -47,7 +47,7 @@ export interface PlayerState {
    * Monotonic per-client revision. Presence can briefly hold an older meta
    * next to a newer one for the same key (Phoenix prepends the old metas on
    * update), and the reconcile loop used to read that stale entry and revert
-   * the opponent — which is how "Ready" and difficulty changes got lost.
+   * the opponent, which is how "Ready" and difficulty changes got lost.
    * Anything with a lower rev than what we already hold is ignored.
    */
   rev: number;
@@ -129,7 +129,7 @@ const FINISH_SETTLE_MS = 600;
 /*
  * Outgoing rate limits. Realtime closes a channel that sends too fast: a burst
  * of finds (each one a broadcast AND a presence track) killed the guest's
- * channel mid-race, and the leader — who decides the winner — never saw them
+ * channel mid-race, and the leader (who decides the winner) never saw them
  * finish. Updates are now coalesced: the latest state always goes out, just no
  * more often than this.
  */
@@ -230,7 +230,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
   const lastTypingSentRef = useRef(0);
   const sentTimesRef = useRef<number[]>([]);
 
-  // Refs mirror state so the realtime effect never needs them as dependencies —
+  // Refs mirror state so the realtime effect never needs them as dependencies;
   // re-running it would tear down and rebuild the channel mid-race.
   const meRef = useRef<PlayerState>(raceState.me);
   const opponentRef = useRef<PlayerState | undefined>(undefined);
@@ -304,7 +304,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
       }
       meRef.current = next;
       setRaceState(s => ({ ...s, me: next }));
-      // Side effects live outside the updater — React may re-run, defer or
+      // Side effects live outside the updater; React may re-run, defer or
       // discard updater functions.
       publishMyState();
     },
@@ -636,7 +636,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
     /*
      * Closing the tab (or the installed app) does not run React cleanup, and
      * the realtime server only notices a vanished socket after a heartbeat
-     * timeout — the guest sat in a dead room for up to a minute.
+     * timeout; the guest sat in a dead room for up to a minute.
      *
      * The page lifecycle cannot tell a close from a reload, so it sends
      * `leader_away`, which starts the guest's grace period right now instead

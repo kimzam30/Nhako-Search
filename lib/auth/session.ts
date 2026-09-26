@@ -6,7 +6,7 @@ import { supabase } from '@/lib/multiplayer/supabase';
  * The signed-in user, held once for the whole app.
  *
  * Every page used to call `supabase.auth.getUser()`, which is a network round
- * trip to the auth server — four of them per tab switch, measured live, each
+ * trip to the auth server: four of them per tab switch, measured live, each
  * one blocking the queries behind it. `getSession()` reads the token already
  * in localStorage (refreshing it only when it has expired), and row-level
  * security still checks the token on every query, so nothing is trusted that

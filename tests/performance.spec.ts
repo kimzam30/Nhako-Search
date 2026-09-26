@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 /**
  * Performance regression suite (Phase 5).
  *
- * These assert the *structural* wins, not wall-clock timings — timing
+ * These assert the *structural* wins, not wall-clock timings; timing
  * assertions are flaky in CI. Each one fails if the expensive pattern comes
  * back.
  */
@@ -37,7 +37,7 @@ test('the highlight overlay uses no SVG filters', async ({ page }) => {
   expect(svgState.paths).toBeGreaterThan(0);
 });
 
-test('the highlight still wobbles — the hand-drawn look survives', async ({ page }) => {
+test('the highlight still wobbles: the hand-drawn look survives', async ({ page }) => {
   await page.goto('/play/standard/standard/easy');
   await page.locator('[data-x="0"][data-y="0"]').waitFor({ state: 'visible' });
 
@@ -50,7 +50,7 @@ test('the highlight still wobbles — the hand-drawn look survives', async ({ pa
   const offLine = await page.evaluate(() => {
     // Scope to the board's own overlay. A bare `svg path[d]` matches the first
     // path in the document, which is a butterfly icon in the garland above the
-    // grid — it has nothing to do with the highlight stroke.
+    // grid; it has nothing to do with the highlight stroke.
     const path = document.querySelector('.grid.relative.z-10 svg path[d]');
     if (!path) return -1;
     const d = path.getAttribute('d') || '';
@@ -72,7 +72,7 @@ test('the highlight still wobbles — the hand-drawn look survives', async ({ pa
 
   await page.mouse.up();
 
-  // Present, but subtle — a straight line would be 0.
+  // Present, but subtle: a straight line would be 0.
   expect(offLine).toBeGreaterThan(0.05);
   expect(offLine).toBeLessThan(3);
 });
@@ -99,7 +99,7 @@ test('the home screen does not build every level to render', async ({ page }) =>
     const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     return nav ? nav.domContentLoadedEventEnd - nav.responseEnd : 0;
   });
-  // Generous ceiling — this catches a return to eager generation, not jitter.
+  // Generous ceiling: this catches a return to eager generation, not jitter.
   expect(blockingTime).toBeLessThan(3000);
 });
 

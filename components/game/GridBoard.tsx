@@ -264,7 +264,7 @@ export function GridBoard({
             The hand-drawn wobble is baked into the path geometry rather than
             produced by an feTurbulence + feDisplacementMap filter. The filter
             ran on two elements per found word and was re-rasterised on every
-            animation frame — by far the most expensive thing on the board.
+            animation frame, by far the most expensive thing on the board.
             Geometry costs nothing to composite, and dropping the filter also
             removes the duplicate `id="sketch"` collision in race mode.
           */}

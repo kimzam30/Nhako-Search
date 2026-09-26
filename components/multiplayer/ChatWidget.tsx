@@ -10,7 +10,7 @@ import { CHAT_MAX, SYSTEM, type ChatMessage } from '@/lib/multiplayer/useRaceRoo
  * Room chat, in two presentations of one thread:
  *
  *  - ChatDock: a real panel for the lobby and the results screen, where
- *    talking is the point — beside the room on desktop, a card under it on
+ *    talking is the point: beside the room on desktop, a card under it on
  *    phones.
  *  - ChatFab: during a round the board has the screen, so chat folds into a
  *    button with an unread count; a new message peeks out above it for a few
@@ -85,7 +85,7 @@ function Thread({ messages, onSend, onTyping, partnerTyping, meId, partnerName, 
       >
         {messages.length === 0 && (
           <li className="m-auto text-center text-sm font-bold text-ink-2 px-6">
-            Say hi to {partnerName} — or send a reaction below.
+            Say hi to {partnerName}, or send a reaction below.
           </li>
         )}
         {groups.map(g =>
@@ -185,7 +185,7 @@ function Thread({ messages, onSend, onTyping, partnerTyping, meId, partnerName, 
         </button>
       </form>
       <p role="status" className="min-h-5 pt-1 text-xs font-bold text-accent-ink">
-        {limited ? 'Easy there — wait a moment before sending more.' : ''}
+        {limited ? 'Easy there! Wait a moment before sending more.' : ''}
       </p>
     </div>
   );

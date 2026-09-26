@@ -370,7 +370,7 @@ let syncing: Promise<Achievement[]> | null = null;
 /**
  * Ids already sent to the server this session. A row the server did not
  * insert (it already existed, or was refused) must not be retried on every
- * summary refresh — that fed back into itself: sync -> refresh -> sync.
+ * summary refresh, which fed back into itself: sync -> refresh -> sync.
  */
 const attempted = new Set<string>();
 

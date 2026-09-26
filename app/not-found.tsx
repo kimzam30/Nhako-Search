@@ -3,7 +3,7 @@ import { DoodleButterfly } from '@/components/ui/Doodles';
 
 /*
  * 404: an unknown address (a typo, an old link, a level id that does not
- * exist). Friendly, on-brand, with a way home — the default Next page was a
+ * exist). Friendly, on-brand, with a way home; the default Next page was a
  * bare black-and-white "404" with no navigation.
  */
 export default function NotFound() {

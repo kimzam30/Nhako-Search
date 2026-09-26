@@ -3,7 +3,7 @@ import { test, expect, Page } from '@playwright/test';
 /**
  * Accessibility and responsive suite (Phase 6).
  *
- * The grid was previously pointer-only — no tabindex, no roles, no keyboard
+ * The grid was previously pointer-only: no tabindex, no roles, no keyboard
  * path at all. These lock in a full keyboard route through a puzzle and check
  * the layout holds from a small phone to a 2560px desktop.
  */

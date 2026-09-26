@@ -2,7 +2,7 @@
  * localStorage access that cannot take a page down.
  *
  * Reads were `JSON.parse(localStorage.getItem(k) || '{}')` in a dozen places,
- * so one corrupted value — or storage blocked in a private window — threw
+ * so one corrupted value (or storage blocked in a private window) threw
  * during render and blanked whatever page touched it.
  */
 
@@ -27,6 +27,6 @@ export function writeJSON(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    /* private mode or quota — progress stays in memory for this visit */
+    /* private mode or quota: progress stays in memory for this visit */
   }
 }

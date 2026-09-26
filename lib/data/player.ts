@@ -9,7 +9,7 @@ import type { CollectionEntry, LevelProgressRow } from '@/lib/types';
 /*
  * Everything the lobby screens show about the player, loaded as ONE unit.
  *
- * Home, Daily, Levels and You used to each fetch their own slice on mount —
+ * Home, Daily, Levels and You used to each fetch their own slice on mount:
  * 5-7 sequential requests per tab switch. Signed-in players now make a single
  * RPC (get_player_summary, migration 005) and every screen reads the same
  * cached result, so switching tabs never waits on the network.

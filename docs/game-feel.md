@@ -1,4 +1,4 @@
-# game-feel.md — the "feels like a real game" pass (2026-09-26)
+# game-feel.md: the "feels like a real game" pass (2026-09-26)
 
 Kim's brief: new graphics, motion, transitions and audio so NhakoSearch feels
 like a game; keep the doodle theme and the Fredoka / Nunito / Caveat fonts (no
@@ -30,7 +30,7 @@ loop).
 From `Nhako-tools/src/styles/nera.css` (itself from github.com/kimzam30/NeraOS):
 
 - **Lavender** as the second brand hue next to the pink (`--lav`, `--lav-soft`).
-- The **hard offset shadow** (already our sticker shadow — kept at 4x5 ink).
+- The **hard offset shadow** (already our sticker shadow: kept at 4x5 ink).
 - **Stepped window open** (`steps(3)`), used for the level intro card and the
   win dialog.
 - The **striped pink/lavender boot bar**, used for every progress bar.

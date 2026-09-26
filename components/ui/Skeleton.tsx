@@ -1,7 +1,7 @@
 /**
  * Loading shells, shaped like the screens they stand in for.
  *
- * Shown only while a route's code or a player's very first data is loading —
+ * Shown only while a route's code or a player's very first data is loading;
  * after that the cached summary paints straight away. Each one matches its
  * final layout (same widths, same blocks), so nothing jumps when the real
  * content arrives. The shimmer is `.skeleton` in globals.css and stops under

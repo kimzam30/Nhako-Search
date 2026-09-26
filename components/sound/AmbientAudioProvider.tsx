@@ -190,7 +190,7 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
   /*
    * The persist effect below also runs on mount, while state is still
    * `defaultVolumes`, and would write those defaults straight over the saved
-   * mix before hydration lands — losing the user's settings on reload. Skipping
+   * mix before hydration lands, losing the user's settings on reload. Skipping
    * its first run is enough: every genuine change after that still persists.
    */
   const skipFirstPersist = useRef(true);
@@ -218,7 +218,7 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(volumes));
     } catch {
-      /* private mode, quota — not worth surfacing */
+      /* private mode, quota: not worth surfacing */
     }
   }, [volumes]);
 

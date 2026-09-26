@@ -5,7 +5,7 @@ import { clearCache } from '@/lib/data/cache';
  * Every localStorage/sessionStorage key this app owns.
  *
  * The old implementation called `localStorage.clear()`, which wiped the whole
- * origin — including Supabase's own auth tokens — while deleting nothing at all
+ * origin (including Supabase's own auth tokens) while deleting nothing at all
  * from the database. The button did not do what it said.
  */
 const LOCAL_KEYS = [

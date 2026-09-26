@@ -20,7 +20,7 @@ function randomInts(count: number): Uint32Array {
 
 /**
  * Previously `Math.random().toString(36).substring(2, 6)`, which returns fewer
- * than 4 characters whenever the float's base-36 expansion is short — creating
+ * than 4 characters whenever the float's base-36 expansion is short, creating
  * a room nobody could join, because the join form required exactly 4.
  */
 export function generateRoomCode(): string {

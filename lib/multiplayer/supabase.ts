@@ -18,7 +18,7 @@ if (!isSupabaseConfigured) {
  * module is being evaluated.
  *
  * `createClient('')` throws "supabaseUrl is required" at import time, which
- * took down the whole production build during prerendering — a missing env var
+ * took down the whole production build during prerendering: a missing env var
  * surfaced as an opaque stack trace from inside a Turbopack chunk rather than a
  * readable message. Requests against this placeholder still fail loudly at
  * runtime, so a misconfiguration cannot pass silently.

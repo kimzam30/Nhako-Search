@@ -54,7 +54,7 @@ function ProgressBar({
           {label}
         </span>
         <span className="text-xs font-bold text-ink-2 tabular-nums shrink-0">
-          {total > 0 ? `${value}/${total}` : '—'}
+          {total > 0 ? `${value}/${total}` : '–'}
         </span>
       </div>
       <div
@@ -236,7 +236,7 @@ function RaceRoom({
   /*
    * Which match, if any, has already been written.
    *
-   * Only the leader writes history — but "leader-only" alone is not enough to
+   * Only the leader writes history, but "leader-only" alone is not enough to
    * get exactly one row. `opponent` is a fresh object every time an incoming
    * state_update is applied, so it changes identity in this dependency array;
    * a last progress frame arriving just after the leader flips to `finished`
@@ -597,7 +597,7 @@ function RaceRoom({
           />
         </div>
 
-        {/* Partner's board, desktop race only — co-op already shares one board,
+        {/* Partner's board, desktop race only; co-op already shares one board,
             so building a second, hidden copy there was wasted work. Uses the
             ROUND difficulty so it reconstructs the grid the partner is solving.
             A fixed side preview, not an equal half: as a flex-1 twin it left

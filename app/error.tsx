@@ -20,7 +20,7 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
       <DoodleButterfly className="w-20 -rotate-12" wing="var(--word-6)" wing2="var(--word-4)" />
       <h1 className="font-display font-bold text-3xl text-ink">Something went wrong</h1>
       <p className="max-w-xs font-bold text-ink-2">
-        This screen hit a snag. Your progress is saved — try again, or head home.
+        This screen hit a snag. Your progress is saved. Try again, or head home.
       </p>
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <button

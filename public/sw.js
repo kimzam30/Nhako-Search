@@ -50,7 +50,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/play/race/')) return;
 
   // React Server Component payloads vary by request headers, so a cached copy
-  // can never be matched — v3 stored them anyway and the cache only grew.
+  // can never be matched; v3 stored them anyway and the cache only grew.
   if (url.searchParams.has('_rsc') || request.headers.get('RSC') === '1') return;
 
   // Navigations: network first, cached copy of the SAME page when offline,
@@ -58,7 +58,7 @@ self.addEventListener('fetch', (event) => {
   // (the old fallback) made /daily render the home screen.
   //
   // Reloads are navigations too. The old worker skipped every request with
-  // `cache: no-cache` — which is what a reload sends — so reloading offline
+  // `cache: no-cache` (which is what a reload sends) so reloading offline
   // produced a blank browser error page.
   if (request.mode === 'navigate') {
     event.respondWith(
