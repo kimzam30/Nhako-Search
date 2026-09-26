@@ -3,8 +3,11 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import {
   AMBIENCE_PRESETS,
   CHANNEL_IDS,
+  DEFAULT_LOFI_TRACK,
+  LOFI_TRACKS,
   createAmbienceEngine,
   loadLofiSample,
+  renderAmbience,
   type AmbienceEngine,
   type ChannelId,
 } from '@/lib/audio/engine';
@@ -23,11 +26,16 @@ interface AmbientAudioContextType {
   stopAmbience: () => void;
   applyPreset: (presetId: string) => void;
   presets: typeof AMBIENCE_PRESETS;
+  /** The generated lofi track playing on the lofi channel. */
+  lofiTrack: string;
+  setLofiTrack: (id: string) => void;
+  lofiTracks: typeof LOFI_TRACKS;
   /** Game feedback. Works whether or not the ambience is running. */
   playSfx: (name: EffectName, variant?: number) => void;
 }
 
 const STORAGE_KEY = 'nhako_audio_volumes';
+const TRACK_KEY = 'nhako_lofi_track';
 
 const defaultVolumes: AudioVolumes = {
   master: 80,
@@ -65,6 +73,8 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
   const [volumes, setVolumes] = useState<AudioVolumes>(defaultVolumes);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [lofiTrack, setLofiTrackState] = useState(DEFAULT_LOFI_TRACK);
+  const lofiTrackRef = useRef(DEFAULT_LOFI_TRACK);
 
   const ctxRef = useRef<AudioContext | null>(null);
   const engineRef = useRef<AmbienceEngine | null>(null);
@@ -142,6 +152,39 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
     // first render would differ from the server HTML and break hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVolumes(readStoredVolumes());
+    try {
+      const t = localStorage.getItem(TRACK_KEY);
+      if (t && LOFI_TRACKS.some(x => x.id === t)) {
+        lofiTrackRef.current = t;
+        setLofiTrackState(t);
+      }
+    } catch {
+      /* private mode */
+    }
+  }, []);
+
+  // Test hook: lets the Playwright audio suite render the ambience offline and
+  // measure it. Only in development, or when a tester opts in on this device.
+  useEffect(() => {
+    let debug = process.env.NODE_ENV !== 'production';
+    try {
+      debug ||= localStorage.getItem('nhako_debug') === '1';
+    } catch {
+      /* private mode */
+    }
+    if (debug) (window as unknown as { __nhakoAudio?: unknown }).__nhakoAudio = { renderAmbience, LOFI_TRACKS };
+  }, []);
+
+  const setLofiTrack = useCallback((id: string) => {
+    if (!LOFI_TRACKS.some(t => t.id === id)) return;
+    lofiTrackRef.current = id;
+    setLofiTrackState(id);
+    engineRef.current?.setLofiTrack(id);
+    try {
+      localStorage.setItem(TRACK_KEY, id);
+    } catch {
+      /* private mode */
+    }
   }, []);
 
   /*
@@ -191,7 +234,7 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
 
         // Optional real recording; falls back to generated chords when absent.
         const lofiSample = await loadLofiSample(ctx);
-        engineRef.current = createAmbienceEngine(ctx, volumes, lofiSample);
+        engineRef.current = createAmbienceEngine(ctx, volumes, lofiSample, { lofiTrack: lofiTrackRef.current });
         setIsReady(true);
       } finally {
         startingRef.current = false;
@@ -252,9 +295,10 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
       // One state write so the whole mix crossfades together rather than
       // stepping channel by channel.
       setVolumes(prev => ({ ...prev, ...preset.volumes }));
+      if (preset.lofiTrack) setLofiTrack(preset.lofiTrack);
       if (!isPlaying) void startAmbience();
     },
-    [isPlaying, startAmbience]
+    [isPlaying, startAmbience, setLofiTrack]
   );
 
   return (
@@ -268,6 +312,9 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
         stopAmbience,
         applyPreset,
         presets: AMBIENCE_PRESETS,
+        lofiTrack,
+        setLofiTrack,
+        lofiTracks: LOFI_TRACKS,
         playSfx,
       }}
     >

@@ -81,8 +81,38 @@ export interface RaceState {
 export interface ChatMessage {
   id: string;
   text: string;
+  /** Player id, or SYSTEM for room events ("Kim joined", "Round 2"). */
   sender: string;
   time: number;
+}
+
+export const SYSTEM = 'system';
+/** Longest chat message, in characters. */
+export const CHAT_MAX = 140;
+const CHAT_KEEP = 100;
+/** Rate limit: at most CHAT_BURST messages per CHAT_WINDOW_MS. */
+const CHAT_BURST = 6;
+const CHAT_WINDOW_MS = 8000;
+const TYPING_SEND_MS = 2000;
+const TYPING_SHOW_MS = 3500;
+
+function chatKey(roomCode: string) {
+  return `nhako_chat_${roomCode}`;
+}
+
+function readChat(roomCode: string): ChatMessage[] {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(chatKey(roomCode)) || '[]');
+    return Array.isArray(raw) ? raw.slice(-CHAT_KEEP) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Strips control characters and trims; returns '' for nothing worth sending. */
+export function cleanChat(text: string): string {
+   
+  return text.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX);
 }
 
 /** How long a guest waits for the leader before deciding the room isn't real. */
@@ -92,7 +122,6 @@ const LEADER_GRACE_MS = 8000;
 /** How long the leader keeps a vanished guest's seat (covers a reload). */
 const SEAT_GRACE_MS = 20000;
 const COUNTDOWN_MS = 3000;
-const CHAT_TTL_MS = 3000;
 /** How often presence is re-read in case an event was missed. */
 const PRESENCE_RECONCILE_MS = 1000;
 /** Leader waits this long after its own finish for an in-flight opponent finish. */
@@ -192,7 +221,14 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
   /** Bumped to rebuild the channel after the server closed or errored it. */
   const [channelGeneration, setChannelGeneration] = useState(0);
   const reconnectingRef = useRef(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  // Chat lives for the room session (it survives a reload), not 3 seconds.
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() =>
+    typeof window === 'undefined' ? [] : readChat(roomCode)
+  );
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef(0);
+  const sentTimesRef = useRef<number[]>([]);
 
   // Refs mirror state so the realtime effect never needs them as dependencies —
   // re-running it would tear down and rebuild the channel mid-race.
@@ -206,7 +242,6 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
   const finishedRef = useRef(raceState.status === 'finished');
   const seenLeaderRef = useRef(false);
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const chatTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   /** Leader: when the seated guest was last present. */
   const seatSeenAtRef = useRef(0);
   const rematchRef = useRef<() => void>(() => {});
@@ -289,14 +324,21 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
     [roomCode, updateMyState]
   );
 
-  const pushChat = useCallback((text: string, sender: string) => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setChatMessages(prev => [...prev, { id, text, sender, time: Date.now() }]);
-    const t = setTimeout(() => {
-      setChatMessages(prev => prev.filter(m => m.id !== id));
-    }, CHAT_TTL_MS);
-    chatTimersRef.current.push(t);
-  }, []);
+  const pushChat = useCallback(
+    (text: string, sender: string, id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, time = Date.now()) => {
+      setChatMessages(prev => {
+        if (prev.some(m => m.id === id)) return prev;
+        const next = [...prev, { id, text, sender, time }].slice(-CHAT_KEEP);
+        try {
+          sessionStorage.setItem(chatKey(roomCode), JSON.stringify(next));
+        } catch {
+          /* private mode */
+        }
+        return next;
+      });
+    },
+    [roomCode]
+  );
 
   // ---------------------------------------------------------------- channel
   useEffect(() => {
@@ -516,13 +558,26 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
         }
       })
       .on('broadcast', { event: 'chat_message' }, msg => {
-        const { content, playerId } = (msg.payload ?? {}) as {
+        const { content, playerId, id, time } = (msg.payload ?? {}) as {
           content?: string;
           playerId?: string;
+          id?: string;
+          time?: number;
         };
         if (!content || !playerId || playerId === userId) return;
         if (opponentRef.current && playerId !== opponentRef.current.id) return;
-        pushChat(content.slice(0, 80), playerId);
+        const text = cleanChat(content);
+        if (!text) return;
+        setPartnerTyping(false);
+        pushChat(text, playerId, typeof id === 'string' ? id.slice(0, 40) : undefined, typeof time === 'number' ? Math.min(time, Date.now()) : undefined);
+      })
+      .on('broadcast', { event: 'typing' }, msg => {
+        const { playerId } = (msg.payload ?? {}) as { playerId?: string };
+        if (!playerId || playerId === userId) return;
+        if (opponentRef.current && playerId !== opponentRef.current.id) return;
+        setPartnerTyping(true);
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => setPartnerTyping(false), TYPING_SHOW_MS);
       })
       .on('broadcast', { event: 'room_closed' }, () => {
         if (!isLeader) setConnection('closed');
@@ -617,8 +672,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
       clearLeaveTimer();
       clearInterval(tick);
       if (discovery) clearTimeout(discovery);
-      chatTimersRef.current.forEach(clearTimeout);
-      chatTimersRef.current = [];
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       // Only a channel that actually joined may announce the room closed: a
       // never-joined channel closing is React remounting, not the leader leaving.
       if (isLeader && joined && !reconnectingRef.current) {
@@ -720,19 +774,43 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
   }, [raceState.status, raceState.startTime, raceState.difficulty, isLeader, setRoom]);
 
   // ---------------------------------------------------------------- actions
+  /**
+   * Sends a chat line. Returns false when it was not sent: empty, not
+   * connected yet, or over the rate limit (Realtime closes a channel that
+   * sends too fast, which would also end the race).
+   */
   const sendChat = useCallback(
-    (text: string) => {
-      const safeText = text.slice(0, 80);
-      if (!safeText.trim() || !subscribedRef.current) return;
+    (raw: string): boolean => {
+      const text = cleanChat(raw);
+      if (!text || !subscribedRef.current) return false;
+      const now = Date.now();
+      sentTimesRef.current = sentTimesRef.current.filter(t => now - t < CHAT_WINDOW_MS);
+      if (sentTimesRef.current.length >= CHAT_BURST) return false;
+      sentTimesRef.current.push(now);
+      const id = `${userId.slice(0, 12)}-${now.toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
       channelRef.current?.send({
         type: 'broadcast',
         event: 'chat_message',
-        payload: { content: safeText, playerId: userId },
+        payload: { content: text, playerId: userId, id, time: now },
       });
-      pushChat(safeText, userId);
+      pushChat(text, userId, id, now);
+      return true;
     },
     [userId, pushChat]
   );
+
+  /** Lets the partner see "typing…"; throttled to one event per 2 s. */
+  const sendTyping = useCallback(() => {
+    const now = Date.now();
+    if (!subscribedRef.current || now - lastTypingSentRef.current < TYPING_SEND_MS) return;
+    lastTypingSentRef.current = now;
+    channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { playerId: userId } });
+  }, [userId]);
+
+  /** A local room event line in the chat ("Round 2 · Race · hard"). */
+  const addSystemMessage = useCallback((text: string, key?: string) => {
+    pushChat(text, SYSTEM, key ? `sys-${key}` : undefined);
+  }, [pushChat]);
 
   const startRaceAsLeader = useCallback(() => {
     if (!isLeader || !subscribedRef.current) return;
@@ -812,6 +890,9 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
     updateMyState,
     chatMessages,
     sendChat,
+    sendTyping,
+    partnerTyping,
+    addSystemMessage,
     startRaceAsLeader,
     requestRematch,
     isLeader,

@@ -1,28 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { User } from '@supabase/supabase-js';
-import { FlameSvg, RaceSvg, GearSvg, StarSvg, MapSvg, PlaySvg } from '@/components/ui/Icons';
+import { FlameSvg, RaceSvg, GearSvg, StarSvg, MapSvg, PlaySvg, TrophySvg } from '@/components/ui/Icons';
 import { DoodleButterfly, StageScene, ChapterArt, MixedArt } from '@/components/ui/Doodles';
-import { supabase } from '@/lib/multiplayer/supabase';
+import { TokenPill } from '@/components/rewards/TokenPill';
 import { ALL_LEVEL_IDS, CHAPTERS, getLevelMeta } from '@/lib/levels/data';
-import { checkDailyStreak, GAME_DAY_UTC_OFFSET_MINUTES } from '@/lib/daily/logic';
-import { loadLevelProgress } from '@/lib/levels/progress';
-import { getUserProfile } from '@/lib/auth/profile';
-import { readJSON } from '@/lib/storage';
-import type { CollectionEntry } from '@/lib/types';
-
-interface HomeStats {
-  nextLevelId: string;
-  stars: number;
-  wins: number | null;
-  streak: number;
-  playedToday: boolean;
-  name: string;
-  chapterDone: number;
-  chapterTotal: number;
-  album: number;
-}
+import { GAME_DAY_UTC_OFFSET_MINUTES } from '@/lib/daily/logic';
+import { usePlayer } from '@/lib/data/player';
+import { ACHIEVEMENTS, unlockedIds } from '@/lib/rewards/achievements';
 
 /*
  * Home is a game lobby (docs/game-feel.md §1), not a list of cards:
@@ -38,6 +23,10 @@ interface HomeStats {
 
 const TILE =
   'press stagger-in relative flex flex-col justify-between gap-2 overflow-hidden border-2 border-line p-3 shadow-[4px_5px_0_0_var(--line)] min-h-[96px] md:min-h-[120px] md:p-4';
+/* Phones: the four modes sit in one row of compact tiles, so the lobby still
+   fits above the tab bar with nothing to scroll; from 768px they are cards. */
+const MODE =
+  'press stagger-in relative flex flex-col items-center md:items-stretch justify-between gap-1 md:gap-2 overflow-hidden border-2 border-line px-1 py-2.5 md:p-4 shadow-[3px_4px_0_0_var(--line)] md:shadow-[4px_5px_0_0_var(--line)] min-h-[84px] md:min-h-[120px] text-center md:text-left';
 
 function msUntilReset(now = Date.now()) {
   const day = 86_400_000;
@@ -51,59 +40,32 @@ function formatReset(ms: number) {
 }
 
 export default function HomePage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<HomeStats | null>(null);
+  const { summary } = usePlayer();
   const [resetIn, setResetIn] = useState<string>('');
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      const currentUser = data?.user ?? null;
-
-      const [progress, daily, profile] = await Promise.all([
-        loadLevelProgress(),
-        // Resolved against today: the raw stored count kept showing a streak
-        // that had already lapsed.
-        checkDailyStreak(),
-        getUserProfile(),
-      ]);
-
-      let wins: number | null = null;
-      let album = readJSON<CollectionEntry[]>('nhako_collection', []).length;
-      if (currentUser) {
-        const [raceRes, albumRes] = await Promise.all([
-          supabase.from('race_history').select('*', { count: 'exact', head: true }).eq('winner', currentUser.id),
-          supabase.from('butterfly_collection').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id),
-        ]);
-        wins = raceRes.count ?? 0;
-        album = albumRes.count ?? album;
-      }
-
-      // The next level is the first one without stars, in path order.
-      const done = new Set(progress.filter(p => (p.stars ?? 0) > 0).map(p => p.level_id));
-      const nextLevelId = ALL_LEVEL_IDS.find(id => !done.has(id)) ?? ALL_LEVEL_IDS[ALL_LEVEL_IDS.length - 1];
-      const chapter = CHAPTERS.find(c => c.levels.includes(nextLevelId));
-      const stars = progress.reduce((sum, p) => sum + (p.stars ?? 0), 0);
-
-      if (cancelled) return;
-      setUser(currentUser);
-      setStats({
-        nextLevelId,
-        stars,
-        wins,
-        streak: daily.streak,
-        playedToday: daily.playedToday,
-        name: profile.displayName,
-        chapterDone: chapter ? chapter.levels.filter(id => done.has(id)).length : 0,
-        chapterTotal: chapter?.levels.length ?? 30,
-        album,
-      });
-    })();
-    return () => {
-      cancelled = true;
+  // Everything on this screen is derived from the shared summary, so it is on
+  // screen the instant the tab opens (cached), then refreshes behind.
+  const stats = useMemo(() => {
+    if (!summary) return null;
+    const done = new Set(summary.levels.filter(p => (p.stars ?? 0) > 0).map(p => p.level_id));
+    // The next level is the first one without stars, in path order.
+    const nextLevelId = ALL_LEVEL_IDS.find(id => !done.has(id)) ?? ALL_LEVEL_IDS[ALL_LEVEL_IDS.length - 1];
+    const chapter = CHAPTERS.find(c => c.levels.includes(nextLevelId));
+    return {
+      nextLevelId,
+      stars: summary.levels.reduce((sum, p) => sum + (p.stars ?? 0), 0),
+      wins: summary.isGuest ? null : summary.raceWins,
+      streak: summary.streak,
+      playedToday: summary.playedToday,
+      name: summary.name,
+      tokens: summary.tokens,
+      chapterDone: chapter ? chapter.levels.filter(id => done.has(id)).length : 0,
+      chapterTotal: chapter?.levels.length ?? 30,
+      album: unlockedIds(summary.collection).size,
+      friends: summary.friends,
+      pending: summary.pendingRequests,
     };
-  }, []);
+  }, [summary]);
 
   // The daily tile counts down to the next game day, like an event timer.
   useEffect(() => {
@@ -115,7 +77,7 @@ export default function HomePage() {
 
   const next = stats ? getLevelMeta(stats.nextLevelId) : undefined;
   const levelNumber = stats ? ALL_LEVEL_IDS.indexOf(stats.nextLevelId) + 1 : null;
-  const avatar = user?.user_metadata?.avatar_url as string | undefined;
+  const avatar = summary?.avatar || undefined;
   const pct = stats ? Math.round((stats.chapterDone / stats.chapterTotal) * 100) : 0;
 
   return (
@@ -148,10 +110,7 @@ export default function HomePage() {
           <FlameSvg className="w-4 h-4 text-accent-ink" />
           {stats?.streak ?? 0}
         </span>
-        <span className="hud-pill text-sm" aria-label={`${stats?.stars ?? 0} stars`}>
-          <StarSvg className="w-4 h-4 text-gold" filled />
-          {stats?.stars ?? 0}
-        </span>
+        <TokenPill tokens={stats?.tokens} />
         <Link
           href="/settings"
           aria-label="Settings"
@@ -165,7 +124,7 @@ export default function HomePage() {
         {/* --------------------------------------------------------- STAGE */}
         <section
           aria-labelledby="stage-title"
-          className="stagger-in relative md:col-span-3 flex flex-col overflow-hidden border-2 border-line bg-lav-soft shadow-[4px_5px_0_0_var(--line)] min-h-[292px] md:min-h-[440px]"
+          className="stagger-in relative md:col-span-3 flex flex-col overflow-hidden border-2 border-line bg-lav-soft shadow-[4px_5px_0_0_var(--line)] min-h-[260px] md:min-h-[440px]"
           style={{ borderRadius: '26px 14px 28px 18px' }}
         >
           <StageScene className="absolute inset-x-0 bottom-0 w-full h-[62%]" />
@@ -210,6 +169,10 @@ export default function HomePage() {
               <span className="text-xs font-extrabold text-ink tabular">
                 {stats ? `${stats.chapterDone}/${stats.chapterTotal}` : ' '}
               </span>
+              <span className="flex items-center gap-1 pl-2 border-l-2 border-ink/15 text-xs font-extrabold text-ink tabular" aria-label={`${stats?.stars ?? 0} stars`}>
+                <StarSvg className="w-3.5 h-3.5 text-gold" filled />
+                {stats?.stars ?? 0}
+              </span>
             </div>
             <Link
               href={stats ? `/level-path/${stats.nextLevelId}` : '/level-path'}
@@ -223,10 +186,10 @@ export default function HomePage() {
         </section>
 
         {/* --------------------------------------------------------- MODES */}
-        <nav aria-label="Game modes" className="md:col-span-2 grid grid-cols-3 md:grid-cols-2 gap-3 md:gap-4 md:auto-rows-fr">
+        <nav aria-label="Game modes" className="md:col-span-2 grid grid-cols-4 md:grid-cols-2 gap-2 md:gap-4 md:auto-rows-fr">
           <Link
             href="/daily"
-            className={`${TILE} bg-accent-soft col-span-3 md:col-span-2`}
+            className={`${TILE} bg-accent-soft col-span-4 md:col-span-2`}
             style={{ borderRadius: '18px 24px 14px 22px', ['--i' as string]: 1 }}
           >
             <span className="flex items-start justify-between gap-2">
@@ -249,29 +212,46 @@ export default function HomePage() {
             </span>
           </Link>
 
-          <Link href="/play/race/lobby" className={`${TILE} bg-surface`} style={{ borderRadius: '14px 22px 18px 12px', ['--i' as string]: 2 }}>
+          <Link href="/play/race/lobby" className={`${MODE} bg-surface`} style={{ borderRadius: '14px 22px 18px 12px', ['--i' as string]: 2 }}>
             <RaceSvg className="w-8 h-8 md:w-14 md:h-14 text-accent-ink" />
-            <span className="flex flex-col">
-              <span className="font-display font-bold text-ink text-lg leading-tight">Race</span>
-              <span className="text-xs font-extrabold text-ink-2 tabular">
+            <span className="flex flex-col items-center md:items-start">
+              <span className="font-display font-bold text-ink text-sm md:text-lg leading-tight">Race</span>
+              <span className="hidden md:block text-xs font-extrabold text-ink-2 tabular">
                 {stats?.wins != null ? `${stats.wins} wins` : 'with a friend'}
               </span>
             </span>
           </Link>
 
-          <Link href="/play/standard" className={`${TILE} bg-surface`} style={{ borderRadius: '22px 12px 16px 20px', ['--i' as string]: 3 }}>
+          <Link href="/play/standard" className={`${MODE} bg-surface`} style={{ borderRadius: '22px 12px 16px 20px', ['--i' as string]: 3 }}>
             <MixedArt className="w-9 h-9 md:w-16 md:h-16" />
-            <span className="flex flex-col">
-              <span className="font-display font-bold text-ink text-lg leading-tight">Free play</span>
-              <span className="text-xs font-extrabold text-ink-2">pick a theme</span>
+            <span className="flex flex-col items-center md:items-start">
+              <span className="font-display font-bold text-ink text-sm md:text-lg leading-tight">Free play</span>
+              <span className="hidden md:block text-xs font-extrabold text-ink-2">pick a theme</span>
             </span>
           </Link>
 
-          <Link href="/profile" className={`${TILE} bg-lav-soft md:col-span-2`} style={{ borderRadius: '12px 20px 14px 24px', ['--i' as string]: 4 }}>
-            <DoodleButterfly className="w-10 md:w-20" wing="var(--word-2)" wing2="var(--word-5)" />
-            <span className="flex flex-col">
-              <span className="font-display font-bold text-ink text-lg leading-tight">Album</span>
-              <span className="text-xs font-extrabold text-ink-2 tabular">{stats ? `${stats.album} caught` : ' '}</span>
+          <Link href="/album" className={`${MODE} bg-lav-soft`} style={{ borderRadius: '12px 20px 14px 24px', ['--i' as string]: 4 }}>
+            <DoodleButterfly className="w-10 md:w-16" wing="var(--word-2)" wing2="var(--word-5)" />
+            <span className="flex flex-col items-center md:items-start">
+              <span className="font-display font-bold text-ink text-sm md:text-lg leading-tight">Album</span>
+              <span className="text-[11px] md:text-xs font-extrabold text-ink-2 tabular">{stats ? `${stats.album} of ${ACHIEVEMENTS.length}` : ' '}</span>
+            </span>
+          </Link>
+
+          <Link href="/friends" className={`${MODE} bg-surface`} style={{ borderRadius: '20px 14px 22px 12px', ['--i' as string]: 5 }}>
+            <span className="relative md:self-start">
+              <TrophySvg className="w-8 h-8 md:w-14 md:h-14 text-gold" />
+              {(stats?.pending ?? 0) > 0 && (
+                <span className="absolute -top-1 -right-2 min-w-5 h-5 px-1 flex items-center justify-center rounded-full border-2 border-line bg-accent text-on-accent text-[11px] font-extrabold tabular">
+                  {stats!.pending}
+                </span>
+              )}
+            </span>
+            <span className="flex flex-col items-center md:items-start">
+              <span className="font-display font-bold text-ink text-sm md:text-lg leading-tight">Friends</span>
+              <span className="hidden md:block text-xs font-extrabold text-ink-2 tabular">
+                {stats?.pending ? `${stats.pending} new request${stats.pending > 1 ? 's' : ''}` : stats?.friends ? `${stats.friends} on the board` : 'leaderboard'}
+              </span>
             </span>
           </Link>
         </nav>

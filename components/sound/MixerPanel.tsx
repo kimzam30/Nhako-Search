@@ -19,7 +19,7 @@ const TRACKS: { id: keyof AudioVolumes; label: string }[] = [
  * flagged all seven as unlabelled) and a live percentage.
  */
 export function MixerPanel({ compact = false }: { compact?: boolean }) {
-  const { volumes, setVolume, isPlaying, startAmbience, stopAmbience, applyPreset, presets } =
+  const { volumes, setVolume, isPlaying, startAmbience, stopAmbience, applyPreset, presets, lofiTrack, setLofiTrack, lofiTracks } =
     useAmbientAudio();
 
   return (
@@ -36,7 +36,7 @@ export function MixerPanel({ compact = false }: { compact?: boolean }) {
         {isPlaying ? 'Pause ambience' : 'Play ambience'}
       </button>
 
-      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Ambience presets">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" role="group" aria-label="Ambience presets">
         {presets.map(preset => (
           <button
             key={preset.id}
@@ -73,6 +73,28 @@ export function MixerPanel({ compact = false }: { compact?: boolean }) {
                 aria-valuetext={`${volumes[track.id]} percent`}
                 className="mixer-range w-full"
               />
+              {track.id === 'lofi' && (
+                <div role="radiogroup" aria-label="Lofi track" className="flex flex-wrap gap-1.5 mt-1.5">
+                  {lofiTracks.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={lofiTrack === t.id}
+                      onClick={() => {
+                        setLofiTrack(t.id);
+                        if (volumes.lofi === 0) setVolume('lofi', 60);
+                        if (!isPlaying) void startAmbience();
+                      }}
+                      className={`press min-h-[36px] px-3 rounded-full border-2 text-xs font-extrabold ${
+                        lofiTrack === t.id ? 'bg-accent text-on-accent border-line' : 'bg-background text-ink-2 border-line/30'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}

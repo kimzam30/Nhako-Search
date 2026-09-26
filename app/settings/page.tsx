@@ -1,12 +1,13 @@
 'use client';
 import { supabase } from '@/lib/multiplayer/supabase';
-import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
+import { usePlayer, patchSummary } from '@/lib/data/player';
+import { clearCache } from '@/lib/data/cache';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Sheet, afterSheetClosed } from '@/components/ui/Sheet';
 import { MixerPanel } from '@/components/sound/MixerPanel';
-import { getUserProfile, updateDisplayName } from '@/lib/auth/profile';
+import { updateDisplayName } from '@/lib/auth/profile';
 import { deleteAllUserData } from '@/lib/auth/deleteData';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -27,35 +28,28 @@ function Group({ title, children, footer }: { title: string; children: ReactNode
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, summary } = usePlayer();
   const [theme, setThemeState] = useState<Theme>('system');
-  const [profile, setProfile] = useState<{ displayName: string; avatarUrl: string; isGuest: boolean } | null>(null);
-  const [nameDraft, setNameDraft] = useState('');
+  const profile = summary ? { displayName: summary.name, isGuest: summary.isGuest } : null;
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
   const [nameSaved, setNameSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
-    let cancelled = false;
-    Promise.all([getUserProfile(), supabase.auth.getUser()]).then(([p, { data }]) => {
-      if (cancelled) return;
-      let stored: Theme = 'system';
-      try {
-        const t = localStorage.getItem('nhako_theme');
-        if (t === 'light' || t === 'dark') stored = t;
-      } catch {
-        /* private mode */
-      }
-      setThemeState(stored);
-      setProfile(p);
-      setNameDraft(p.displayName);
-      setUser(data.user ?? null);
-    });
-    return () => {
-      cancelled = true;
-    };
+    let stored: Theme = 'system';
+    try {
+      const t = localStorage.getItem('nhako_theme');
+      if (t === 'light' || t === 'dark') stored = t;
+    } catch {
+      /* private mode */
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setThemeState(stored);
   }, []);
+  // The field shows the saved name until the player starts editing it.
+  const draft = nameDraft ?? profile?.displayName ?? '';
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
@@ -69,17 +63,22 @@ export default function SettingsPage() {
   };
 
   const saveName = async () => {
-    const name = nameDraft.trim().slice(0, 20) || 'Player';
+    const name = draft.trim().slice(0, 20) || 'Player';
+    await patchSummary(s => ({ ...s, name }));
     await updateDisplayName(name);
-    setProfile(prev => (prev ? { ...prev, displayName: name } : prev));
-    setNameDraft(name);
+    setNameDraft(null);
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 2000);
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('nhako_guest_mode');
+    clearCache();
+    try {
+      localStorage.removeItem('nhako_guest_mode');
+    } catch {
+      /* private mode */
+    }
     // A one-way door: Back must not return to a signed-in settings screen.
     router.replace('/sign-in');
   };
@@ -99,7 +98,7 @@ export default function SettingsPage() {
     afterSheetClosed(() => router.replace('/sign-in'));
   };
 
-  const nameChanged = profile && nameDraft.trim() && nameDraft.trim() !== profile.displayName;
+  const nameChanged = profile && draft.trim() && draft.trim() !== profile.displayName;
 
   return (
     <div className="flex flex-col w-full max-w-lg mx-auto px-5 pb-6" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
@@ -147,7 +146,7 @@ export default function SettingsPage() {
                 <input
                   id="display-name"
                   type="text"
-                  value={nameDraft}
+                  value={draft}
                   onChange={e => setNameDraft(e.target.value)}
                   maxLength={20}
                   autoComplete="nickname"

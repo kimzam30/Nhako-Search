@@ -4,7 +4,7 @@ import { test, expect, Page } from '@playwright/test';
  * Phase 1 regression suite.
  *
  * These lock in the fixes for the grid-geometry bugs found in the audit
- * (see newissue.md §1.1 / §1.2):
+ * (see README "Invariants" 1 and 2):
  *   - grid-template-rows was missing, so rows sized to text and the grid
  *     overflowed its card by ~100px on a phone
  *   - the highlight overlay drifted up to 97px away from the letters

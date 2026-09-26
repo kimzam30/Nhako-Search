@@ -139,6 +139,99 @@ export function MixedArt({ className = '' }: ArtProps) {
   );
 }
 
+
+/** Seaside: a wave curling over a scallop shell. */
+export function OceanArt({ className = '' }: ArtProps) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 34C10 22 22 14 34 17C44 19.5 47 30 40 33C35 35.5 31 31 34 27C29 27 27 33 31 36C24 38 14 37 6 34Z" fill="var(--word-5)" />
+        <path d="M22 56C20 48 24 41 32 40C40 41 44 48 42 56Z" fill="var(--word-1)" />
+        <path d="M32 40V56M26.5 42.5L29 56M37.5 42.5L35 56" fill="none" />
+        <path d="M6 45C10 43 14 47 18 45M46 47C50 45 54 49 58 47" fill="none" />
+      </g>
+    </svg>
+  );
+}
+
+/** Bakery: a cupcake with a cherry. */
+export function BakeryArt({ className = '' }: ArtProps) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 36H47L43 56H21Z" fill="var(--word-4)" />
+        <path d="M25 36L26.5 56M32 36V56M39 36L37.5 56" fill="none" />
+        <path d="M14 36C12 29 17 24 22 25C22 18 30 15 34 19C38 15 47 18 45 25C51 25 53 32 50 36Z" fill="var(--word-1)" />
+        <circle cx="33" cy="15" r="4" fill="var(--accent)" />
+        <path d="M34 11C35 8 37 7 39 7" fill="none" />
+      </g>
+    </svg>
+  );
+}
+
+/** Woodland: a pine beside a spotted toadstool. */
+export function WoodlandArt({ className = '' }: ArtProps) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M24 6L38 26H32L42 40H33L44 52H4L15 40H6L16 26H10Z" fill="var(--word-8)" />
+        <path d="M24 52V58" fill="none" />
+        <path d="M46 46H56C57 40 53 34 51 34C49 34 45 40 46 46Z" fill="var(--art-light)" transform="translate(0 6)" />
+        <path d="M40 44C40 36 46 32 51 32C56 32 62 36 62 44Z" fill="var(--accent)" />
+        <circle cx="47" cy="38" r="1.8" fill="var(--art-light)" />
+        <circle cx="54" cy="36.5" r="1.5" fill="var(--art-light)" />
+      </g>
+    </svg>
+  );
+}
+
+/** Travel: a stickered suitcase. */
+export function TravelArt({ className = '' }: ArtProps) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M25 18V13C25 11.5 26 10.5 27.5 10.5H36.5C38 10.5 39 11.5 39 13V18" fill="none" />
+        <rect x="10" y="18" width="44" height="34" rx="6" fill="var(--word-6)" />
+        <path d="M20 18V52M44 18V52" fill="none" />
+        <circle cx="31" cy="32" r="5" fill="var(--word-5)" />
+        <path d="M27 42L35 40L34 47L27 48Z" fill="var(--word-4)" />
+        <circle cx="18" cy="55" r="2.5" fill="var(--art-light)" />
+        <circle cx="46" cy="55" r="2.5" fill="var(--art-light)" />
+      </g>
+    </svg>
+  );
+}
+
+/** Music: two beamed notes. */
+export function MusicArt({ className = '' }: ArtProps) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M24 46V14L50 8V40" fill="none" />
+        <path d="M24 14L50 8V17L24 23Z" fill="var(--word-7)" />
+        <ellipse cx="17.5" cy="47" rx="7.5" ry="5.5" fill="var(--word-2)" transform="rotate(-18 17.5 47)" />
+        <ellipse cx="43.5" cy="41" rx="7.5" ry="5.5" fill="var(--word-1)" transform="rotate(-18 43.5 41)" />
+      </g>
+    </svg>
+  );
+}
+
+/** Seasons: a maple leaf meeting a snowflake. */
+export function SeasonsArt({ className = '' }: ArtProps) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M24 8L28 18L35 14L33 24L41 23L35 31L38 34L27 36L28 44L24 40L20 44L21 36L10 34L13 31L7 23L15 24L13 14L20 18Z" fill="var(--word-6)" />
+        <path d="M24 40V54" fill="none" />
+        <g fill="none" stroke="var(--word-5)" strokeWidth="2.6">
+          <path d="M47 34V58M36.6 40L57.4 52M36.6 52L57.4 40" />
+        </g>
+        <path d="M47 34V58M36.6 40L57.4 52M36.6 52L57.4 40" fill="none" strokeWidth="1" />
+      </g>
+    </svg>
+  );
+}
+
 export const THEME_ART: Record<string, (p: ArtProps) => React.JSX.Element> = {
   standard: MixedArt,
   garden: GardenArt,
@@ -146,6 +239,12 @@ export const THEME_ART: Record<string, (p: ArtProps) => React.JSX.Element> = {
   'cozy-cottage': CottageArt,
   'night-sky': NightArt,
   'date-night': DateArt,
+  ocean: OceanArt,
+  bakery: BakeryArt,
+  woodland: WoodlandArt,
+  travel: TravelArt,
+  music: MusicArt,
+  seasons: SeasonsArt,
 };
 
 /** Chapter name -> its theme art, for the level path and home stage. */

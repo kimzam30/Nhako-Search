@@ -1,5 +1,7 @@
 'use client';
 import { supabase } from '@/lib/multiplayer/supabase';
+import { getCurrentUser } from '@/lib/auth/session';
+import { refreshSummary } from '@/lib/data/player';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -16,8 +18,8 @@ export default function SignInPage() {
   // Signing in is a one-way door: someone who already has a session never
   // sees this screen, and Back from Home can never land on it again.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) router.replace('/');
+    getCurrentUser().then(user => {
+      if (user) router.replace('/');
     });
   }, [router]);
 
@@ -53,6 +55,8 @@ export default function SignInPage() {
     } catch {
       /* private mode: the name lasts for this visit only */
     }
+    // The cached summary still says "Guest"; refresh it before Home shows it.
+    refreshSummary();
     router.replace('/');
   };
 

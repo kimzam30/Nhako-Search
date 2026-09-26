@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getLevel, getLevelMeta, ALL_LEVEL_IDS } from '@/lib/levels/data';
 import { GameClient } from '@/components/game/GameClient';
-import { loadLevelProgress, saveLevelProgress } from '@/lib/levels/progress';
+import { completeSolo } from '@/lib/rewards/complete';
+import { usePlayer } from '@/lib/data/player';
 import { ButtonLink } from '@/components/ui/Button';
 import { LockSvg } from '@/components/ui/Icons';
 import { useSetGameTitle } from '@/lib/nav/gameTitle';
+import { BoardSkeleton } from '@/components/ui/Skeleton';
 
 export default function LevelGameplayPage() {
   const params = useParams();
@@ -24,18 +26,22 @@ export default function LevelGameplayPage() {
 
   // Locks used to exist only on the map; any level opened straight from its
   // URL. Level 1 is always open; every other level needs the previous one done.
-  const [unlocked, setUnlocked] = useState<boolean | null>(levelIndex === 0 ? true : null);
+  // Read from the shared summary, so a level opened from the map (which already
+  // has it) starts at once instead of waiting on a progress query.
+  const { summary } = usePlayer();
+  const unlocked: boolean | null =
+    levelIndex <= 0
+      ? true
+      : summary
+        ? summary.levels.some(r => r.level_id === ALL_LEVEL_IDS[levelIndex - 1] && (r.stars ?? 0) > 0)
+        : null;
+  // Decide once: finishing this level must not flip the page to "locked" or
+  // remount the board while its win screen is up.
+  const [gate, setGate] = useState<boolean | null>(unlocked);
   useEffect(() => {
-    if (levelIndex <= 0) return;
-    let cancelled = false;
-    loadLevelProgress().then(rows => {
-      const prev = ALL_LEVEL_IDS[levelIndex - 1];
-      if (!cancelled) setUnlocked(rows.some(r => r.level_id === prev && (r.stars ?? 0) > 0));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [levelIndex]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (gate === null && unlocked !== null) setGate(unlocked);
+  }, [gate, unlocked]);
 
   if (!level || !meta) {
     return (
@@ -46,9 +52,9 @@ export default function LevelGameplayPage() {
     );
   }
 
-  if (unlocked === null) return null;
+  if (gate === null) return <BoardSkeleton />;
 
-  if (!unlocked) {
+  if (!gate) {
     return (
       <div className="flex flex-col flex-1 items-center justify-center gap-5 p-6 text-center max-w-sm mx-auto">
         <LockSvg className="w-12 h-12 text-ink-2" />
@@ -59,9 +65,8 @@ export default function LevelGameplayPage() {
     );
   }
 
-  const handleComplete = async (stars: number, timeSeconds: number) => {
-    await saveLevelProgress(levelId, stars, timeSeconds);
-  };
+  const handleComplete = (r: { stars: number; seconds: number; hints: number; words: number }) =>
+    completeSolo({ mode: 'level', levelId, difficulty: level.difficulty, ...r });
 
   return (
     <div className="flex flex-col flex-1 px-3 pt-1 pb-2 items-center w-full">

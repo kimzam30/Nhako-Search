@@ -6,6 +6,7 @@ import { PwaRegister } from "@/components/PwaRegister";
 import { MotionConfig } from "framer-motion";
 import { MergeClient } from "@/components/MergeClient";
 import { ButterflySky } from "@/components/ambient/ButterflySky";
+import { Toaster } from "@/components/ui/Toast";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -103,6 +104,7 @@ export default function RootLayout({
             </main>
             <SignatureFooter />
             <TabBar />
+            <Toaster />
           </AmbientAudioProvider>
         </MotionConfig>
       </body>

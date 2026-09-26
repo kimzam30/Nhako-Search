@@ -2,23 +2,26 @@
 import { useEffect, useState } from 'react';
 import { ButtonLink } from '@/components/ui/Button';
 import { FlameSvg, StarSvg, PlaySvg, ClockSvg } from '@/components/ui/Icons';
-import { DoodleButterfly, StageScene } from '@/components/ui/Doodles';
+import { StageScene, THEME_ART } from '@/components/ui/Doodles';
+import { Species } from '@/components/butterfly/Species';
+import { TokenSvg } from '@/components/ui/Icons';
+import { usePlayer } from '@/lib/data/player';
+import { seededSpecies } from '@/lib/rewards/species';
+import { THEMES } from '@/lib/words/themes';
 import {
   GAME_DAY_UTC_OFFSET_MINUTES,
-  checkDailyStreak,
+  dailyThemeIndex,
   gameDateString,
   gameDayLabel,
   getDailyStars,
-  getRecentDailyHistory,
 } from '@/lib/daily/logic';
 
-interface DailyView {
-  streak: number;
-  playedToday: boolean;
-  history: boolean[];
+interface DayView {
+  date: string;
   stars: number | null;
   label: string;
   initials: string[];
+  last7: string[];
   day: string;
   month: string;
 }
@@ -39,35 +42,45 @@ function recentDayInitials(): string[] {
 }
 
 export default function DailyChallengePage() {
-  const [view, setView] = useState<DailyView | null>(null);
-
+  const { summary } = usePlayer();
+  // Dates are computed after mount, never during render: this page is
+  // prerendered at build time, so a render-time date would be the build's.
+  const [dayView, setDayView] = useState<DayView | null>(null);
   useEffect(() => {
-    let cancelled = false;
-    Promise.all([checkDailyStreak(), getRecentDailyHistory(7)]).then(([data, history]) => {
-      // Dates are computed here, never during render: this page is prerendered
-      // at build time, so a render-time date would be the build's date.
-      if (!cancelled) {
-        const date = new Date(`${gameDateString()}T00:00:00Z`);
-        setView({
-          ...data,
-          history,
-          stars: getDailyStars(),
-          label: gameDayLabel(),
-          initials: recentDayInitials(),
-          day: String(date.getUTCDate()),
-          month: date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }).toUpperCase(),
-        });
-      }
+    const today = gameDateString();
+    const date = new Date(`${today}T00:00:00Z`);
+    const t = Date.parse(`${today}T00:00:00Z`);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDayView({
+      date: today,
+      stars: getDailyStars(),
+      label: gameDayLabel(),
+      initials: recentDayInitials(),
+      last7: Array.from({ length: 7 }, (_, i) => new Date(t - (6 - i) * 86_400_000).toISOString().slice(0, 10)),
+      day: String(date.getUTCDate()),
+      month: date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }).toUpperCase(),
     });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  const view = summary && dayView
+    ? (() => {
+        const played = new Set(summary.dailyDates);
+        return {
+          ...dayView,
+          streak: summary.streak,
+          playedToday: summary.playedToday,
+          history: dayView.last7.map(d => played.has(d)),
+        };
+      })()
+    : null;
+  const theme = dayView ? THEMES[dailyThemeIndex(dayView.date, THEMES.length)] : null;
+  const ThemeArt = theme ? THEME_ART[theme.id] : null;
+  const keepsake = dayView ? seededSpecies(`daily-${dayView.date}`) : null;
 
   // The game day's own date, not the device's: outside UTC+8 the header used
   // to show a different day from the puzzle underneath it.
-  const label = view?.label ?? '\u00a0';
-  const initials = view?.initials ?? Array.from({ length: 7 }, () => '\u00a0');
+  const label = dayView?.label ?? '\u00a0';
+  const initials = dayView?.initials ?? Array.from({ length: 7 }, () => '\u00a0');
 
   // Event countdown, like a live-ops daily in any mobile game.
   const [countdown, setCountdown] = useState('');
@@ -155,18 +168,32 @@ export default function DailyChallengePage() {
         </ol>
       </section>
 
-      {/* Reward preview: what today's puzzle adds to the album. */}
+      {/* Today's theme and reward: a one-of-a-kind butterfly for the date. */}
       <section
-        className="stagger-in flex items-center gap-3 p-3 bg-lav-soft border-2 border-line shadow-[3px_4px_0_0_var(--line)]"
-        style={{ borderRadius: '20px 12px 18px 14px', ['--i' as string]: 2 }}
+        className="stagger-in grid grid-cols-2 gap-3"
+        style={{ ['--i' as string]: 2 }}
       >
-        <span className="shrink-0 w-14 h-14 flex items-center justify-center rounded-full border-2 border-line bg-tile">
-          <DoodleButterfly className="w-10 idle-float" wing="var(--word-4)" wing2="var(--word-1)" />
-        </span>
-        <span className="flex flex-col">
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-ink-2">Today&rsquo;s reward</span>
-          <span className="font-display font-bold text-ink leading-tight">A butterfly stamped with today&rsquo;s date</span>
-        </span>
+        <div className="flex items-center gap-2.5 p-3 bg-surface border-2 border-line shadow-[3px_4px_0_0_var(--line)]" style={{ borderRadius: '18px 12px 20px 14px' }}>
+          <span className="shrink-0 w-11 h-11 flex items-center justify-center rounded-full border-2 border-line" style={{ background: theme ? `color-mix(in srgb, ${theme.hue} calc(40% * var(--tint-boost)), var(--surface))` : undefined }}>
+            {ThemeArt && <ThemeArt className="w-8 h-8" />}
+          </span>
+          <span className="flex flex-col min-w-0">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-ink-2">Theme</span>
+            <span className="font-display font-bold text-ink leading-tight truncate">{theme?.name ?? '\u00a0'}</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2.5 p-3 bg-lav-soft border-2 border-line shadow-[3px_4px_0_0_var(--line)]" style={{ borderRadius: '12px 20px 14px 18px' }}>
+          <span className="shrink-0 w-11 h-11 flex items-center justify-center rounded-full border-2 border-line bg-tile">
+            {keepsake && <Species spec={keepsake} className="w-9 idle-float" />}
+          </span>
+          <span className="flex flex-col min-w-0">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-ink-2">Reward</span>
+            <span className="flex items-center gap-1 font-display font-bold text-ink leading-tight">
+              <TokenSvg className="w-4 h-4" />
+              10+ &amp; a stamp
+            </span>
+          </span>
+        </div>
       </section>
 
       <div className="mt-auto flex flex-col gap-3 pt-2">

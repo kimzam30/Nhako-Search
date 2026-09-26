@@ -1,3 +1,4 @@
+import { getCurrentUser } from '@/lib/auth/session';
 import { supabase } from '@/lib/multiplayer/supabase';
 import type { CollectionEntry } from '@/lib/types';
 import { readJSON } from '@/lib/storage';
@@ -9,7 +10,7 @@ interface LocalDaily {
   history?: string[];
 }
 
-let inFlight: Promise<void> | null = null;
+let inFlight: Promise<boolean> | null = null;
 
 /**
  * Moves guest progress on this device into the signed-in account.
@@ -25,14 +26,15 @@ let inFlight: Promise<void> | null = null;
  * Local data is now removed only after every write has succeeded, and it is
  * the presence of local data, not a flag, that decides whether to merge.
  */
-export function mergeGuestProgress(): Promise<void> {
+export function mergeGuestProgress(): Promise<boolean> {
   // The layout's auth listener and its mount check can both fire at sign-in.
   if (!inFlight) inFlight = runMerge().finally(() => (inFlight = null));
   return inFlight;
 }
 
-async function runMerge() {
-  if (typeof window === 'undefined') return;
+/** Resolves true when something was moved into the account. */
+async function runMerge(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
   try {
     localStorage.removeItem('nhako_merged'); // retired flag
   } catch {
@@ -43,12 +45,10 @@ async function runMerge() {
   const localCollection = readJSON<CollectionEntry[]>('nhako_collection', []);
   const localDaily = readJSON<LocalDaily>('nhako_daily', {});
   const levelIds = Object.keys(localLevels);
-  if (levelIds.length === 0 && localCollection.length === 0 && !localDaily.lastDate) return;
+  if (levelIds.length === 0 && localCollection.length === 0 && !localDaily.lastDate) return false;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const user = await getCurrentUser();
+  if (!user) return false;
 
   let ok = true;
 
@@ -120,7 +120,7 @@ async function runMerge() {
   if (!ok) {
     // Keep the local copy; the next sign-in or page load retries.
     console.error('Merge progress: some rows failed, local progress kept for a retry.');
-    return;
+    return false;
   }
 
   try {
@@ -130,4 +130,5 @@ async function runMerge() {
   } catch {
     /* private mode */
   }
+  return true;
 }

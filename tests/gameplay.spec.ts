@@ -39,14 +39,14 @@ test.describe('Solo gameplay', () => {
     expect(later).not.toBe('0:00');
   });
 
-  test('a hint reveals one letter and moves the cursor to it', async ({ page }) => {
+  test('with no tokens, a hint is free but adds time and then cools down', async ({ page }) => {
     await page.goto('/play/standard/standard/easy');
     await page.locator('[data-x="0"][data-y="0"]').waitFor({ state: 'visible' });
 
     const hinted = () => page.locator('.ring-gold').count();
     expect(await hinted()).toBe(0);
 
-    await page.getByRole('button', { name: /^Hint/ }).click();
+    await page.getByRole('button', { name: 'Free hint, adds 20 seconds' }).click();
     expect(await hinted()).toBe(1);
 
     // The keyboard cursor should now sit on the revealed letter.
@@ -54,8 +54,28 @@ test.describe('Solo gameplay', () => {
     const hintedId = await page.locator('.ring-gold').first().getAttribute('id');
     expect(active).toBe(hintedId);
 
-    // The counter reflects usage.
-    await expect(page.getByRole('button', { name: 'Hint (1)' })).toBeVisible();
+    // The clock jumped by the penalty, and the hint is recharging.
+    const clock = await page.getByRole('timer').textContent();
+    const [m, sec] = clock!.match(/(\d+):(\d\d)/)!.slice(1).map(Number);
+    expect(m * 60 + sec).toBeGreaterThanOrEqual(20);
+    await expect(page.getByRole('button', { name: 'Hint recharging' })).toBeDisabled();
+    // The next free hint costs more.
+    await expect(page.getByRole('button', { name: 'Free hint, adds 30 seconds' })).toBeVisible({ timeout: 12_000 });
+  });
+
+  test('with tokens, a hint spends them instead of time', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('nhako_wallet', JSON.stringify({ tokens: 10, lifetime: 10 }));
+      Object.keys(localStorage).filter(k => k.startsWith('nhako_cache')).forEach(k => localStorage.removeItem(k));
+    });
+    await page.goto('/play/standard/standard/easy');
+    await page.getByRole('button', { name: 'Hint for 4 tokens' }).click();
+    await expect(page.locator('.ring-gold')).toHaveCount(1);
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('nhako_wallet') || '{}').tokens)).toBe(6);
+    // No time was added.
+    const clock = await page.getByRole('timer').textContent();
+    expect(clock!.startsWith('0:0') || clock!.startsWith('0:1')).toBe(true);
   });
 
   test('the words-remaining counter tracks the grid, not the requested list', async ({ page }) => {
@@ -71,7 +91,7 @@ test.describe('Solo gameplay', () => {
   test('race mode hides the solo timer and hint button', async ({ page }) => {
     // Both are competitive-unfair; the race screen has its own countdown.
     await page.goto('/play/standard/standard/easy');
-    await expect(page.getByRole('button', { name: /^Hint/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /hint/i })).toBeVisible();
     // Sanity: the prop exists to turn them off (exercised by the co-op test).
   });
 });
@@ -233,7 +253,7 @@ test.describe('Real statistics', () => {
       localStorage.setItem('nhako_levels', JSON.stringify({ 'c1-l1': { stars: 3 } }));
     });
     await page.reload();
-    await expect(page.getByText('Words Found')).toBeVisible();
+    await expect(page.getByText('Words', { exact: true })).toBeVisible();
     // One easy level = 6 words, not 8.
     await expect(page.getByText('6', { exact: true }).first()).toBeVisible({ timeout: 10000 });
   });

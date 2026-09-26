@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { StarSvg, ClockSvg, WandSvg } from '@/components/ui/Icons';
+import { StarSvg, ClockSvg, WandSvg, TokenSvg } from '@/components/ui/Icons';
+import type { RewardLine } from '@/lib/rewards/economy';
 import { DoodleButterfly } from '@/components/ui/Doodles';
 import { Petals } from '@/components/game/Petals';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
@@ -13,6 +14,10 @@ interface Props {
   seconds: number;
   words: number;
   hints: number;
+  /** Tokens earned, line by line; null while the result is still saving. */
+  rewards?: RewardLine[] | null;
+  /** Seconds added by free hints (already included in `seconds`). */
+  penalty?: number;
   children: React.ReactNode;
 }
 
@@ -22,7 +27,7 @@ interface Props {
  * bigger) with a rising bell each, a stats strip, petals falling, and the next
  * action as a big button. The window opens in NeraOS's three stepped frames.
  */
-export function WinCelebration({ title, stars, seconds, words, hints, children }: Props) {
+export function WinCelebration({ title, stars, seconds, words, hints, rewards, penalty = 0, children }: Props) {
   const { playSfx } = useAmbientAudio();
 
   // Each earned star rings as it lands; timed to the pop delays below.
@@ -106,6 +111,33 @@ export function WinCelebration({ title, stars, seconds, words, hints, children }
             </div>
           ))}
         </dl>
+
+        {penalty > 0 && (
+          <p className="-mt-2 text-xs font-extrabold text-ink-2 tabular">includes +{penalty}s from free hints</p>
+        )}
+
+        {/* Tokens earned: lines tick in, then the total. */}
+        <div className="w-full min-h-[58px]" aria-live="polite">
+          {rewards && rewards.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+              className="flex items-center justify-between gap-3 w-full px-3 py-2 rounded-2xl border-2 border-line bg-accent-soft"
+            >
+              <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-left text-xs font-extrabold text-ink-2">
+                {rewards.map(r => (
+                  <li key={r.label} className="tabular">
+                    {r.label} +{r.amount}
+                  </li>
+                ))}
+              </ul>
+              <span className="shrink-0 flex items-center gap-1 font-display font-bold text-2xl text-ink tabular">
+                <TokenSvg className="w-7 h-7 token-bump" />+{rewards.reduce((n, r) => n + r.amount, 0)}
+              </span>
+            </motion.div>
+          )}
+        </div>
 
         <div className="flex flex-col gap-3 w-full mt-1">{children}</div>
       </div>

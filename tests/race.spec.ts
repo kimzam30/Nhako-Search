@@ -141,6 +141,40 @@ test.describe('Race mode — two clients', () => {
   });
 });
 
+test.describe('Room chat', () => {
+  test('messages, reactions and typing reach the partner; spam is refused', async ({ browser }) => {
+    const roomCode = makeRoomCode();
+    const leader = await openClient(browser, { name: 'Leader', roomCode, leader: true });
+    const guest = await openClient(browser, { name: 'Partner', roomCode, leader: false });
+    await expect(leader.getByText('Partner joined')).toBeVisible({ timeout: 15000 });
+
+    // Free text, both ways.
+    await guest.getByPlaceholder(/Message/).fill('hello from the guest');
+    await guest.getByRole('button', { name: 'Send' }).click();
+    await expect(leader.getByText('hello from the guest')).toBeVisible({ timeout: 10000 });
+
+    await leader.getByPlaceholder(/Message/).pressSequentially('hi back', { delay: 30 });
+    await expect(guest.getByLabel('Leader is typing')).toBeVisible({ timeout: 5000 });
+    await leader.getByPlaceholder(/Message/).press('Enter');
+    await expect(guest.getByText('hi back')).toBeVisible({ timeout: 10000 });
+
+    // Quick reaction.
+    await guest.getByRole('button', { name: 'GG!' }).click();
+    await expect(leader.getByLabel('Chat messages').getByText('GG!', { exact: true })).toBeVisible({ timeout: 10000 });
+
+    // Survives a reload (session history), and is not a 3-second toast.
+    await leader.waitForTimeout(3500);
+    await expect(leader.getByText('hello from the guest')).toBeVisible();
+
+    // A burst beyond the limit is refused locally instead of killing the channel.
+    for (let i = 0; i < 8; i++) {
+      await guest.getByPlaceholder(/Message/).fill(`burst ${i}`);
+      await guest.getByPlaceholder(/Message/).press('Enter');
+    }
+    await expect(guest.getByText(/Easy there/)).toBeVisible();
+  });
+});
+
 test.describe('Room codes', () => {
   test('join button stays disabled until the code is complete', async ({ page }) => {
     await page.goto('/play/race/lobby');

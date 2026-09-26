@@ -1,3 +1,4 @@
+import { getCurrentUser } from '@/lib/auth/session';
 import { supabase } from '@/lib/multiplayer/supabase';
 import { readJSON, writeJSON } from '@/lib/storage';
 import type { CollectionEntry } from '@/lib/types';
@@ -11,15 +12,15 @@ import type { CollectionEntry } from '@/lib/types';
  */
 export async function awardTogetherButterfly(roomCode: string, gameDate: string) {
   const styleId = `together-${roomCode}-${gameDate}`;
-  const { data: user } = await supabase.auth.getUser();
+  const authUser = await getCurrentUser();
 
-  if (user.user) {
+  if (authUser) {
     // Upsert rather than select-then-insert: both players clear the board at
     // the same instant, and the effect that calls this can fire more than
     // once, so the old check-then-act could award the same butterfly twice.
     await supabase.from('butterfly_collection').upsert(
       {
-        user_id: user.user.id,
+        user_id: authUser.id,
         butterfly_style_id: styleId,
         earned_from: 'Solved together',
       },
@@ -56,11 +57,11 @@ export async function saveRaceHistory(
   diffLeader: string,
   diffOpponent: string
 ) {
-  const { data: user } = await supabase.auth.getUser();
-  if (!user.user) return; // Guests cannot write history.
+  const authUser = await getCurrentUser();
+  if (!authUser) return; // Guests cannot write history.
 
   // Defensive: the caller should already be the leader.
-  if (user.user.id !== leaderId) return;
+  if (authUser.id !== leaderId) return;
 
   const asUuidOrNull = (id: string) => (id.startsWith('guest-') ? null : id);
 

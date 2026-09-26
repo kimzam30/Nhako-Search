@@ -117,6 +117,45 @@ export function wordsFoundForLevels(levelIds: string[]): number {
 // ---------------------------------------------------------------------------
 
 const wordCache = new Map<string, LevelData>();
+const deckCache = new Map<string, string[]>();
+
+function chapterDeck(themeIndex: number, difficulty: LevelDifficulty, pool: string[]): string[] {
+  const key = `${themeIndex}:${difficulty}`;
+  const cached = deckCache.get(key);
+  if (cached) return cached;
+  // Fisher-Yates with a seeded PRNG: `sort(() => random() - 0.5)` depends on
+  // the engine's sort, so the same level could differ between browsers.
+  const random = mulberry32((themeIndex + 1) * 100003 + DIFFICULTY_SALT[difficulty]);
+  const deck = [...new Set(pool)];
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  deckCache.set(key, deck);
+  return deck;
+}
+
+/** Chapter I's index for a "II" chapter (they share a word list). */
+function baseTheme(themeIndex: number): number {
+  return THEME_DATA.findIndex(t => t.words === THEME_DATA[themeIndex].words);
+}
+
+const DIFFICULTY_SALT: Record<LevelDifficulty, number> = { easy: 11, medium: 7919, hard: 104729 };
+
+/** Words drawn by earlier levels of the same chapter and difficulty. */
+function wordsBefore(themeIndex: number, indexInChapter: number, difficulty: LevelDifficulty): number {
+  let n = 0;
+  for (let i = 0; i < indexInChapter; i++) {
+    if (difficultyForIndex(i) === difficulty) n += wordCountForDifficulty(difficulty);
+  }
+  // Chapter II of a theme continues the same deck where chapter I left off.
+  if (baseTheme(themeIndex) !== themeIndex) {
+    for (let i = 0; i < LEVELS_PER_CHAPTER; i++) {
+      if (difficultyForIndex(i) === difficulty) n += wordCountForDifficulty(difficulty);
+    }
+  }
+  return n;
+}
 
 export function getLevel(levelId: string): LevelData | undefined {
   const cached = wordCache.get(levelId);
@@ -133,26 +172,24 @@ export function getLevel(levelId: string): LevelData | undefined {
     (theme.words as Record<string, string[]>)[difficulty] ??
     (theme.words as Record<string, string[]>).easy;
 
-  // Seeded per level rather than per chapter. The old code advanced one PRNG
-  // across a chapter's 30 levels, so level 30 could not be built without first
-  // building levels 1-29 — which is what forced everything to be eager.
-  const random = mulberry32((meta.themeIndex + 1) * 100003 + meta.indexInChapter * 7919);
-
-  // Fisher-Yates. `sort(() => random() - 0.5)` is an inconsistent comparator,
-  // so the word list depended on the engine's sort implementation and the same
-  // level could show different words in different browsers.
-  const shuffled = [...pool];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
+  /*
+   * Levels in a chapter walk through ONE shuffled deck of the pool instead of
+   * each reshuffling it. Independently shuffled levels repeated words
+   * constantly (30 levels drawing 6-10 words from ~100); now a word only comes
+   * back once the deck has gone round. The deck is seeded per chapter and
+   * difficulty, so every player gets the same boards.
+   */
+  const deck = chapterDeck(baseTheme(meta.themeIndex), difficulty, pool);
+  const offset = wordsBefore(meta.themeIndex, meta.indexInChapter, difficulty);
+  const take = (start: number, n: number) =>
+    Array.from({ length: Math.min(n, deck.length) }, (_, i) => deck[(start + i) % deck.length]);
 
   const level: LevelData = {
     id: levelId,
     chapter: meta.chapter,
     difficulty,
-    words: shuffled.slice(0, Math.min(wordCount, shuffled.length)),
-    reserve: shuffled.slice(wordCount),
+    words: take(offset, wordCount),
+    reserve: take(offset + wordCount, Math.min(30, Math.max(0, deck.length - wordCount))),
   };
   wordCache.set(levelId, level);
   return level;

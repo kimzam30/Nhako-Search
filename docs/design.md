@@ -132,6 +132,11 @@ visible at a glance without reading a number.
 ## 7. Global chrome — present on (almost) every page
 
 ### 7.1 The floating nav
+> **Superseded (2026-09-26):** the floating pill became the tab bar
+> (`components/nav/TabBar.tsx`: bottom bar on phones, left rail from 1024px)
+> and gameplay uses the immersive game bar instead of a collapsed pill — see
+> §12. The intent below (always reachable Home, five slots max) still holds.
+
 A single pill-shaped bar, floating ~16px above the bottom safe area (never flush to the screen
 edge — it should look like it's resting on the page, per Rule 2's sticker shadow), `--surface`
 fill, `--ink` border. **This is the direct fix for "I can't get back to home"** — it's persistent
@@ -194,17 +199,22 @@ exactly where it links from:
 
 ```
 /                         Home            ← default landing, guest by default, no forced gate
-/sign-in                  Sign-in         ← reached only via the nav's Account avatar
-/daily                    Daily Challenge ← from Home's daily card, or nav
-/level-path               Level Map       ← from Home or nav
-/level-path/[levelId]     Level gameplay  ← from tapping a node → Level Info sheet → Play
-/play/standard/[diff]     Standard setup → gameplay ← from Home's "Standard" link or nav shortcut
-/play/race/lobby          Race lobby      ← from Home or nav
-/play/race/[code]/ready   Race ready-up   ← after room create/join
-/play/race/[code]         Race gameplay   ← after both players ready
-/play/race/[code]/results Race results    ← after timer ends
-/profile                  Profile/Collection (+ Settings tab) ← from nav Account (signed in)
-/settings                 Settings        ← reachable from /profile, and directly via deep link
+/sign-in                  Sign-in         ← from You, Settings, Friends (guest)
+/daily                    Daily           ← tab bar, Home daily card
+/daily/play               Daily gameplay  ← /daily
+/level-path               Level map       ← tab bar, Home stage
+/level-path/[levelId]     Level gameplay  ← map node → level sheet → Play; Home Play
+/play/standard            Free play setup ← Home "Free play" (12 themes x 3 difficulties)
+/play/standard/[theme]/[diff]  Free play gameplay
+/play/race/lobby          Race lobby      ← tab bar, Home "Race"
+/play/race/[code]         Race room       ← lobby, ready-up, countdown, play and
+                                            results are states of this one route;
+                                            chat docks beside lobby/results
+/profile                  You             ← tab bar
+/album                    Butterfly album ← You, Home "Album"
+/friends                  Friends + leaderboard ← You, Home "Friends"
+/settings                 Settings        ← You, Home gear
+(anything else)           Not found page with a way home
 ```
 No screen is reachable only through a dead-end or a placeholder link — every arrow above is a
 real link/route. Locked Level Path nodes are non-interactive elements, not links to anywhere

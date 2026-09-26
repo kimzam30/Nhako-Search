@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
-import type { User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/multiplayer/supabase';
+import { type ReactNode } from 'react';
+import { useCurrentUser } from '@/lib/auth/session';
+import { prefetchSummary, usePlayer } from '@/lib/data/player';
 import { FlameSvg, HomeSvg, MapSvg, RaceSvg, UserSvg } from '@/components/ui/Icons';
 import { isChromeless, isGameplayRoute } from '@/lib/nav/routes';
 
@@ -25,13 +25,9 @@ interface Tab {
  */
 export function TabBar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
-    const { data } = supabase.auth.onAuthStateChange((_, session) => setUser(session?.user ?? null));
-    return () => data.subscription.unsubscribe();
-  }, []);
+  const user = useCurrentUser();
+  // Friend requests waiting show as a dot on the You tab.
+  const { summary } = usePlayer();
 
   if (!pathname || isChromeless(pathname) || isGameplayRoute(pathname)) return null;
 
@@ -57,7 +53,7 @@ export function TabBar() {
       ) : (
         <UserSvg className="w-[24px] h-[24px]" />
       ),
-      active: pathname.startsWith('/profile') || pathname.startsWith('/settings'),
+      active: ['/profile', '/settings', '/album', '/friends'].some(p => pathname.startsWith(p)),
     },
   ];
 
@@ -77,6 +73,8 @@ export function TabBar() {
                 <Link
                   href={tab.href}
                   aria-current={tab.active ? 'page' : undefined}
+                  // Warm the data on press-in, so the screen opens with it.
+                  onPointerDown={() => void prefetchSummary()}
                   onClick={e => {
                     // Native tab behaviour: re-tapping the active tab returns to the top.
                     if (tab.active && pathname === tab.href) {
@@ -101,14 +99,20 @@ export function TabBar() {
                     /* Pill sized in px and capped by its column: at large text
                        sizes rem-based pills overflowed five-across on a phone. */
                     <span
-                      className={`flex items-center justify-center w-full max-w-[56px] h-[32px] rounded-full border-2 transition-colors duration-150 ${
+                      className={`relative flex items-center justify-center w-full max-w-[56px] h-[32px] rounded-full border-2 transition-colors duration-150 ${
                         tab.active ? 'bg-accent-soft border-line' : 'border-transparent'
                       }`}
                     >
                       {tab.icon}
+                      {tab.href === '/profile' && (summary?.pendingRequests ?? 0) > 0 && (
+                        <span className="absolute top-0 right-2 w-3 h-3 rounded-full bg-accent border-2 border-line" aria-hidden="true" />
+                      )}
                     </span>
                   )}
                   <span className="max-w-full truncate">{tab.label}</span>
+                  {tab.href === '/profile' && (summary?.pendingRequests ?? 0) > 0 && (
+                    <span className="sr-only">, {summary!.pendingRequests} friend requests</span>
+                  )}
                 </Link>
               </li>
             );

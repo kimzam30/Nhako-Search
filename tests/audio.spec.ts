@@ -24,8 +24,75 @@ test('settings exposes every channel and all presets', async ({ page }) => {
     await expect(page.getByLabel(label, { exact: true })).toBeVisible();
   }
 
-  for (const preset of ['Focus', 'Meadow', 'Thunderstorm', 'Quiet Night']) {
-    await expect(page.getByRole('button', { name: preset })).toBeVisible();
+  for (const preset of ['Focus', 'Rainy café', 'Meadow', 'Thunderstorm', 'Night drive', 'Garden party']) {
+    await expect(page.getByRole('button', { name: preset, exact: true })).toBeVisible();
+  }
+
+  // Four generated lofi tracks to choose from.
+  const tracks = page.getByRole('radiogroup', { name: 'Lofi track' }).getByRole('radio');
+  await expect(tracks).toHaveCount(4);
+});
+
+test('choosing a lofi track persists it', async ({ page }) => {
+  await page.goto('/settings');
+  await openMixer(page);
+  const group = page.getByRole('radiogroup', { name: 'Lofi track' });
+  await group.getByRole('radio', { name: 'Night drive' }).click();
+  await expect(group.getByRole('radio', { name: 'Night drive' })).toHaveAttribute('aria-checked', 'true');
+  expect(await page.evaluate(() => localStorage.getItem('nhako_lofi_track'))).toBe('night');
+  await page.reload();
+  await openMixer(page);
+  await expect(page.getByRole('radiogroup', { name: 'Lofi track' }).getByRole('radio', { name: 'Night drive' })).toHaveAttribute('aria-checked', 'true');
+});
+
+/*
+ * Every layer rendered offline (no speaker needed): each must actually make
+ * sound, sit in a sensible loudness range, and never clip — including all
+ * channels at 100%, which peaked at 1.24 before the limiter was added.
+ */
+test('every ambience layer renders at a sane level without clipping', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto('/settings');
+  await page.evaluate(() => localStorage.setItem('nhako_debug', '1'));
+  await page.reload();
+  await page.waitForFunction(() => !!(window as unknown as { __nhakoAudio?: unknown }).__nhakoAudio);
+
+  const cases: [string, Record<string, number>, string?][] = [
+    ['rain', { rain: 100 }],
+    ['wind', { wind: 100 }],
+    ['birds', { birds: 100 }],
+    ['thunder', { rain: 100, thunder: 100 }],
+    ['lofi sunday', { lofi: 100 }, 'sunday'],
+    ['lofi cafe', { lofi: 100 }, 'cafe'],
+    ['lofi night', { lofi: 100 }, 'night'],
+    ['lofi garden', { lofi: 100 }, 'garden'],
+    ['everything', { lofi: 100, rain: 100, wind: 100, birds: 100, thunder: 100 }, 'night'],
+  ];
+  for (const [name, vols, track] of cases) {
+    const r = await page.evaluate(
+      async ({ vols, track, secs }) => {
+        const full = { lofi: 0, rain: 0, wind: 0, birds: 0, thunder: 0, master: 100, ...vols };
+        const api = (window as unknown as { __nhakoAudio: { renderAmbience: (s: number, v: unknown, t?: string, sr?: number) => Promise<AudioBuffer> } }).__nhakoAudio;
+        const buf = await api.renderAmbience(secs, full, track, 16000);
+        let peak = 0;
+        let sum = 0;
+        let bad = 0;
+        for (let c = 0; c < 2; c++) {
+          const d = buf.getChannelData(c);
+          for (let i = 0; i < d.length; i++) {
+            if (!Number.isFinite(d[i])) bad++;
+            peak = Math.max(peak, Math.abs(d[i]));
+            sum += d[i] * d[i];
+          }
+        }
+        return { peak, rmsDb: 20 * Math.log10(Math.sqrt(sum / (buf.length * 2)) + 1e-12), bad };
+      },
+      { vols, track, secs: name === 'thunder' ? 24 : 10 }
+    );
+    expect(r.bad, `${name}: non-finite samples`).toBe(0);
+    expect(r.peak, `${name}: clipping`).toBeLessThanOrEqual(1);
+    expect(r.rmsDb, `${name}: silent`).toBeGreaterThan(-36);
+    expect(r.rmsDb, `${name}: too loud`).toBeLessThan(-9);
   }
 });
 

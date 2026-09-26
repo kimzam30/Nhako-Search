@@ -174,3 +174,43 @@ export const CheckSvg = ({ className = '' }: { className?: string }) => (
     <path d="M4.5 12.8L9.3 17.4C9.6 17.7 10.1 17.7 10.4 17.4L19.8 6.8" />
   </svg>
 );
+
+export const TrophySvg = ({ className = '' }: { className?: string }) => (
+  <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--line)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M7 3.8H17C17 3.8 17.4 9.6 15.6 12C14.6 13.3 13.3 14 12 14C10.7 14 9.4 13.3 8.4 12C6.6 9.6 7 3.8 7 3.8Z" fill="currentColor" />
+    <path d="M7.1 5.5C5.2 5.2 3.4 5.8 3.6 7.8C3.8 9.9 5.8 11 8 11.2M16.9 5.5C18.8 5.2 20.6 5.8 20.4 7.8C20.2 9.9 18.2 11 16 11.2" />
+    <path d="M12 14V17.5M8.5 20.5C8.6 18.6 10 17.5 12 17.5C14 17.5 15.4 18.6 15.5 20.5Z" fill="currentColor" />
+  </svg>
+);
+
+/** A butterfly token: a gold coin stamped with wings. */
+export const TokenSvg = ({ className = '' }: { className?: string }) => (
+  <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" className={className}>
+    <circle cx="12" cy="12" r="9.6" fill="var(--gold)" stroke="var(--line)" strokeWidth="1.8" />
+    <circle cx="12" cy="12" r="6.9" fill="none" stroke="var(--line)" strokeWidth="1" strokeDasharray="1.6 1.8" opacity="0.55" />
+    <path d="M12 12C10.2 8.4 6.8 9 7.4 12.4C7.7 14.2 9.8 15.4 12 12Z M12 12C13.8 8.4 17.2 9 16.6 12.4C16.3 14.2 14.2 15.4 12 12Z" fill="var(--art-light)" stroke="var(--line)" strokeWidth="1.3" strokeLinejoin="round" />
+    <path d="M12 9.3V14.7" stroke="var(--line)" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>
+);
+
+export const SendSvg = ({ className = '' }: { className?: string }) => (
+  <svg {...iconProps} className={className}>
+    <path d="M3.5 11.4L20.2 3.9C20.6 3.7 21 4.1 20.9 4.5L14.6 20.3C14.4 20.8 13.7 20.8 13.5 20.3L10.9 13.4L3.6 12.5C3.1 12.4 3 11.6 3.5 11.4Z" />
+    <path d="M10.9 13.4L20.6 4.2" />
+  </svg>
+);
+
+export const UserPlusSvg = ({ className = '' }: { className?: string }) => (
+  <svg {...iconProps} className={className}>
+    <path d="M9.5 11.8C11.8 11.9 13.5 10.1 13.5 7.9C13.5 5.7 11.7 4 9.5 4C7.3 4 5.6 5.8 5.6 7.9C5.6 10 7.3 11.7 9.5 11.8Z" />
+    <path d="M2.8 20.2C3.2 16.8 5.9 14.6 9.5 14.6C11.2 14.6 12.7 15.1 13.8 16" />
+    <path d="M18.5 13.5V20.5M15 17H22" />
+  </svg>
+);
+
+export const CopySvg = ({ className = '' }: { className?: string }) => (
+  <svg {...iconProps} className={className}>
+    <path d="M9 8.8C9 7.8 9.8 7 10.8 7H18.2C19.2 7 20 7.8 20 8.8V18.2C20 19.2 19.2 20 18.2 20H10.8C9.8 20 9 19.2 9 18.2Z" />
+    <path d="M15 4.2C14.8 3.5 14.1 3 13.3 3H5.8C4.8 3 4 3.8 4 4.8V12.3C4 13.1 4.5 13.8 5.2 14" />
+  </svg>
+);

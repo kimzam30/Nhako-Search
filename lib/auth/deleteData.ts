@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/multiplayer/supabase';
+import { clearCache } from '@/lib/data/cache';
 
 /**
  * Every localStorage/sessionStorage key this app owns.
@@ -18,6 +19,11 @@ const LOCAL_KEYS = [
   'nhako_audio_volumes',
   'nhako_theme',
   'nhako_daily_stars',
+  'nhako_wallet',
+  'nhako_journal',
+  'nhako_seen_words',
+  'nhako_last_free_play',
+  'nhako_chat_name',
 ];
 
 const SESSION_KEY_PREFIXES = [
@@ -26,6 +32,7 @@ const SESSION_KEY_PREFIXES = [
   'nhako_guest_id',
   'nhako_room_',
   'nhako_race_found_',
+  'nhako_chat_',
   'splash_seen',
 ];
 
@@ -67,6 +74,8 @@ function clearLocalState() {
 export async function deleteAllUserData(): Promise<DeleteDataResult> {
   const failed: string[] = [];
 
+  // Deliberately the server-verified user (not the cached session): this is
+  // the one destructive path, so identity is confirmed with the auth server.
   const { data } = await supabase.auth.getUser();
   const user = data?.user;
 
@@ -83,6 +92,15 @@ export async function deleteAllUserData(): Promise<DeleteDataResult> {
       if (error) failed.push(table);
     }
 
+    const { error: walletError } = await supabase.from('wallets').delete().eq('user_id', user.id);
+    if (walletError) failed.push('wallets');
+
+    const { error: friendError } = await supabase
+      .from('friendships')
+      .delete()
+      .or(`requester.eq.${user.id},addressee.eq.${user.id}`);
+    if (friendError) failed.push('friendships');
+
     const { error: raceError } = await supabase
       .from('race_history')
       .delete()
@@ -95,6 +113,7 @@ export async function deleteAllUserData(): Promise<DeleteDataResult> {
   }
 
   clearLocalState();
+  clearCache();
   await supabase.auth.signOut();
 
   return { ok: failed.length === 0, failed };

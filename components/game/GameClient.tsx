@@ -9,17 +9,26 @@ import { Difficulty } from '@/lib/puzzle/generator';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { ClockSvg, WandSvg } from '@/components/ui/Icons';
+import { ClockSvg, TokenSvg, WandSvg } from '@/components/ui/Icons';
 import { DoodleButterfly } from '@/components/ui/Doodles';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 import { useGameTitle } from '@/lib/nav/gameTitle';
 import { haptic } from '@/lib/audio/sfx';
+import { usePlayer } from '@/lib/data/player';
+import { freeHintPenaltySeconds, HINT_COOLDOWN_MS, HINT_COST, starsFor, type RewardLine } from '@/lib/rewards/economy';
+import { spendTokens } from '@/lib/rewards/wallet';
+import { recordCombo } from '@/lib/rewards/journal';
+import { TokenPill } from '@/components/rewards/TokenPill';
 
 interface Props {
   words: string[];
   difficulty: Difficulty;
   seedStr?: string;
-  onComplete?: (stars: number, timeSeconds: number) => void;
+  /**
+   * Fired once when the board is cleared. `seconds` includes hint penalties.
+   * May resolve to the reward lines to show on the win screen.
+   */
+  onComplete?: (result: { stars: number; seconds: number; hints: number; words: number }) => Promise<RewardLine[] | void> | void;
   /**
    * `total` is the number of words actually placed in the grid, which can be
    * lower than `words.length`. Callers must use it rather than counting the
@@ -107,6 +116,7 @@ export function GameClient({
         playSfx('found', c.level);
         haptic(25);
         if (c.level > 0) {
+          recordCombo(c.level);
           playSfx('combo', c.level);
           setCombo({ id: now, text: COMBO_WORDS[Math.min(c.level - 1, COMBO_WORDS.length - 1)] });
         }
@@ -172,7 +182,49 @@ export function GameClient({
     return () => clearInterval(id);
   }, [isWon, showTimer, startTime]);
 
-  const handleHint = () => {
+  // ----------------------------------------------------------------- hints
+  // A hint costs HINT_COST tokens. With too few tokens it is still there, but
+  // adds time to the clock instead (more for each one), and every hint has a
+  // cooldown — so hints unstick a player without ever being the fast way.
+  const { summary } = usePlayer();
+  const tokens = summary?.tokens ?? 0;
+  const [penalty, setPenalty] = useState(0);
+  const [freeHints, setFreeHints] = useState(0);
+  const [hintReadyAt, setHintReadyAt] = useState(0);
+  const [penaltyFlash, setPenaltyFlash] = useState<{ id: number; secs: number } | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+  const canPay = tokens >= HINT_COST;
+  const nextPenalty = freeHintPenaltySeconds(freeHints);
+
+  useEffect(() => {
+    if (hintReadyAt <= Date.now()) return;
+    let raf = 0;
+    const tick = () => {
+      const left = Math.max(0, hintReadyAt - Date.now());
+      setCooldown(left / HINT_COOLDOWN_MS);
+      if (left > 0) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [hintReadyAt]);
+
+  useEffect(() => {
+    if (!penaltyFlash) return;
+    const t = window.setTimeout(() => setPenaltyFlash(null), 1400);
+    return () => window.clearTimeout(t);
+  }, [penaltyFlash]);
+
+  const handleHint = async () => {
+    if (Date.now() < hintReadyAt || game.remainingCount === 0) return;
+    setHintReadyAt(Date.now() + HINT_COOLDOWN_MS);
+    if (canPay && (await spendTokens(HINT_COST))) {
+      if (game.useHint()) playSfx('hint');
+      return;
+    }
+    const secs = nextPenalty;
+    setPenalty(p => p + secs);
+    setFreeHints(n => n + 1);
+    setPenaltyFlash({ id: Date.now(), secs });
     if (game.useHint()) playSfx('hint');
   };
 
@@ -274,10 +326,11 @@ export function GameClient({
    * state write; the sound, haptic and onComplete fire exactly once.
    */
   const complete = totalWords > 0 && allFound.length >= totalWords;
+  const [rewards, setRewards] = useState<RewardLine[] | null>(null);
   useEffect(() => {
     if (!complete || win) return;
-    const seconds = Math.floor((Date.now() - startTime) / 1000);
-    const earned = seconds < 60 ? 3 : seconds < 120 ? 2 : 1;
+    const seconds = Math.floor((Date.now() - startTime) / 1000) + penalty;
+    const earned = starsFor(difficulty, seconds);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setWin({ stars: earned, seconds });
     // Let the last butterfly land before the fanfare.
@@ -285,9 +338,13 @@ export function GameClient({
       playSfx('win');
       haptic([30, 60, 30, 60, 60]);
     }, 450);
-    onComplete?.(earned, seconds);
+    Promise.resolve(onComplete?.({ stars: earned, seconds, hints: game.hintsUsed, words: totalWords }))
+      .then(lines => {
+        if (lines) setRewards(lines);
+      })
+      .catch(err => console.error('Saving the result failed:', err));
     return () => window.clearTimeout(t);
-  }, [complete, win, startTime, onComplete, playSfx]);
+  }, [complete, win, startTime, onComplete, playSfx, penalty, difficulty, game.hintsUsed, totalWords]);
 
   // The celebration waits for the final flight, so the last find is seen.
   const [showWin, setShowWin] = useState(false);
@@ -297,34 +354,77 @@ export function GameClient({
     return () => window.clearTimeout(t);
   }, [isWon]);
 
-  const mins = Math.floor(elapsed / 60);
-  const secs = elapsed % 60;
+  const clock = elapsed + penalty;
+  const mins = Math.floor(clock / 60);
+  const secs = clock % 60;
   const left = totalWords - allFound.length;
   const showBoosters = showTimer || allowHints;
 
+  const hintCooling = cooldown > 0;
   const boosters = showBoosters && (
-    <div className="flex items-center justify-between gap-3 w-full">
+    <div className="flex items-center justify-between gap-2 w-full">
       {showTimer ? (
-        <span className="hud-pill text-lg" role="timer" aria-label={`Elapsed time ${mins} minutes ${secs} seconds`}>
+        <span className="relative hud-pill text-lg" role="timer" aria-label={`Time ${mins} minutes ${secs} seconds`}>
           <ClockSvg className="w-5 h-5 text-accent-ink" />
           {mins}:{secs.toString().padStart(2, '0')}
+          <AnimatePresence>
+            {penaltyFlash && (
+              <motion.span
+                key={penaltyFlash.id}
+                initial={{ opacity: 0, y: 0 }}
+                animate={{ opacity: 1, y: -30 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+                className="absolute left-1/2 -translate-x-1/2 top-0 font-display font-bold text-base text-danger whitespace-nowrap"
+                aria-hidden="true"
+              >
+                +{penaltyFlash.secs}s
+              </motion.span>
+            )}
+          </AnimatePresence>
         </span>
       ) : (
         <span />
       )}
-      <span className="font-display font-bold text-ink-2 tabular whitespace-nowrap text-sm sm:text-base">{left > 0 ? `${left} left` : 'All found!'}</span>
+      <span className="flex flex-col items-center min-w-0">
+        <span className="font-display font-bold text-ink-2 tabular whitespace-nowrap text-sm sm:text-base">{left > 0 ? `${left} left` : 'All found!'}</span>
+        {allowHints && <TokenPill tokens={summary?.tokens} className="!h-7 !px-2 !text-xs !shadow-none scale-90" />}
+      </span>
       {allowHints ? (
         <button
           type="button"
           onClick={handleHint}
-          disabled={game.remainingCount === 0}
-          aria-label={`Hint${game.hintsUsed > 0 ? ` (${game.hintsUsed})` : ''}`}
+          disabled={game.remainingCount === 0 || hintCooling}
+          aria-label={
+            hintCooling
+              ? 'Hint recharging'
+              : canPay
+                ? `Hint for ${HINT_COST} tokens`
+                : `Free hint, adds ${nextPenalty} seconds`
+          }
           data-sfx="none"
-          className="press relative flex items-center gap-2 h-14 pl-3 pr-4 border-2 border-line bg-gold text-on-accent font-display font-bold text-lg shadow-[3px_4px_0_0_var(--line)] disabled:opacity-40"
+          className="press relative overflow-hidden flex items-center gap-2 h-14 pl-3 pr-3 border-2 border-line bg-gold text-on-accent font-display font-bold text-lg shadow-[3px_4px_0_0_var(--line)] disabled:opacity-60"
           style={{ borderRadius: '18px 12px 16px 10px' }}
         >
-          <WandSvg className="w-6 h-6" />
-          Hint
+          {hintCooling && (
+            <span className="cooldown-ring absolute inset-0" style={{ ['--p' as string]: cooldown }} aria-hidden="true" />
+          )}
+          <WandSvg className="relative w-6 h-6" />
+          <span className="relative flex flex-col items-start leading-none">
+            Hint
+            <span className="flex items-center gap-0.5 text-[11px] font-extrabold mt-0.5">
+              {canPay ? (
+                <>
+                  <TokenSvg className="w-3.5 h-3.5" />
+                  {HINT_COST}
+                </>
+              ) : (
+                <>
+                  <ClockSvg className="w-3.5 h-3.5" />+{nextPenalty}s
+                </>
+              )}
+            </span>
+          </span>
           {game.hintsUsed > 0 && (
             <span className="absolute -top-2.5 -right-2.5 min-w-6 h-6 px-1 flex items-center justify-center rounded-full border-2 border-line bg-accent text-on-accent text-xs tabular">
               {game.hintsUsed}
@@ -442,6 +542,8 @@ export function GameClient({
           seconds={win.seconds}
           words={totalWords}
           hints={game.hintsUsed}
+          rewards={rewards}
+          penalty={penalty}
         >
           {nextLevelHref ? (
             <>

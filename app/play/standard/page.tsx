@@ -1,17 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ButtonLink } from '@/components/ui/Button';
 import { THEME_ART } from '@/components/ui/Doodles';
 import { CheckSvg, PlaySvg } from '@/components/ui/Icons';
-
-const THEMES = [
-  { id: 'standard', name: 'Mixed pack', tint: 'var(--lav-soft)' },
-  { id: 'garden', name: 'Garden', tint: 'color-mix(in srgb, var(--word-3) calc(30% * var(--tint-boost)), var(--surface))' },
-  { id: 'rainy-day', name: 'Rainy day', tint: 'color-mix(in srgb, var(--word-5) calc(30% * var(--tint-boost)), var(--surface))' },
-  { id: 'cozy-cottage', name: 'Cozy cottage', tint: 'color-mix(in srgb, var(--word-6) calc(28% * var(--tint-boost)), var(--surface))' },
-  { id: 'night-sky', name: 'Night sky', tint: 'color-mix(in srgb, var(--word-2) calc(30% * var(--tint-boost)), var(--surface))' },
-  { id: 'date-night', name: 'Date night', tint: 'color-mix(in srgb, var(--word-1) calc(30% * var(--tint-boost)), var(--surface))' },
-];
+import { THEMES } from '@/lib/words/themes';
+import { readJournal } from '@/lib/rewards/journal';
 
 const DIFFICULTIES = [
   { id: 'easy', label: 'Easy', detail: '8×8 · 6 words', dots: 1 },
@@ -19,21 +12,44 @@ const DIFFICULTIES = [
   { id: 'hard', label: 'Hard', detail: '13×13 · 10 words', dots: 3 },
 ];
 
+const LAST_KEY = 'nhako_last_free_play';
+
 export default function StandardSetupPage() {
+  // Reopen on the theme and difficulty last played, like a game remembering
+  // your loadout.
   const [theme, setTheme] = useState('standard');
   const [diff, setDiff] = useState('easy');
+  const [played, setPlayed] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const last = JSON.parse(localStorage.getItem(LAST_KEY) || '{}') as { theme?: string; diff?: string };
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (last.theme && THEMES.some(t => t.id === last.theme)) setTheme(last.theme);
+      if (last.diff && DIFFICULTIES.some(d => d.id === last.diff)) setDiff(last.diff);
+    } catch {
+      /* first visit or blocked storage */
+    }
+    setPlayed(readJournal().themes);
+  }, []);
+  const remember = () => {
+    try {
+      localStorage.setItem(LAST_KEY, JSON.stringify({ theme, diff }));
+    } catch {
+      /* private mode */
+    }
+  };
 
   return (
     <div className="flex flex-col w-full max-w-lg md:max-w-2xl mx-auto px-5 pb-28" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
       <h1 className="text-4xl font-display text-ink mb-1">Free play</h1>
       <p className="font-accent text-2xl text-ink-2 -rotate-1 mb-5">pick a page to fill</p>
 
-      {/* All six themes visible at once. The old sideways strip hid half of
-          them behind a pulsing "scroll for more" hint. */}
+      {/* Every theme visible at once, three across on a phone. A small dot marks
+          the ones not yet cleared (the Explorer butterfly needs them all). */}
       <h2 id="theme-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2 mb-3">
         Theme
       </h2>
-      <div role="radiogroup" aria-labelledby="theme-label" className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+      <div role="radiogroup" aria-labelledby="theme-label" className="grid grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3 mb-8">
         {THEMES.map((t, i) => {
           const selected = theme === t.id;
           const Art = THEME_ART[t.id];
@@ -44,13 +60,20 @@ export default function StandardSetupPage() {
               role="radio"
               aria-checked={selected}
               onClick={() => setTheme(t.id)}
-              className={`press stagger-in relative h-[118px] flex flex-col items-center justify-center gap-1 text-center px-2 border-line transition-[box-shadow,transform] duration-150 ${
+              className={`press stagger-in relative h-[108px] flex flex-col items-center justify-center gap-1 text-center px-1.5 border-line transition-[box-shadow,transform] duration-150 ${
                 selected ? 'border-[3px] shadow-[4px_5px_0_0_var(--line)] -rotate-1' : 'border-2 shadow-[2px_3px_0_0_var(--line)]'
               }`}
-              style={{ background: t.tint, borderRadius: i % 2 ? '14px 22px 12px 20px' : '20px 12px 22px 14px', ['--i' as string]: i }}
+              style={{
+                background: `color-mix(in srgb, ${t.hue} calc(30% * var(--tint-boost)), var(--surface))`,
+                borderRadius: i % 2 ? '14px 22px 12px 20px' : '20px 12px 22px 14px',
+                ['--i' as string]: i,
+              }}
             >
-              <Art className="w-14 h-14" />
-              <span className="font-display font-bold text-ink text-base leading-tight">{t.name}</span>
+              <Art className="w-12 h-12" />
+              <span className="font-display font-bold text-ink text-sm leading-tight">{t.name}</span>
+              {!played.includes(t.id) && (
+                <span className="absolute top-2 left-2 w-2.5 h-2.5 rounded-full bg-accent border-2 border-line" aria-label="not played yet" />
+              )}
               {selected && (
                 <span className="nera-pop absolute -top-2.5 -right-2.5 w-7 h-7 flex items-center justify-center rounded-full border-2 border-line bg-accent text-on-accent">
                   <CheckSvg className="w-4 h-4" />
@@ -96,7 +119,7 @@ export default function StandardSetupPage() {
         className="bottom-cta fixed left-0 right-0 lg:left-[var(--rail-w)] z-30 px-5 pb-3 pt-3 bg-gradient-to-t from-background via-background to-transparent"
       >
         <div className="max-w-lg md:max-w-2xl mx-auto">
-          <ButtonLink href={`/play/standard/${theme}/${diff}`} fullWidth className="text-xl py-4">
+          <ButtonLink href={`/play/standard/${theme}/${diff}`} onClick={remember} fullWidth className="text-xl py-4">
             <PlaySvg className="w-6 h-6" />
             Start puzzle
           </ButtonLink>

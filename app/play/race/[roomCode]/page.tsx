@@ -2,23 +2,38 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRaceRoom, raceDurationSeconds, TOGETHER, OUT_OF_TIME, type RoomMode } from '@/lib/multiplayer/useRaceRoom';
+import { getCurrentUser } from '@/lib/auth/session';
+import { PageSkeleton } from '@/components/ui/Skeleton';
+import { THEMES } from '@/lib/words/themes';
+import { earnTokens } from '@/lib/rewards/wallet';
+import { rewardFor, total } from '@/lib/rewards/economy';
+import { updateJournal } from '@/lib/rewards/journal';
+import { refreshSummary } from '@/lib/data/player';
+import { requestById, REQUEST_MESSAGES } from '@/lib/social/friends';
+import { toast } from '@/components/ui/Toast';
 import { GameClient } from '@/components/game/GameClient';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
 import { ButterflyGarland } from '@/components/game/ButterflyGarland';
-import { supabase } from '@/lib/multiplayer/supabase';
-import { ButterflySvg, ShareSvg } from '@/components/ui/Icons';
+import { ButterflySvg, ShareSvg, TokenSvg, UserPlusSvg } from '@/components/ui/Icons';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { ChatWidget } from '@/components/multiplayer/ChatWidget';
+import { ChatDock, ChatFab } from '@/components/multiplayer/ChatWidget';
 import { PartnerGridDisplay } from '@/components/game/PartnerGridDisplay';
 import { Petals } from '@/components/game/Petals';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 import { getUserProfile } from '@/lib/auth/profile';
 import { useSetGameTitle } from '@/lib/nav/gameTitle';
 import { getStableGuestId } from '@/lib/multiplayer/identity';
-import standardPool from '@/lib/words/standard.json';
 import type { Difficulty } from '@/lib/puzzle/generator';
+
+/** The round's word theme, derived from its seed so both players agree on it. */
+function themeForSeed(seed: string | undefined) {
+  if (!seed) return THEMES[0];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (Math.imul(h, 31) + seed.charCodeAt(i)) >>> 0;
+  return THEMES[h % THEMES.length];
+}
 
 function ProgressBar({
   label,
@@ -98,12 +113,11 @@ export default function RaceRoomPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const profile = await getUserProfile();
-      const { data } = await supabase.auth.getUser();
+      const [profile, user] = await Promise.all([getUserProfile(), getCurrentUser()]);
       if (cancelled) return;
       // A guest keeps the same id across a reload so they rejoin the room
       // instead of arriving as a brand-new player.
-      setUserId(data?.user?.id ?? getStableGuestId());
+      setUserId(user?.id ?? getStableGuestId());
       setUserName(profile.displayName);
     })();
     return () => {
@@ -111,13 +125,7 @@ export default function RaceRoomPage() {
     };
   }, []);
 
-  if (!userId) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center text-ink font-display text-2xl">
-        Loading...
-      </div>
-    );
-  }
+  if (!userId) return <PageSkeleton title={`room ${roomCode}`} />;
   return <RaceRoom activeUserId={userId} activeUserName={userName} roomCode={roomCode} />;
 }
 
@@ -139,9 +147,24 @@ function RaceRoom({
     updateMyState,
     chatMessages,
     sendChat,
+    sendTyping,
+    partnerTyping,
+    addSystemMessage,
     startRaceAsLeader,
     requestRematch,
   } = useRaceRoom(roomCode, activeUserId, activeUserName);
+
+  const chatProps = {
+    messages: chatMessages,
+    onSend: sendChat,
+    onTyping: sendTyping,
+    partnerTyping,
+    meId: activeUserId,
+    partnerName: opponentName(),
+  };
+  function opponentName() {
+    return raceState.opponent?.name || 'Partner';
+  }
 
   const { me, opponent } = raceState;
   const isFinished = raceState.status === 'finished';
@@ -179,8 +202,9 @@ function RaceRoom({
 
   // The whole pool is passed in; the generator picks a deterministic subset
   // from the shared seed, so both players build an identical grid.
-  const racePool =
-    (standardPool as Record<string, string[]>)[roomDifficulty] ?? standardPool.easy;
+  // Each round draws from a theme picked by its seed, so rematches vary.
+  const roundTheme = themeForSeed(raceState.seedStr);
+  const racePool = roundTheme.words[roomDifficulty] ?? roundTheme.words.easy;
 
   // Finds are kept per board for the tab's life, so a reload mid-race puts
   // the player straight back where they were instead of on a blank board.
@@ -252,6 +276,56 @@ function RaceRoom({
     });
   }, [clearedTogether, roomCode]);
 
+  // Room events as quiet lines in the chat, so the thread tells the story.
+  const opponentId = opponent?.id;
+  const prevOpponent = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const prev = prevOpponent.current;
+    prevOpponent.current = opponentId;
+    if (opponentId && opponentId !== prev) addSystemMessage(`${opponent?.name ?? 'Your partner'} joined`, `join-${opponentId}-${raceState.round}`);
+    if (!opponentId && prev) addSystemMessage('Your partner left the room');
+    // Names can arrive after ids; only the id change matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opponentId, addSystemMessage]);
+  useEffect(() => {
+    if (raceState.status === 'countdown') {
+      addSystemMessage(`Round ${raceState.round} · ${isCoop ? 'Together' : 'Race'} · ${roomDifficulty}`, `round-${raceState.round}`);
+    }
+  }, [raceState.status, raceState.round, isCoop, roomDifficulty, addSystemMessage]);
+
+  // Tokens for the round, once per round, whoever won.
+  const [roundReward, setRoundReward] = useState<number | null>(null);
+  const rewardedRoundRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isFinished || !raceState.winner || rewardedRoundRef.current === raceState.round) return;
+    rewardedRoundRef.current = raceState.round;
+    const lines = clearedTogether
+      ? rewardFor({ mode: 'together', difficulty: roomDifficulty })
+      : outOfTime
+        ? [{ label: 'Good try', amount: 2 }]
+        : rewardFor({ mode: iWon ? 'race-win' : 'race-loss', difficulty: roomDifficulty });
+    if (clearedTogether) updateJournal(j => void j.together++);
+    const amount = total(lines);
+     
+    setRoundReward(amount);
+    void earnTokens(amount).then(() => refreshSummary());
+    addSystemMessage(
+      clearedTogether ? 'Cleared together!' : outOfTime ? 'Out of time' : iWon ? `${me.name} won round ${raceState.round}` : `${opponent?.name ?? 'Your partner'} won round ${raceState.round}`,
+      `result-${raceState.round}`
+    );
+  }, [isFinished, raceState.winner, raceState.round, clearedTogether, outOfTime, iWon, roomDifficulty, addSystemMessage, me.name, opponent?.name]);
+
+  // Friend request to the partner, from the results screen.
+  const [friendState, setFriendState] = useState<'idle' | 'sending' | 'done'>('idle');
+  const canAddFriend = !!opponent && !opponent.id.startsWith('guest-') && !activeUserId.startsWith('guest-');
+  const addFriend = async () => {
+    if (!opponent) return;
+    setFriendState('sending');
+    const result = await requestById(opponent.id);
+    setFriendState(result === 'sent' || result === 'accepted' || result === 'already' ? 'done' : 'idle');
+    toast({ title: result === 'accepted' ? `You and ${opponent.name} are friends` : result === 'sent' ? 'Friend request sent' : 'Friends', body: REQUEST_MESSAGES[result] });
+  };
+
   if (connection === 'full') {
     return (
       <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-sm mx-auto gap-6 text-center">
@@ -287,7 +361,8 @@ function RaceRoom({
         active ? 'bg-accent text-on-accent shadow-[0_2px_0_var(--line)]' : 'text-ink-2'
       }`;
     return (
-      <div className="flex flex-col w-full max-w-lg mx-auto px-5 pb-8">
+      <div className="w-full max-w-lg lg:max-w-5xl mx-auto px-5 pb-8 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8 lg:items-start">
+      <div className="flex flex-col">
         <div className="flex items-end justify-between gap-3 mb-1">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-widest text-ink-2">Room code</p>
@@ -357,6 +432,9 @@ function RaceRoom({
           </Button>
         )}
       </div>
+        {/* Talk while you wait: beside the room on desktop, under it on phones. */}
+        <ChatDock {...chatProps} className="mt-8 lg:mt-0 h-[380px] lg:h-[calc(100dvh-8rem)] lg:max-h-[640px] lg:sticky lg:top-6" />
+      </div>
     );
   }
 
@@ -383,7 +461,8 @@ function RaceRoom({
   // ----------------------------------------------------------------- result
   if (isFinished) {
     return (
-      <div className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-lg mx-auto">
+      <div className="w-full max-w-lg lg:max-w-5xl mx-auto px-6 pt-6 pb-8 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8 lg:items-start">
+      <div className="flex flex-col items-center">
         {celebrate && <Petals />}
         <motion.h1
           initial={{ scale: 0.8, opacity: 0, y: 20 }}
@@ -420,6 +499,12 @@ function RaceRoom({
           </div>
         </Card>
 
+        {roundReward !== null && (
+          <p className="-mt-4 mb-6 flex items-center gap-1.5 font-display font-bold text-xl text-ink tabular" aria-live="polite">
+            <TokenSvg className="w-7 h-7 token-bump" />+{roundReward} tokens
+          </p>
+        )}
+
         <div className="flex gap-4 w-full">
           <Button fullWidth variant="secondary" onClick={() => router.replace('/')}>
             Back to Home
@@ -429,6 +514,19 @@ function RaceRoom({
             Rematch
           </Button>
         </div>
+        {canAddFriend && (
+          <button
+            type="button"
+            onClick={addFriend}
+            disabled={friendState !== 'idle'}
+            className="press mt-4 flex items-center gap-2 min-h-[44px] px-4 rounded-full border-2 border-line bg-surface font-body font-extrabold text-ink disabled:opacity-60"
+          >
+            <UserPlusSvg className="w-5 h-5" />
+            {friendState === 'done' ? 'Friend request sent' : friendState === 'sending' ? 'Sending…' : `Add ${opponent!.name} as a friend`}
+          </button>
+        )}
+      </div>
+        <ChatDock {...chatProps} className="mt-8 lg:mt-0 h-[340px] lg:h-[calc(100dvh-8rem)] lg:max-h-[640px] lg:sticky lg:top-6" />
       </div>
     );
   }
@@ -472,11 +570,10 @@ function RaceRoom({
             />
           </div>
 
-          {isCoop && (
-            <span className="hidden lg:block shrink-0 font-body font-bold text-sm text-ink-2 whitespace-nowrap">
-              Together
-            </span>
-          )}
+          <span className="hidden md:block shrink-0 font-body font-bold text-sm text-ink-2 whitespace-nowrap">
+            {isCoop ? 'Together · ' : ''}
+            {roundTheme.name}
+          </span>
         </div>
       </div>
 
@@ -519,12 +616,7 @@ function RaceRoom({
         )}
       </div>
 
-      <ChatWidget
-        messages={chatMessages}
-        onSend={sendChat}
-        activeUserId={activeUserId}
-        partnerName={opponent?.name || 'Partner'}
-      />
+      <ChatFab {...chatProps} />
     </div>
   );
 }

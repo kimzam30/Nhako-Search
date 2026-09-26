@@ -1,3 +1,4 @@
+import { getCurrentUser } from '@/lib/auth/session';
 import { supabase } from '@/lib/multiplayer/supabase';
 import { readJSON, writeJSON } from '@/lib/storage';
 
@@ -29,6 +30,15 @@ export function daysBetween(fromISO: string, toISO: string): number {
 
 export function getDailySeed(): string {
   return `daily-${gameDateString()}`;
+}
+
+/**
+ * Today's daily theme. Every player gets the same one; it rotates through the
+ * free-play themes day by day, so consecutive dailies never share a word pool.
+ */
+export function dailyThemeIndex(date: string = gameDateString(), themeCount: number): number {
+  const day = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
+  return ((day % themeCount) + themeCount) % themeCount;
 }
 
 /**
@@ -93,13 +103,13 @@ export function resolveStreak(lastDate: string, storedStreak: number): DailyStre
 }
 
 export async function checkDailyStreak(): Promise<DailyStreak> {
-  const { data: user } = await supabase.auth.getUser();
+  const authUser = await getCurrentUser();
 
-  if (user.user) {
+  if (authUser) {
     const { data } = await supabase
       .from('daily_challenge_log')
       .select('challenge_date, streak_count')
-      .eq('user_id', user.user.id)
+      .eq('user_id', authUser.id)
       .order('challenge_date', { ascending: false })
       .limit(1);
 
@@ -133,13 +143,13 @@ export async function getRecentDailyHistory(days = 7): Promise<boolean[]> {
   }
 
   const played = new Set<string>();
-  const { data: user } = await supabase.auth.getUser();
+  const authUser = await getCurrentUser();
 
-  if (user.user) {
+  if (authUser) {
     const { data } = await supabase
       .from('daily_challenge_log')
       .select('challenge_date')
-      .eq('user_id', user.user.id)
+      .eq('user_id', authUser.id)
       .gte('challenge_date', wanted[0])
       .lte('challenge_date', wanted[wanted.length - 1]);
     (data ?? []).forEach(row => played.add(String(row.challenge_date).slice(0, 10)));
@@ -171,11 +181,11 @@ export async function saveDailyChallenge(stars?: number): Promise<void> {
 
   const newStreak = streak + 1;
 
-  const { data: user } = await supabase.auth.getUser();
-  if (user.user) {
+  const authUser = await getCurrentUser();
+  if (authUser) {
     await supabase.from('daily_challenge_log').upsert(
       {
-        user_id: user.user.id,
+        user_id: authUser.id,
         challenge_date: dateStr,
         streak_count: newStreak,
       },
@@ -187,7 +197,7 @@ export async function saveDailyChallenge(stars?: number): Promise<void> {
     // case; this covers two calls racing before either has committed.
     await supabase.from('butterfly_collection').upsert(
       {
-        user_id: user.user.id,
+        user_id: authUser.id,
         butterfly_style_id: 'daily-' + dateStr,
         earned_from: 'daily',
       },

@@ -2,8 +2,7 @@
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { CHAPTERS, ALL_LEVEL_IDS, getLevelMeta } from '@/lib/levels/data';
-import { loadLevelProgress } from '@/lib/levels/progress';
-import type { LevelProgressRow } from '@/lib/types';
+import { usePlayer } from '@/lib/data/player';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StarSvg, LockSvg } from '@/components/ui/Icons';
 import { ButtonLink } from '@/components/ui/Button';
@@ -28,19 +27,11 @@ function chapterHue(name: string): string {
 const OFFSETS = [0, 30, 60, 40, -10, -50, -60, -30];
 
 export default function LevelPathPage() {
-  const [progress, setProgress] = useState<LevelProgressRow[] | null>(null);
+  // Shared, cached progress: the map opens with its stars already drawn.
+  const { summary } = usePlayer();
+  const progress = summary?.levels ?? null;
   const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    loadLevelProgress().then(rows => {
-      if (!cancelled) setProgress(rows);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const starsById = useMemo(
     () => new Map((progress ?? []).map(p => [p.level_id, p.stars ?? 0])),

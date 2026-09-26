@@ -2,37 +2,14 @@
 import { GameClient } from '@/components/game/GameClient';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import standardWords from '@/lib/words/standard.json';
-import gardenWords from '@/lib/words/garden.json';
-import rainyDayWords from '@/lib/words/rainy-day.json';
-import cozyCottageWords from '@/lib/words/cozy-cottage.json';
-import nightSkyWords from '@/lib/words/night-sky.json';
-import dateNightWords from '@/lib/words/date-night.json';
 import type { Difficulty } from '@/lib/puzzle/generator';
 import { useSetGameTitle } from '@/lib/nav/gameTitle';
-
-type WordPool = Record<Difficulty, string[]>;
-
-const THEME_MAP: Record<string, WordPool> = {
-  'standard': standardWords,
-  'garden': gardenWords,
-  'rainy-day': rainyDayWords,
-  'cozy-cottage': cozyCottageWords,
-  'night-sky': nightSkyWords,
-  'date-night': dateNightWords
-};
+import { THEME_BY_ID } from '@/lib/words/themes';
+import { bucketFor, pickFresh, wordCountFor } from '@/lib/words/pick';
+import { completeSolo } from '@/lib/rewards/complete';
+import { BoardSkeleton } from '@/components/ui/Skeleton';
 
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
-
-/** Fisher-Yates. `sort(() => 0.5 - Math.random())` is biased. */
-function shuffle<T>(items: T[]): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
 
 interface Puzzle {
   seed: string;
@@ -48,44 +25,27 @@ export default function StandardPlayPage() {
 
   // The URL is user-editable. An unknown difficulty used to reach the
   // generator unchecked and crash the page.
-  const theme = rawTheme in THEME_MAP ? rawTheme : 'standard';
+  const theme = THEME_BY_ID.has(rawTheme) ? rawTheme : 'standard';
   const diff: Difficulty = DIFFICULTIES.includes(rawDiff as Difficulty) ? (rawDiff as Difficulty) : 'easy';
   const canonical = rawTheme === theme && rawDiff === diff;
 
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
-  const themeLabel = theme.replace('-', ' ');
-  useSetGameTitle(`${themeLabel.charAt(0).toUpperCase()}${themeLabel.slice(1)} · ${diff.charAt(0).toUpperCase()}${diff.slice(1)}`);
+  const themeName = THEME_BY_ID.get(theme)!.name;
+  useSetGameTitle(`${themeName} · ${diff.charAt(0).toUpperCase()}${diff.slice(1)}`);
 
+  // Words this device has not seen lately come first (lib/words/pick.ts), so
+  // "New puzzle" keeps feeling new game after game, across app restarts.
   const generateNew = useCallback(() => {
-    const wordCount = diff === 'easy' ? 6 : diff === 'medium' ? 8 : 10;
-    const pool = THEME_MAP[theme][diff];
-    const recentKey = `nhako_recent_${theme}_${diff}`;
-
-    let recentWords: string[] = [];
-    try {
-      const parsed = JSON.parse(sessionStorage.getItem(recentKey) || '[]');
-      if (Array.isArray(parsed)) recentWords = parsed;
-    } catch {
-      /* corrupt or unavailable — start fresh */
-    }
-
-    // Prefer words not seen recently; fall back to the whole pool if exhausted.
-    const available = pool.filter(w => !recentWords.includes(w));
-    const shuffled = shuffle(available.length >= wordCount ? available : pool);
-    const selected = shuffled.slice(0, wordCount);
-
-    try {
-      sessionStorage.setItem(recentKey, JSON.stringify([...recentWords, ...selected].slice(-30)));
-    } catch {
-      /* private mode */
-    }
-
-    setPuzzle({
-      seed: Math.random().toString(36).substring(2),
-      words: selected,
-      reserve: shuffled.slice(wordCount),
-    });
+    const pool = THEME_BY_ID.get(theme)!.words[diff];
+    const { words, reserve } = pickFresh(bucketFor(theme, diff), pool, wordCountFor(diff));
+    setPuzzle({ seed: Math.random().toString(36).substring(2), words, reserve });
   }, [theme, diff]);
+
+  const handleComplete = useCallback(
+    (r: { stars: number; seconds: number; hints: number; words: number }) =>
+      completeSolo({ mode: 'free', difficulty: diff, theme, ...r }),
+    [diff, theme]
+  );
 
   useEffect(() => {
     if (!canonical) {
@@ -98,7 +58,7 @@ export default function StandardPlayPage() {
     generateNew();
   }, [canonical, theme, diff, router, generateNew]);
 
-  if (!puzzle) return null;
+  if (!puzzle) return <BoardSkeleton />;
 
   return (
     <div className="flex flex-col flex-1 px-3 pt-1 pb-2 items-center w-full">
@@ -111,6 +71,7 @@ export default function StandardPlayPage() {
         difficulty={diff}
         seedStr={puzzle.seed}
         onNext={generateNew}
+        onComplete={handleComplete}
       />
     </div>
   );
