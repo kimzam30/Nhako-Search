@@ -14,7 +14,7 @@ export function DoodleButterfly({
   className = '',
   wing = 'var(--word-1)',
   wing2 = 'var(--lav)',
-  stroke = 'var(--ink)',
+  stroke = 'var(--line)',
 }: ArtProps & { wing?: string; wing2?: string; stroke?: string }) {
   return (
     <svg viewBox="0 0 48 40" className={className} aria-hidden="true" focusable="false">
@@ -31,10 +31,10 @@ export function DoodleButterfly({
         <path d="M24.6 12.8C26 9 28.2 6.8 30.2 6.2" fill="none" />
       </g>
       {/* wing spots */}
-      <circle cx="10" cy="11" r="2" fill="var(--tile)" opacity="0.85" />
-      <circle cx="38" cy="11" r="2" fill="var(--tile)" opacity="0.85" />
-      <circle cx="15.5" cy="29.5" r="1.4" fill="var(--tile)" opacity="0.85" />
-      <circle cx="32.5" cy="29.5" r="1.4" fill="var(--tile)" opacity="0.85" />
+      <circle cx="10" cy="11" r="2" fill="var(--art-light)" opacity="0.85" />
+      <circle cx="38" cy="11" r="2" fill="var(--art-light)" opacity="0.85" />
+      <circle cx="15.5" cy="29.5" r="1.4" fill="var(--art-light)" opacity="0.85" />
+      <circle cx="32.5" cy="29.5" r="1.4" fill="var(--art-light)" opacity="0.85" />
     </svg>
   );
 }
@@ -43,11 +43,11 @@ export function DoodleButterfly({
 export function GardenArt({ className = '' }: ArtProps) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
-      <g stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M32 36C31.5 44 32.5 52 32 60" fill="none" />
         <path d="M32 50C27 45 20 45.5 17 48.5C21 53 28 53 32 50Z" fill="var(--word-3)" />
         {[0, 60, 120, 180, 240, 300].map(a => (
-          <ellipse key={a} cx="32" cy="17" rx="6.5" ry="10" fill="var(--tile)" transform={`rotate(${a} 32 25)`} />
+          <ellipse key={a} cx="32" cy="17" rx="6.5" ry="10" fill="var(--art-light)" transform={`rotate(${a} 32 25)`} />
         ))}
         <circle cx="32" cy="25" r="6.5" fill="var(--word-4)" />
       </g>
@@ -59,7 +59,7 @@ export function GardenArt({ className = '' }: ArtProps) {
 export function RainyArt({ className = '' }: ArtProps) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
-      <g stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path
           d="M17 38C9.5 38 7.5 29.5 13.5 26.5C13 18.5 22 14 28 19C31 11 44.5 11.5 46 21C54 21 56.5 30 51 35C49.5 37 47.5 38 45 38Z"
           fill="var(--word-5)"
@@ -76,7 +76,7 @@ export function RainyArt({ className = '' }: ArtProps) {
 export function CottageArt({ className = '' }: ArtProps) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
-      <g stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M24 10C21 14 27 16 24 20M32 8C29 12 35 14 32 18M40 10C37 14 43 16 40 20" fill="none" />
         <path d="M44 32C51 31 53 38 49.5 42C47.5 44.3 44.5 44.5 42.5 44" fill="none" />
         <path d="M15 26H46.5C46.5 26 47.5 42 42 49C38.5 53.5 23 53.5 19.5 49C14 42 15 26 15 26Z" fill="var(--word-6)" />
@@ -91,7 +91,7 @@ export function CottageArt({ className = '' }: ArtProps) {
 export function NightArt({ className = '' }: ArtProps) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
-      <g stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path
           d="M38 10C27 10.5 18 20 18.5 32C19 44 29.5 53.5 41.5 52.5C46 52 49.5 50.5 52 48C38.5 48.5 30.5 39 31 28.5C31.4 20 35.5 13.5 38 10Z"
           fill="var(--word-4)"
@@ -107,7 +107,7 @@ export function NightArt({ className = '' }: ArtProps) {
 export function DateArt({ className = '' }: ArtProps) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
-      <g stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path
           d="M40 52C33 46.5 24 40 24.5 31C25 25 32 22.5 36 28C40 22.5 47.5 24.5 48 31C48.5 39 44 46 40 52Z"
           fill="var(--lav)"
@@ -125,12 +125,12 @@ export function DateArt({ className = '' }: ArtProps) {
 export function MixedArt({ className = '' }: ArtProps) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
-      <g stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinejoin="round">
         <rect x="8" y="30" width="22" height="22" rx="5" fill="var(--word-2)" transform="rotate(-8 19 41)" />
         <rect x="34" y="30" width="22" height="22" rx="5" fill="var(--word-3)" transform="rotate(6 45 41)" />
         <rect x="21" y="8" width="22" height="22" rx="5" fill="var(--word-1)" transform="rotate(-3 32 19)" />
       </g>
-      <g fill="var(--ink)" fontFamily="var(--font-fredoka), sans-serif" fontWeight="700" fontSize="14" textAnchor="middle">
+      <g fill="var(--line)" fontFamily="var(--font-fredoka), sans-serif" fontWeight="700" fontSize="14" textAnchor="middle">
         <text x="19" y="46" transform="rotate(-8 19 41)">A</text>
         <text x="45" y="46" transform="rotate(6 45 41)">Z</text>
         <text x="32" y="24" transform="rotate(-3 32 19)">N</text>
@@ -168,7 +168,7 @@ export function ChapterArt({ chapter, className = '' }: ArtProps & { chapter: st
 export function StageScene({ className = '' }: ArtProps) {
   return (
     <svg viewBox="0 0 360 200" preserveAspectRatio="xMidYMax slice" className={className} aria-hidden="true" focusable="false">
-      <g stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         {/* far hill */}
         <path d="M-10 132C40 96 96 100 140 118C190 138 236 92 290 98C322 102 346 116 372 126V210H-10Z" fill="var(--lav-soft)" />
         {/* near hill */}
@@ -178,13 +178,13 @@ export function StageScene({ className = '' }: ArtProps) {
       <path
         d="M48 196C70 176 110 176 128 164C150 150 176 150 204 146C226 142 238 128 250 116"
         fill="none"
-        stroke="var(--ink)"
+        stroke="var(--line)"
         strokeWidth="2.5"
         strokeDasharray="1 9"
         strokeLinecap="round"
         opacity="0.55"
       />
-      <g stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="var(--line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M252 116V82" fill="none" />
         <path d="M252 83C258 80 264 86 272 83V96C264 99 258 93 252 96Z" fill="var(--accent)" />
         {/* tufts and flowers */}

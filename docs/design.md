@@ -38,15 +38,10 @@ explicit, opinionated alternative. Follow §4 literally; it's the difference thi
 | `--gold` | `#FFD166` | Stars, sparkles, highlights |
 
 ### Dark mode — "Night Garden"
-| Token | Hex | Use |
-|---|---|---|
-| `--bg` | `#241326` | Twilight plum background |
-| `--surface` | `#341B3B` | Cards, grid backing |
-| `--ink` | `#FFE9F4` | Text, line art, borders, sticker-shadows on dark |
-| `--accent` | `#FF8FC0` | Primary actions |
-| `--accent-soft` | `#4A2A52` | Hover / secondary surfaces |
-| `--found` | `#6FE3A6` | Found-word indicator |
-| `--gold` | `#C77DFF` | Stars/butterflies glow like fireflies instead of gold |
+Redesigned 2026-09-26 as its own palette, not an inversion: midnight-indigo
+sky with aurora glows and stars, jewel-toned cards, dark `--line` outlines,
+neon-pastel capsules and real gold stars. Tokens and contrast figures:
+`docs/game-feel.md` §5; source of truth: `app/globals.css` (`:root.dark`).
 
 ## 3. Typography
 - **Display — "Fredoka."** Logo, mode titles, timer digits, level numbers, star counts.

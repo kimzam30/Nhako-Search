@@ -37,7 +37,7 @@ interface HomeStats {
  */
 
 const TILE =
-  'press stagger-in relative flex flex-col justify-between gap-2 overflow-hidden border-2 border-ink p-3 shadow-[4px_5px_0_0_var(--ink)] min-h-[96px] md:min-h-[120px] md:p-4';
+  'press stagger-in relative flex flex-col justify-between gap-2 overflow-hidden border-2 border-line p-3 shadow-[4px_5px_0_0_var(--line)] min-h-[96px] md:min-h-[120px] md:p-4';
 
 function msUntilReset(now = Date.now()) {
   const day = 86_400_000;
@@ -131,7 +131,7 @@ export default function HomePage() {
           className="press flex items-center gap-2 min-w-0 flex-1 h-12 pl-1 pr-3 rounded-full"
           aria-label={stats ? `Your profile, ${stats.name}` : 'Your profile'}
         >
-          <span className="relative shrink-0 w-11 h-11 rounded-full border-2 border-ink bg-accent-soft overflow-hidden flex items-center justify-center shadow-[2px_3px_0_0_var(--ink)]">
+          <span className="relative shrink-0 w-11 h-11 rounded-full border-2 border-line bg-accent-soft overflow-hidden flex items-center justify-center shadow-[2px_3px_0_0_var(--line)]">
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element -- Google CDN avatar; next/image would proxy it through the paid optimiser.
               <img src={avatar} alt="" width={44} height={44} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
@@ -155,7 +155,7 @@ export default function HomePage() {
         <Link
           href="/settings"
           aria-label="Settings"
-          className="press shrink-0 flex items-center justify-center w-11 h-11 rounded-full border-2 border-ink bg-surface text-ink shadow-[2px_3px_0_0_var(--ink)]"
+          className="press shrink-0 flex items-center justify-center w-11 h-11 rounded-full border-2 border-line bg-surface text-ink shadow-[2px_3px_0_0_var(--line)]"
         >
           <GearSvg className="w-5 h-5" />
         </Link>
@@ -165,19 +165,19 @@ export default function HomePage() {
         {/* --------------------------------------------------------- STAGE */}
         <section
           aria-labelledby="stage-title"
-          className="stagger-in relative md:col-span-3 flex flex-col overflow-hidden border-2 border-ink bg-lav-soft shadow-[4px_5px_0_0_var(--ink)] min-h-[292px] md:min-h-[440px]"
+          className="stagger-in relative md:col-span-3 flex flex-col overflow-hidden border-2 border-line bg-lav-soft shadow-[4px_5px_0_0_var(--line)] min-h-[292px] md:min-h-[440px]"
           style={{ borderRadius: '26px 14px 28px 18px' }}
         >
           <StageScene className="absolute inset-x-0 bottom-0 w-full h-[62%]" />
 
           <div className="relative flex items-start justify-between p-4">
-            <span className="flex items-center gap-2 bg-surface border-2 border-ink rounded-full pl-1 pr-3 py-0.5 -rotate-2 shadow-[2px_3px_0_0_var(--ink)]">
+            <span className="flex items-center gap-2 bg-surface border-2 border-line rounded-full pl-1 pr-3 py-0.5 -rotate-2 shadow-[2px_3px_0_0_var(--line)]">
               <ChapterArt chapter={next?.chapter ?? ''} className="w-8 h-8" />
               <span className="font-display font-bold text-ink text-sm">{next?.chapter ?? ' '}</span>
             </span>
             <Link
               href="/level-path"
-              className="press flex items-center gap-1.5 h-10 px-3 rounded-full border-2 border-ink bg-surface text-ink font-body font-extrabold text-sm shadow-[2px_3px_0_0_var(--ink)]"
+              className="press flex items-center gap-1.5 h-10 px-3 rounded-full border-2 border-line bg-surface text-ink font-body font-extrabold text-sm shadow-[2px_3px_0_0_var(--line)]"
             >
               <MapSvg className="w-4 h-4" />
               Map
@@ -196,7 +196,7 @@ export default function HomePage() {
           </div>
 
           <div className="relative p-4 pt-2 flex flex-col gap-3">
-            <div className="flex items-center gap-2 bg-surface/90 border-2 border-ink rounded-full px-3 py-1.5">
+            <div className="flex items-center gap-2 bg-surface/90 border-2 border-line rounded-full px-3 py-1.5">
               <div
                 className="nera-track flex-1 !border-0 !p-0 h-2.5"
                 role="progressbar"
@@ -213,7 +213,7 @@ export default function HomePage() {
             </div>
             <Link
               href={stats ? `/level-path/${stats.nextLevelId}` : '/level-path'}
-              className="press play-glow flex items-center justify-center gap-3 min-h-[64px] border-[3px] border-ink bg-accent text-on-accent font-display font-bold text-2xl"
+              className="press play-glow flex items-center justify-center gap-3 min-h-[64px] border-[3px] border-line bg-accent text-on-accent font-display font-bold text-2xl"
               style={{ borderRadius: '22px 14px 24px 12px' }}
             >
               <PlaySvg className="w-7 h-7" />
@@ -243,7 +243,7 @@ export default function HomePage() {
             </span>
             <span className="flex items-center justify-between gap-2">
               <span className="text-xs font-extrabold text-ink-2 tabular">{resetIn ? `New puzzle in ${resetIn}` : ' '}</span>
-              <span className="flex items-center gap-1 h-9 px-3 rounded-full border-2 border-ink bg-accent text-on-accent font-display font-bold text-sm">
+              <span className="flex items-center gap-1 h-9 px-3 rounded-full border-2 border-line bg-accent text-on-accent font-display font-bold text-sm">
                 {stats?.playedToday ? 'Streak' : 'Play'}
               </span>
             </span>

@@ -22,7 +22,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseClasses =
-    "relative font-display font-bold text-lg px-6 py-3 min-h-[48px] border-2 border-ink flex items-center justify-center gap-2 transition-colors duration-150 touch-manipulation select-none disabled:cursor-not-allowed disabled:opacity-50";
+    "relative font-display font-bold text-lg px-6 py-3 min-h-[48px] border-2 border-line flex items-center justify-center gap-2 transition-colors duration-150 touch-manipulation select-none disabled:cursor-not-allowed disabled:opacity-50";
   const radiusClass = "rounded-tl-[18px] rounded-tr-[12px] rounded-br-[16px] rounded-bl-[10px]";
   const widthClass = fullWidth ? "w-full" : "";
 
@@ -37,12 +37,12 @@ export function Button({
 
   return (
     <motion.button
-      whileTap={disabled ? undefined : { y: 4, x: 3, boxShadow: '0px 0px 0 0 var(--ink)' }}
+      whileTap={disabled ? undefined : { y: 4, x: 3, boxShadow: '0px 0px 0 0 var(--line)' }}
       transition={PRESS}
       disabled={disabled}
       className={`${baseClasses} ${radiusClass} ${widthClass} ${colorClasses} ${className}`}
       style={{
-        boxShadow: disabled ? '2px 2px 0 0 var(--ink)' : '4px 5px 0 0 var(--ink)',
+        boxShadow: disabled ? '2px 2px 0 0 var(--line)' : '4px 5px 0 0 var(--line)',
         ...props.style,
       }}
       {...props}
@@ -70,7 +70,7 @@ export function ButtonLink({ variant = 'primary', fullWidth = false, className =
         : 'bg-surface text-ink [@media(hover:hover)]:hover:bg-accent-soft';
   return (
     <Link
-      className={`sticker relative font-display font-bold text-lg px-6 py-3 min-h-[48px] border-2 border-ink flex items-center justify-center gap-2 text-center rounded-tl-[18px] rounded-tr-[12px] rounded-br-[16px] rounded-bl-[10px] touch-manipulation ${fullWidth ? 'w-full' : ''} ${colorClasses} ${className}`}
+      className={`sticker relative font-display font-bold text-lg px-6 py-3 min-h-[48px] border-2 border-line flex items-center justify-center gap-2 text-center rounded-tl-[18px] rounded-tr-[12px] rounded-br-[16px] rounded-bl-[10px] touch-manipulation ${fullWidth ? 'w-full' : ''} ${colorClasses} ${className}`}
       {...props}
     />
   );

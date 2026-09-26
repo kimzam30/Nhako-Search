@@ -45,7 +45,7 @@ export function ChatWidget({ messages, onSend, activeUserId, partnerName }: Chat
               animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: -10 }}
               transition={softBounce}
-              className={`px-4 py-2 rounded-2xl border-2 border-ink font-body text-ink font-bold shadow-[2px_3px_0_0_var(--ink)] flex flex-col items-start gap-0.5 ${msg.sender === activeUserId ? 'bg-accent self-end' : 'bg-surface self-start'}`}
+              className={`px-4 py-2 rounded-2xl border-2 border-line font-body text-ink font-bold shadow-[2px_3px_0_0_var(--line)] flex flex-col items-start gap-0.5 ${msg.sender === activeUserId ? 'bg-accent self-end' : 'bg-surface self-start'}`}
             >
               <span className="opacity-70 text-[10px] leading-none uppercase tracking-wider">{msg.sender === activeUserId ? 'You' : partnerName}</span>
               <span className="text-sm">{msg.text}</span>
@@ -61,14 +61,14 @@ export function ChatWidget({ messages, onSend, activeUserId, partnerName }: Chat
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="bg-surface p-4 rounded-3xl border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] flex flex-wrap gap-2 w-64 justify-end pointer-events-auto origin-bottom-right"
+            className="bg-surface p-4 rounded-3xl border-2 border-line shadow-[4px_5px_0_0_var(--line)] flex flex-wrap gap-2 w-64 justify-end pointer-events-auto origin-bottom-right"
           >
             {QUICK_BANTER.map(text => (
               <motion.button
                 key={text}
                 whileTap={{ scale: 0.9 }} transition={softBounce}
                 onClick={() => { onSend(text); setSeenAt(Date.now()); setShowTray(false); }}
-                className="bg-accent-soft px-3 py-2 rounded-xl border-2 border-ink font-body text-ink font-bold text-sm min-h-[44px] shadow-[2px_2px_0_0_var(--ink)] active:translate-y-[2px] active:shadow-none"
+                className="bg-accent-soft px-3 py-2 rounded-xl border-2 border-line font-body text-ink font-bold text-sm min-h-[44px] shadow-[2px_2px_0_0_var(--line)] active:translate-y-[2px] active:shadow-none"
               >
                 {text}
               </motion.button>
@@ -83,7 +83,7 @@ export function ChatWidget({ messages, onSend, activeUserId, partnerName }: Chat
         onClick={toggleTray}
         aria-label={unreadCount > 0 ? `Quick messages, ${unreadCount} new` : 'Quick messages'}
         aria-expanded={showTray}
-        className="relative w-14 h-14 rounded-full bg-gold border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] active:translate-y-1 active:shadow-[0px_0px_0_0_var(--ink)] flex items-center justify-center pointer-events-auto"
+        className="relative w-14 h-14 rounded-full bg-gold border-2 border-line shadow-[4px_5px_0_0_var(--line)] active:translate-y-1 active:shadow-[0px_0px_0_0_var(--line)] flex items-center justify-center pointer-events-auto"
       >
         <ChatSvg className="w-6 h-6 text-on-accent" />
         
@@ -94,7 +94,7 @@ export function ChatWidget({ messages, onSend, activeUserId, partnerName }: Chat
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0 }}
-              className="absolute -top-2 -right-2 bg-accent w-6 h-6 rounded-full border-2 border-ink flex items-center justify-center text-ink font-bold text-xs"
+              className="absolute -top-2 -right-2 bg-accent w-6 h-6 rounded-full border-2 border-line flex items-center justify-center text-ink font-bold text-xs"
             >
               {unreadCount}
             </motion.div>

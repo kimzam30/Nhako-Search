@@ -29,7 +29,7 @@ export const ButterflyGarland = forwardRef<HTMLDivElement, Props>(function Butte
     >
       {/* The string. */}
       <svg aria-hidden="true" className="absolute inset-x-2 top-1 h-6 w-[calc(100%-1rem)]" viewBox="0 0 200 24" preserveAspectRatio="none">
-        <path d="M0 4C40 18 80 20 100 18C120 20 160 18 200 4" fill="none" stroke="var(--ink)" strokeOpacity="0.35" strokeWidth="1.5" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+        <path d="M0 4C40 18 80 20 100 18C120 20 160 18 200 4" fill="none" stroke="var(--line)" strokeOpacity="0.35" strokeWidth="1.5" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
       </svg>
       {Array.from({ length: total }).map((_, i) => {
         const isEarned = i < count;

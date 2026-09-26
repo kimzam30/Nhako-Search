@@ -81,6 +81,9 @@ test.describe('Audio mixer', () => {
     await page.goto('/settings');
     const sfx = page.getByLabel('Game sounds', { exact: true });
     await expect(sfx).toBeVisible();
+    // The slider is server-rendered, so it is visible before React hydrates;
+    // a fill in that window changes the DOM with no onChange behind it.
+    await page.waitForLoadState('networkidle');
 
     // Nothing is written until the player changes the mix (writing defaults on
     // mount used to overwrite a saved mix before it loaded).

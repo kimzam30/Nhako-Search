@@ -43,7 +43,7 @@ function ProgressBar({
         </span>
       </div>
       <div
-        className="w-full h-3 bg-background border-2 border-ink rounded-full overflow-hidden"
+        className="w-full h-3 bg-background border-2 border-line rounded-full overflow-hidden"
         role="progressbar"
         aria-valuenow={value}
         aria-valuemin={0}
@@ -81,7 +81,7 @@ function InviteButton({ roomCode }: { roomCode: string }) {
     <button
       type="button"
       onClick={invite}
-      className="press shrink-0 flex items-center gap-2 min-h-[44px] px-4 rounded-full border-2 border-ink bg-surface font-body font-extrabold text-ink"
+      className="press shrink-0 flex items-center gap-2 min-h-[44px] px-4 rounded-full border-2 border-line bg-surface font-body font-extrabold text-ink"
     >
       <ShareSvg className="w-5 h-5" />
       <span aria-live="polite">{copied ? 'Copied' : 'Invite'}</span>
@@ -284,7 +284,7 @@ function RaceRoom({
   if (raceState.status === 'lobby') {
     const segment = (active: boolean) =>
       `press min-h-[44px] rounded-xl font-body font-extrabold capitalize transition-colors ${
-        active ? 'bg-accent text-on-accent shadow-[0_2px_0_var(--ink)]' : 'text-ink-2'
+        active ? 'bg-accent text-on-accent shadow-[0_2px_0_var(--line)]' : 'text-ink-2'
       }`;
     return (
       <div className="flex flex-col w-full max-w-lg mx-auto px-5 pb-8">
@@ -325,7 +325,7 @@ function RaceRoom({
         {me.isLeader ? (
           <Card className="!p-4 flex flex-col gap-3 mb-6">
             <span id="mode-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2">Mode</span>
-            <div role="radiogroup" aria-labelledby="mode-label" className="grid grid-cols-2 gap-1 p-1 bg-background border-2 border-ink rounded-2xl">
+            <div role="radiogroup" aria-labelledby="mode-label" className="grid grid-cols-2 gap-1 p-1 bg-background border-2 border-line rounded-2xl">
               {(['race', 'coop'] as RoomMode[]).map(m => (
                 <button key={m} type="button" role="radio" aria-checked={me.mode === m} onClick={() => updateMyState({ mode: m })} className={segment(me.mode === m)}>
                   {m === 'race' ? 'Race' : 'Together'}
@@ -333,7 +333,7 @@ function RaceRoom({
               ))}
             </div>
             <span id="difficulty-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2 mt-1">Difficulty</span>
-            <div role="radiogroup" aria-labelledby="difficulty-label" className="grid grid-cols-3 gap-1 p-1 bg-background border-2 border-ink rounded-2xl">
+            <div role="radiogroup" aria-labelledby="difficulty-label" className="grid grid-cols-3 gap-1 p-1 bg-background border-2 border-line rounded-2xl">
               {(['easy', 'medium', 'hard'] as Difficulty[]).map(d => (
                 <button key={d} type="button" role="radio" aria-checked={me.difficulty === d} onClick={() => updateMyState({ difficulty: d })} className={segment(me.difficulty === d)}>
                   {d}
@@ -342,7 +342,7 @@ function RaceRoom({
             </div>
           </Card>
         ) : (
-          <div className="mb-6 py-3 text-center font-bold font-body text-ink text-lg capitalize border-2 border-ink rounded-2xl bg-surface">
+          <div className="mb-6 py-3 text-center font-bold font-body text-ink text-lg capitalize border-2 border-line rounded-2xl bg-surface">
             {roomMode === 'coop' ? 'Together' : 'Race'} · {roomDifficulty}
           </div>
         )}
@@ -370,7 +370,7 @@ function RaceRoom({
           initial={{ scale: 0.4, opacity: 0, rotate: -12 }}
           animate={{ scale: 1, opacity: 1, rotate: -3 }}
           transition={{ type: 'spring', stiffness: 500, damping: 16 }}
-          className="flex items-center justify-center min-w-[180px] h-[180px] px-6 border-[3px] border-ink bg-accent text-on-accent shadow-[6px_7px_0_0_var(--ink)] text-[96px] font-display font-bold tabular"
+          className="flex items-center justify-center min-w-[180px] h-[180px] px-6 border-[3px] border-line bg-accent text-on-accent shadow-[6px_7px_0_0_var(--line)] text-[96px] font-display font-bold tabular"
           style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
           aria-live="assertive"
         >
@@ -442,7 +442,7 @@ function RaceRoom({
     <div className="flex flex-col bg-background relative w-full min-h-screen">
       {/* Status bar spans the full width so it does not read as a stray box
           floating in the middle of a desktop screen. */}
-      <div className="flex-none w-full z-10 bg-surface border-b-2 border-ink shadow-[0_4px_0_0_var(--ink)]">
+      <div className="flex-none w-full z-10 bg-surface border-b-2 border-line shadow-[0_4px_0_0_var(--line)]">
         <div className="w-full max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto p-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-8">
           <div
             className={`font-display text-2xl lg:text-3xl font-bold tabular-nums md:w-20 lg:w-24 shrink-0 transition-colors ${

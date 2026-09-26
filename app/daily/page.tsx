@@ -96,16 +96,16 @@ export default function DailyChallengePage() {
 
       {/* Hero: a tear-off calendar page next to the streak flame. */}
       <section
-        className="stagger-in relative flex flex-1 min-h-[168px] max-h-[300px] items-center justify-center gap-6 p-4 overflow-hidden border-2 border-ink bg-accent-soft shadow-[4px_5px_0_0_var(--ink)]"
+        className="stagger-in relative flex flex-1 min-h-[168px] max-h-[300px] items-center justify-center gap-6 p-4 overflow-hidden border-2 border-line bg-accent-soft shadow-[4px_5px_0_0_var(--line)]"
         style={{ borderRadius: '24px 14px 26px 16px' }}
       >
         <StageScene className="absolute inset-x-0 bottom-0 w-full h-[55%] opacity-60" />
         <div
-          className="relative shrink-0 w-[112px] overflow-hidden border-2 border-ink bg-tile shadow-[3px_4px_0_0_var(--ink)] -rotate-3"
+          className="relative shrink-0 w-[112px] overflow-hidden border-2 border-line bg-tile shadow-[3px_4px_0_0_var(--line)] -rotate-3"
           style={{ borderRadius: '14px 10px 16px 8px' }}
           aria-hidden="true"
         >
-          <div className="h-7 flex items-center justify-center bg-accent border-b-2 border-ink font-display font-bold text-sm text-on-accent tracking-widest">
+          <div className="h-7 flex items-center justify-center bg-accent border-b-2 border-line font-display font-bold text-sm text-on-accent tracking-widest">
             {view?.month ?? ' '}
           </div>
           <div className="h-[76px] flex items-center justify-center font-display font-bold text-5xl text-ink tabular">
@@ -130,7 +130,7 @@ export default function DailyChallengePage() {
 
       {/* This week. Each token carries its day and state in text, so the strip
           does not rely on colour alone. */}
-      <section className="stagger-in p-3 bg-surface border-2 border-ink shadow-[3px_4px_0_0_var(--ink)]" style={{ borderRadius: '16px 22px 14px 20px', ['--i' as string]: 1 }}>
+      <section className="stagger-in p-3 bg-surface border-2 border-line shadow-[3px_4px_0_0_var(--line)]" style={{ borderRadius: '16px 22px 14px 20px', ['--i' as string]: 1 }}>
         <h2 className="text-[11px] font-extrabold uppercase tracking-widest text-ink-2 mb-2">Last 7 days</h2>
         <ol className="grid grid-cols-7 gap-1" aria-label="Last 7 days">
           {initials.map((d, i) => {
@@ -140,7 +140,7 @@ export default function DailyChallengePage() {
               <li key={i} className="flex flex-col items-center gap-1">
                 <span
                   className={`w-full max-w-[40px] aspect-square rounded-full border-2 flex items-center justify-center ${
-                    played ? 'bg-accent border-ink text-on-accent' : today ? 'bg-tile border-ink border-dashed text-ink-2' : 'bg-tile border-ink/25 text-ink/25'
+                    played ? 'bg-accent border-line text-on-accent' : today ? 'bg-tile border-line border-dashed text-ink-2' : 'bg-tile border-ink/25 text-ink/25'
                   }`}
                 >
                   <FlameSvg className="w-5 h-5" />
@@ -157,10 +157,10 @@ export default function DailyChallengePage() {
 
       {/* Reward preview: what today's puzzle adds to the album. */}
       <section
-        className="stagger-in flex items-center gap-3 p-3 bg-lav-soft border-2 border-ink shadow-[3px_4px_0_0_var(--ink)]"
+        className="stagger-in flex items-center gap-3 p-3 bg-lav-soft border-2 border-line shadow-[3px_4px_0_0_var(--line)]"
         style={{ borderRadius: '20px 12px 18px 14px', ['--i' as string]: 2 }}
       >
-        <span className="shrink-0 w-14 h-14 flex items-center justify-center rounded-full border-2 border-ink bg-tile">
+        <span className="shrink-0 w-14 h-14 flex items-center justify-center rounded-full border-2 border-line bg-tile">
           <DoodleButterfly className="w-10 idle-float" wing="var(--word-4)" wing2="var(--word-1)" />
         </span>
         <span className="flex flex-col">

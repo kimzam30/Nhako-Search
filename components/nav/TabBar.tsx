@@ -52,7 +52,7 @@ export function TabBar() {
           width={26}
           height={26}
           referrerPolicy="no-referrer"
-          className="w-[26px] h-[26px] rounded-full border-2 border-ink object-cover"
+          className="w-[26px] h-[26px] rounded-full border-2 border-line object-cover"
         />
       ) : (
         <UserSvg className="w-[24px] h-[24px]" />
@@ -66,7 +66,7 @@ export function TabBar() {
       {/* In-flow spacer: reserves the bar's height so no page content ever
           sits under it, whatever the page's own padding. */}
       <div className="tabbar-spacer" aria-hidden="true" />
-      <nav className="tabbar bg-surface border-t-2 border-ink lg:border-t-0 lg:border-r-2" aria-label="Main">
+      <nav className="tabbar bg-surface border-t-2 border-line lg:border-t-0 lg:border-r-2" aria-label="Main">
         <ul className="flex lg:flex-col items-stretch h-[var(--tabbar-h)] lg:h-full lg:pt-8 lg:gap-3 max-w-xl mx-auto lg:max-w-none">
           {tabs.map(tab => {
             // Home is the dock's raised centre button, like a game's main
@@ -90,7 +90,7 @@ export function TabBar() {
                 >
                   {isHome ? (
                     <span
-                      className={`flex items-center justify-center w-[52px] h-[52px] -mt-6 lg:mt-0 border-2 border-ink shadow-[3px_4px_0_0_var(--ink)] transition-colors duration-150 ${
+                      className={`flex items-center justify-center w-[52px] h-[52px] -mt-6 lg:mt-0 border-2 border-line shadow-[3px_4px_0_0_var(--line)] transition-colors duration-150 ${
                         tab.active ? 'bg-accent text-on-accent' : 'bg-accent-soft text-ink'
                       }`}
                       style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
@@ -102,7 +102,7 @@ export function TabBar() {
                        sizes rem-based pills overflowed five-across on a phone. */
                     <span
                       className={`flex items-center justify-center w-full max-w-[56px] h-[32px] rounded-full border-2 transition-colors duration-150 ${
-                        tab.active ? 'bg-accent-soft border-ink' : 'border-transparent'
+                        tab.active ? 'bg-accent-soft border-line' : 'border-transparent'
                       }`}
                     >
                       {tab.icon}

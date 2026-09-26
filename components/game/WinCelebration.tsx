@@ -47,13 +47,13 @@ export function WinCelebration({ title, stars, seconds, words, hints, children }
         role="dialog"
         aria-modal="true"
         aria-labelledby="win-title"
-        className="nera-open relative z-[71] bg-surface w-full sm:max-w-sm border-2 border-ink rounded-t-[28px] sm:rounded-[28px] px-6 pt-12 flex flex-col items-center gap-4 text-center shadow-[4px_5px_0_0_var(--ink)]"
+        className="nera-open relative z-[71] bg-surface w-full sm:max-w-sm border-2 border-line rounded-t-[28px] sm:rounded-[28px] px-6 pt-12 flex flex-col items-center gap-4 text-center shadow-[4px_5px_0_0_var(--line)]"
         style={{ paddingBottom: 'max(1.5rem, calc(var(--safe-bottom) + 1.25rem))' }}
       >
         {/* Ribbon banner straddling the top edge. */}
         <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-[min(320px,92%)]">
           <svg viewBox="0 0 320 64" className="w-full h-auto" aria-hidden="true">
-            <g stroke="var(--ink)" strokeWidth="2.5" strokeLinejoin="round">
+            <g stroke="var(--line)" strokeWidth="2.5" strokeLinejoin="round">
               <path d="M4 18H44V56H4L16 37Z" fill="var(--accent-soft)" />
               <path d="M316 18H276V56H316L304 37Z" fill="var(--accent-soft)" />
               <path d="M34 8C110 2 210 2 286 8V48C210 42 110 42 34 48Z" fill="var(--accent)" />

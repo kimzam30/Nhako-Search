@@ -6,11 +6,11 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function Card({ children, className = '', noShadow = false, ...props }: CardProps) {
-  const shadowStyle = noShadow ? {} : { boxShadow: "4px 5px 0 0 var(--ink)" };
+  const shadowStyle = noShadow ? {} : { boxShadow: "4px 5px 0 0 var(--line)" };
   
   return (
     <div 
-      className={`bg-surface border-2 border-ink p-6 rounded-tl-[16px] rounded-tr-[24px] rounded-br-[18px] rounded-bl-[22px] ${className}`}
+      className={`bg-surface border-2 border-line p-6 rounded-tl-[16px] rounded-tr-[24px] rounded-br-[18px] rounded-bl-[22px] ${className}`}
       style={{ ...shadowStyle, ...props.style }}
       {...props}
     >

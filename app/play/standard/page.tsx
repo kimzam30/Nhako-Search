@@ -6,11 +6,11 @@ import { CheckSvg, PlaySvg } from '@/components/ui/Icons';
 
 const THEMES = [
   { id: 'standard', name: 'Mixed pack', tint: 'var(--lav-soft)' },
-  { id: 'garden', name: 'Garden', tint: 'color-mix(in srgb, var(--word-3) 30%, var(--surface))' },
-  { id: 'rainy-day', name: 'Rainy day', tint: 'color-mix(in srgb, var(--word-5) 30%, var(--surface))' },
-  { id: 'cozy-cottage', name: 'Cozy cottage', tint: 'color-mix(in srgb, var(--word-6) 28%, var(--surface))' },
-  { id: 'night-sky', name: 'Night sky', tint: 'color-mix(in srgb, var(--word-2) 30%, var(--surface))' },
-  { id: 'date-night', name: 'Date night', tint: 'color-mix(in srgb, var(--word-1) 30%, var(--surface))' },
+  { id: 'garden', name: 'Garden', tint: 'color-mix(in srgb, var(--word-3) calc(30% * var(--tint-boost)), var(--surface))' },
+  { id: 'rainy-day', name: 'Rainy day', tint: 'color-mix(in srgb, var(--word-5) calc(30% * var(--tint-boost)), var(--surface))' },
+  { id: 'cozy-cottage', name: 'Cozy cottage', tint: 'color-mix(in srgb, var(--word-6) calc(28% * var(--tint-boost)), var(--surface))' },
+  { id: 'night-sky', name: 'Night sky', tint: 'color-mix(in srgb, var(--word-2) calc(30% * var(--tint-boost)), var(--surface))' },
+  { id: 'date-night', name: 'Date night', tint: 'color-mix(in srgb, var(--word-1) calc(30% * var(--tint-boost)), var(--surface))' },
 ];
 
 const DIFFICULTIES = [
@@ -44,15 +44,15 @@ export default function StandardSetupPage() {
               role="radio"
               aria-checked={selected}
               onClick={() => setTheme(t.id)}
-              className={`press stagger-in relative h-[118px] flex flex-col items-center justify-center gap-1 text-center px-2 border-ink transition-[box-shadow,transform] duration-150 ${
-                selected ? 'border-[3px] shadow-[4px_5px_0_0_var(--ink)] -rotate-1' : 'border-2 shadow-[2px_3px_0_0_var(--ink)]'
+              className={`press stagger-in relative h-[118px] flex flex-col items-center justify-center gap-1 text-center px-2 border-line transition-[box-shadow,transform] duration-150 ${
+                selected ? 'border-[3px] shadow-[4px_5px_0_0_var(--line)] -rotate-1' : 'border-2 shadow-[2px_3px_0_0_var(--line)]'
               }`}
               style={{ background: t.tint, borderRadius: i % 2 ? '14px 22px 12px 20px' : '20px 12px 22px 14px', ['--i' as string]: i }}
             >
               <Art className="w-14 h-14" />
               <span className="font-display font-bold text-ink text-base leading-tight">{t.name}</span>
               {selected && (
-                <span className="nera-pop absolute -top-2.5 -right-2.5 w-7 h-7 flex items-center justify-center rounded-full border-2 border-ink bg-accent text-on-accent">
+                <span className="nera-pop absolute -top-2.5 -right-2.5 w-7 h-7 flex items-center justify-center rounded-full border-2 border-line bg-accent text-on-accent">
                   <CheckSvg className="w-4 h-4" />
                 </span>
               )}
@@ -67,7 +67,7 @@ export default function StandardSetupPage() {
       <div
         role="radiogroup"
         aria-labelledby="difficulty-label"
-        className="grid grid-cols-3 gap-1 p-1 bg-surface border-2 border-ink rounded-[20px] shadow-[4px_5px_0_0_var(--ink)]"
+        className="grid grid-cols-3 gap-1 p-1 bg-surface border-2 border-line rounded-[20px] shadow-[4px_5px_0_0_var(--line)]"
       >
         {DIFFICULTIES.map(d => (
           <button

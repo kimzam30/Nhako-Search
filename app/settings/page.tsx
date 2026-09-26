@@ -19,7 +19,7 @@ function Group({ title, children, footer }: { title: string; children: ReactNode
       <h2 id={id} className="px-1 mb-2 text-xs font-extrabold uppercase tracking-widest text-ink-2">
         {title}
       </h2>
-      <div className="bg-surface border-2 border-ink rounded-[22px] p-5 shadow-[4px_5px_0_0_var(--ink)]">{children}</div>
+      <div className="bg-surface border-2 border-line rounded-[22px] p-5 shadow-[4px_5px_0_0_var(--line)]">{children}</div>
       {footer && <p className="px-1 mt-2 text-sm font-body text-ink-2">{footer}</p>}
     </section>
   );
@@ -108,7 +108,7 @@ export default function SettingsPage() {
       <Group title="Appearance">
         {/* A native-style segmented control. Three options fit on any phone,
             so the old sideways-scrolling cards and their pulsing hint went. */}
-        <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-1 p-1 bg-background border-2 border-ink rounded-2xl">
+        <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-1 p-1 bg-background border-2 border-line rounded-2xl">
           {(['light', 'dark', 'system'] as Theme[]).map(t => (
             <button
               key={t}
@@ -117,7 +117,7 @@ export default function SettingsPage() {
               aria-checked={theme === t}
               onClick={() => setTheme(t)}
               className={`press min-h-[44px] min-w-0 px-1 text-[min(0.875rem,4vw)] leading-tight rounded-xl font-body font-extrabold capitalize transition-colors ${
-                theme === t ? 'bg-accent text-on-accent shadow-[0_2px_0_var(--ink)]' : 'text-ink-2'
+                theme === t ? 'bg-accent text-on-accent shadow-[0_2px_0_var(--line)]' : 'text-ink-2'
               }`}
             >
               {t}
@@ -152,7 +152,7 @@ export default function SettingsPage() {
                   maxLength={20}
                   autoComplete="nickname"
                   enterKeyHint="done"
-                  className="flex-1 min-w-0 min-h-[48px] bg-background border-2 border-ink rounded-xl px-3 font-bold text-ink text-base outline-none focus:border-accent"
+                  className="flex-1 min-w-0 min-h-[48px] bg-background border-2 border-line rounded-xl px-3 font-bold text-ink text-base outline-none focus:border-accent"
                 />
                 <Button type="submit" disabled={!nameChanged} className="px-4">
                   Save

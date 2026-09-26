@@ -28,7 +28,7 @@ export function MixerPanel({ compact = false }: { compact?: boolean }) {
         type="button"
         onClick={() => (isPlaying ? stopAmbience() : startAmbience())}
         aria-pressed={isPlaying}
-        className={`press flex items-center justify-center gap-2 min-h-[48px] rounded-2xl border-2 border-ink font-display font-bold text-lg ${
+        className={`press flex items-center justify-center gap-2 min-h-[48px] rounded-2xl border-2 border-line font-display font-bold text-lg ${
           isPlaying ? 'bg-surface text-ink' : 'bg-accent text-on-accent'
         }`}
       >
@@ -42,7 +42,7 @@ export function MixerPanel({ compact = false }: { compact?: boolean }) {
             key={preset.id}
             type="button"
             onClick={() => applyPreset(preset.id)}
-            className="press min-h-[44px] min-w-0 px-2 py-1 leading-tight break-words rounded-xl border-2 border-ink bg-background font-body font-bold text-sm text-ink"
+            className="press min-h-[44px] min-w-0 px-2 py-1 leading-tight break-words rounded-xl border-2 border-line bg-background font-body font-bold text-sm text-ink"
           >
             {preset.label}
           </button>

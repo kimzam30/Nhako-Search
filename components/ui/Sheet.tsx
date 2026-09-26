@@ -118,7 +118,7 @@ export function Sheet({ open, onClose, title, label, children }: SheetProps) {
             aria-labelledby={title ? titleId : undefined}
             aria-label={title ? undefined : label}
             tabIndex={-1}
-            className="relative w-full max-w-lg bg-surface border-2 border-b-0 border-ink rounded-t-[28px] outline-none shadow-[0_-4px_0_0_var(--ink)] max-h-[88dvh] flex flex-col"
+            className="relative w-full max-w-lg bg-surface border-2 border-b-0 border-line rounded-t-[28px] outline-none shadow-[0_-4px_0_0_var(--line)] max-h-[88dvh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%', transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}

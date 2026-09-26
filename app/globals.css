@@ -26,6 +26,7 @@
   --color-lav: var(--lav);
   --color-lav-soft: var(--lav-soft);
   --color-tile: var(--tile);
+  --color-line: var(--line);
 
   --font-display: var(--font-fredoka);
   --font-body: var(--font-nunito);
@@ -36,6 +37,9 @@
   --bg: #FFF6F8;
   --surface: #FFE3ED;
   --ink: #4A1942;
+  /* Outlines and sticker shadows. Same as ink in light mode; its own colour at
+     night, so dark mode is not light mode with the ink turned white. */
+  --line: #4A1942;
   --accent: #FF6FA5;
   --accent-soft: #FFC1D9;
   --found: #7FCB9C;
@@ -63,6 +67,12 @@
   --lav-soft: #EFE7FB;
   /* Board paper and its ruled lines. */
   --tile: #FFFDFE;
+  /* White in illustrations (petals, wing spots): stays light at night. */
+  --art-light: #FFFDFE;
+  /* Multiplier on themed tints (theme cards, chapter zones, level nodes). At
+     night a 30% pastel wash over indigo reads grey; 1.4x keeps it a colour
+     while cream text on it still clears 5:1. */
+  --tint-boost: 1;
   --board-line: rgb(74 25 66 / 0.07);
   /* The NeraOS boot-bar stripes, used for every progress bar. */
   --stripes: repeating-linear-gradient(90deg, #F49AC1 0 8px, #C3A6F0 8px 16px);
@@ -80,24 +90,46 @@
 }
 
 :root.dark {
-  --bg: #241326;
-  --surface: #341B3B;
-  --ink: #FFE9F4;
-  --accent: #FF8FC0;
-  --accent-soft: #4A2A52;
-  --found: #6FE3A6;
-  --gold: #C77DFF;
-  --ink-2: #C2ABBC;
-  --accent-ink: #FF8FC0;
-  --wing-garden: #3E9A63;
-  --wing-rainy: #C2ABBC;
-  --wing-cozy: #D9658F;
-  --wing-sun: #FFD166;
-  --wing-together: #C77DFF;
-  --lav: #B79AE8;
-  --lav-soft: #3A2548;
-  --tile: #2E1734;
-  --board-line: rgb(255 233 244 / 0.06);
+  /*
+   * "Night Garden" — designed for the dark, not inverted from the day.
+   * A midnight-indigo sky, jewel-toned cards, neon-pastel ink for the things
+   * that matter, real gold stars, and DARK outlines: at night the stickers are
+   * lit from inside rather than drawn in chalk. Text stays warm cream.
+   */
+  --bg: #140E2C;
+  --surface: #2A1F58;
+  --ink: #FFF3FA;
+  --line: #07040F;
+  --accent: #FF72B6;
+  --accent-soft: #5A1F63;
+  --found: #4FE3A3;
+  --gold: #FFCF4D;
+  --ink-2: #CDBEF5;
+  --on-accent: #1E0A1C;
+  --accent-ink: #FF9ACB;
+  --danger: #FF6B81;
+  --wing-garden: #4FE3A3;
+  --wing-rainy: #7CC8FF;
+  --wing-cozy: #FF9ACB;
+  --wing-sun: #FFCF4D;
+  --wing-together: #C8A6FF;
+  --lav: #A98BFF;
+  --lav-soft: #2F2470;
+  --tile: #1D1545;
+  --art-light: #FFF3FA;
+  --tint-boost: 1.4;
+  --board-line: rgb(169 139 255 / 0.13);
+  --stripes: repeating-linear-gradient(90deg, #FF72B6 0 8px, #A98BFF 8px 16px);
+  /* Neon pastels: brighter and more saturated than the day set, so capsules
+     glow on the dark board. --on-accent letters still clear 7:1 on each. */
+  --word-1: #FF7AB8;
+  --word-2: #B794FF;
+  --word-3: #4FE3A3;
+  --word-4: #FFD24D;
+  --word-5: #62C8FF;
+  --word-6: #FF9A5C;
+  --word-7: #E58CFF;
+  --word-8: #A8E65C;
   color-scheme: dark;
 }
 
@@ -342,12 +374,12 @@ body::after {
 
 /* The sticker press for link-buttons (Button does the same via framer). */
 .sticker {
-  box-shadow: 4px 5px 0 0 var(--ink);
+  box-shadow: 4px 5px 0 0 var(--line);
   transition: transform 100ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .sticker:active {
   transform: translate(3px, 4px);
-  box-shadow: 0 0 0 0 var(--ink);
+  box-shadow: 0 0 0 0 var(--line);
 }
 @media (prefers-reduced-motion: reduce) {
   .sticker { transition: none; }
@@ -423,7 +455,7 @@ body::after {
 .nera-track {
   height: 14px;
   padding: 2px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--tile);
   overflow: hidden;
@@ -523,10 +555,10 @@ body::after {
   gap: 6px;
   height: 36px;
   padding: 0 12px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
-  box-shadow: 2px 3px 0 0 var(--ink);
+  box-shadow: 2px 3px 0 0 var(--line);
   font-family: var(--font-display), sans-serif;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -538,8 +570,8 @@ body::after {
   animation: play-glow 2.4s ease-in-out infinite;
 }
 @keyframes play-glow {
-  0%, 100% { box-shadow: 4px 5px 0 0 var(--ink), 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
-  50% { box-shadow: 4px 5px 0 0 var(--ink), 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); }
+  0%, 100% { box-shadow: 4px 5px 0 0 var(--line), 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  50% { box-shadow: 4px 5px 0 0 var(--line), 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); }
 }
 
 /* Route change: a quick rise, faster than anything the player does. */
@@ -591,4 +623,31 @@ body::after {
 }
 @media (prefers-reduced-motion: reduce) {
   .nera-march { animation: none; }
+}
+
+/* ==========================================================================
+   Night Garden backdrop (dark mode only)
+
+   The day page is paper; the night page is sky. Three soft aurora glows in
+   the brand hues sit over the midnight indigo, with a sparse field of stars.
+   Fixed and static (no animation), behind the butterfly sky (-1) and every
+   page, so it costs one paint.
+   ========================================================================== */
+:root.dark body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.55) 0 0.8px, transparent 1.4px) 0 0 / 97px 83px,
+    radial-gradient(circle at 50% 50%, rgb(255 230 250 / 0.35) 0 0.7px, transparent 1.3px) 31px 47px / 151px 127px,
+    radial-gradient(ellipse 70% 45% at 8% 0%, rgb(255 114 182 / 0.22), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 100% 35%, rgb(169 139 255 / 0.22), transparent 70%),
+    radial-gradient(ellipse 80% 45% at 30% 100%, rgb(79 227 163 / 0.12), transparent 70%);
+}
+
+/* Fireflies: at night the flock glows in its own wing colours. */
+:root.dark .sky-fly svg {
+  filter: drop-shadow(0 0 6px rgb(255 190 230 / 0.55));
 }

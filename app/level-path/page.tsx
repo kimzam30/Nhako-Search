@@ -70,7 +70,7 @@ export default function LevelPathPage() {
           <div
             key={chapter.id}
             className="flex-1 w-full"
-            style={{ background: `color-mix(in srgb, ${chapterHue(chapter.name)} 14%, var(--bg))` }}
+            style={{ background: `color-mix(in srgb, ${chapterHue(chapter.name)} calc(14% * var(--tint-boost)), var(--bg))` }}
           />
         ))}
       </div>
@@ -78,7 +78,7 @@ export default function LevelPathPage() {
       <div className="flex flex-col items-center w-full max-w-lg mx-auto px-4" style={{ paddingTop: 'max(1rem, var(--safe-top))' }}>
         {/* HUD: title + total stars, pinned while the map scrolls. */}
         <div
-          className="sticky z-20 mb-8 flex items-center gap-3 bg-surface/95 pl-5 pr-2 py-1.5 border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] backdrop-blur-sm"
+          className="sticky z-20 mb-8 flex items-center gap-3 bg-surface/95 pl-5 pr-2 py-1.5 border-2 border-line shadow-[4px_5px_0_0_var(--line)] backdrop-blur-sm"
           style={{ top: 'max(0.75rem, var(--safe-top))', borderRadius: '22px 9px 26px 13px' }}
         >
           <h1 className="text-2xl font-display text-ink">Level map</h1>
@@ -184,12 +184,12 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
       {visible ? (
         <>
           <div
-            className="self-center z-10 mb-8 flex items-center gap-3 bg-surface py-2 pl-2 pr-5 border-2 border-ink shadow-[4px_5px_0_0_var(--ink)] -rotate-1"
+            className="self-center z-10 mb-8 flex items-center gap-3 bg-surface py-2 pl-2 pr-5 border-2 border-line shadow-[4px_5px_0_0_var(--line)] -rotate-1"
             style={{ borderRadius: '20px 12px 22px 14px' }}
           >
             <span
-              className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-ink"
-              style={{ background: `color-mix(in srgb, ${hue} 45%, var(--surface))` }}
+              className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-line"
+              style={{ background: `color-mix(in srgb, ${hue} calc(45% * var(--tint-boost)), var(--surface))` }}
             >
               <ChapterArt chapter={chapter.name} className="w-9 h-9" />
             </span>
@@ -248,7 +248,7 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
                       isCurrent ? 'w-[76px] h-[76px] border-4' : 'w-16 h-16 border-[3px]'
                     } ${
                       isUnlocked
-                        ? 'border-ink shadow-[4px_5px_0_0_var(--ink)] cursor-pointer'
+                        ? 'border-line shadow-[4px_5px_0_0_var(--line)] cursor-pointer'
                         : 'bg-surface/60 border-ink/25 cursor-not-allowed'
                     }`}
                     style={{
@@ -256,7 +256,7 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
                       background: isCurrent
                         ? 'var(--accent)'
                         : stars > 0
-                          ? `color-mix(in srgb, ${hue} 70%, var(--surface))`
+                          ? `color-mix(in srgb, ${hue} calc(70% * var(--tint-boost)), var(--surface))`
                           : isUnlocked
                             ? 'var(--surface)'
                             : undefined,

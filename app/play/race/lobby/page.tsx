@@ -47,7 +47,7 @@ export default function RaceLobbyPage() {
 
       {/* Versus card: two butterflies squaring up, like a PvP lobby. */}
       <div
-        className="stagger-in relative w-full flex items-center justify-between px-6 py-4 mb-6 border-2 border-ink bg-lav-soft shadow-[4px_5px_0_0_var(--ink)]"
+        className="stagger-in relative w-full flex items-center justify-between px-6 py-4 mb-6 border-2 border-line bg-lav-soft shadow-[4px_5px_0_0_var(--line)]"
         style={{ borderRadius: '24px 14px 26px 16px' }}
         aria-hidden="true"
       >
@@ -56,7 +56,7 @@ export default function RaceLobbyPage() {
           <span className="font-display font-bold text-ink text-sm">You</span>
         </span>
         <span
-          className="nera-pop flex items-center justify-center w-14 h-14 border-2 border-ink bg-accent text-on-accent font-display font-bold text-2xl shadow-[3px_4px_0_0_var(--ink)] -rotate-6"
+          className="nera-pop flex items-center justify-center w-14 h-14 border-2 border-line bg-accent text-on-accent font-display font-bold text-2xl shadow-[3px_4px_0_0_var(--line)] -rotate-6"
           style={{ borderRadius: '63% 37% 54% 46% / 55% 45% 62% 38%' }}
         >
           VS
@@ -70,7 +70,7 @@ export default function RaceLobbyPage() {
       </div>
       
       {/* Segmented Control */}
-      <div role="tablist" aria-label="Join or create" className="grid grid-cols-2 gap-1 w-full bg-surface border-2 border-ink rounded-[20px] p-1 shadow-[4px_5px_0_0_var(--ink)] mb-6">
+      <div role="tablist" aria-label="Join or create" className="grid grid-cols-2 gap-1 w-full bg-surface border-2 border-line rounded-[20px] p-1 shadow-[4px_5px_0_0_var(--line)] mb-6">
         {(['join', 'create'] as const).map(m => (
           <button
             key={m}
@@ -108,7 +108,7 @@ export default function RaceLobbyPage() {
               placeholder="CODE"
               value={roomCode}
               onChange={e => setRoomCode(normaliseRoomCode(e.target.value))}
-              className="w-full max-w-[280px] bg-surface border-4 border-ink p-4 rounded-2xl font-display text-center text-3xl tracking-[0.3em] text-ink outline-none focus:border-accent shadow-[4px_5px_0_0_var(--ink)] transition-colors"
+              className="w-full max-w-[280px] bg-surface border-4 border-line p-4 rounded-2xl font-display text-center text-3xl tracking-[0.3em] text-ink outline-none focus:border-accent shadow-[4px_5px_0_0_var(--line)] transition-colors"
               maxLength={ROOM_CODE_LENGTH}
             />
             <Button

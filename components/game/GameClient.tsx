@@ -320,13 +320,13 @@ export function GameClient({
           disabled={game.remainingCount === 0}
           aria-label={`Hint${game.hintsUsed > 0 ? ` (${game.hintsUsed})` : ''}`}
           data-sfx="none"
-          className="press relative flex items-center gap-2 h-14 pl-3 pr-4 border-2 border-ink bg-gold text-on-accent font-display font-bold text-lg shadow-[3px_4px_0_0_var(--ink)] disabled:opacity-40"
+          className="press relative flex items-center gap-2 h-14 pl-3 pr-4 border-2 border-line bg-gold text-on-accent font-display font-bold text-lg shadow-[3px_4px_0_0_var(--line)] disabled:opacity-40"
           style={{ borderRadius: '18px 12px 16px 10px' }}
         >
           <WandSvg className="w-6 h-6" />
           Hint
           {game.hintsUsed > 0 && (
-            <span className="absolute -top-2.5 -right-2.5 min-w-6 h-6 px-1 flex items-center justify-center rounded-full border-2 border-ink bg-accent text-on-accent text-xs tabular">
+            <span className="absolute -top-2.5 -right-2.5 min-w-6 h-6 px-1 flex items-center justify-center rounded-full border-2 border-line bg-accent text-on-accent text-xs tabular">
               {game.hintsUsed}
             </span>
           )}
@@ -345,10 +345,16 @@ export function GameClient({
         </div>
       )}
 
-      {/* The play stack is centred in whatever height is left, so a tall phone
-          gets even margins instead of one dead band above the boosters. */}
-      <div className="w-full flex-1 flex flex-col wide:flex-row items-center justify-center gap-3 wide:gap-6">
-        <div className="relative w-full wide:flex-1 wide:min-w-0 flex justify-center" onPointerDownCapture={intro ? endIntro : undefined}>
+      {/*
+        Phones: board and tray are centred in the height left over (the auto
+        top margin on the board and on the boosters split the spare space), and
+        the boosters sit at the bottom by the thumb. The side column is
+        `display: contents` there, so the boosters are rendered once and just
+        placed differently. Landscape (`wide`): tray + boosters form a real
+        column beside the board.
+      */}
+      <div className="w-full flex-1 flex flex-col wide:flex-row items-center wide:justify-center gap-3 wide:gap-6">
+        <div className="relative w-full mt-auto wide:mt-0 wide:flex-1 wide:min-w-0 flex justify-center" onPointerDownCapture={intro ? endIntro : undefined}>
           {/* foundWords overrides the hook's own list so a partner's finds
               appear on this board too. */}
           <GridBoard {...game} foundWords={allFound} gridRef={gridRef} shake={shake} />
@@ -362,7 +368,7 @@ export function GameClient({
                 animate={{ opacity: 1, scale: 1, y: -10, rotate: -4 }}
                 exit={{ opacity: 0, y: -40, transition: { duration: 0.25 } }}
                 transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 z-30 px-5 py-2 border-2 border-ink bg-accent text-on-accent font-display font-bold text-3xl shadow-[3px_4px_0_0_var(--ink)] whitespace-nowrap"
+                className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 z-30 px-5 py-2 border-2 border-line bg-accent text-on-accent font-display font-bold text-3xl shadow-[3px_4px_0_0_var(--line)] whitespace-nowrap"
                 style={{ borderRadius: '18px 10px 20px 12px' }}
                 role="status"
               >
@@ -381,7 +387,7 @@ export function GameClient({
                 exit={{ opacity: 0, transition: { duration: 0.2 } }}
               >
                 <motion.span
-                  className="nera-open flex flex-col items-center gap-1 px-8 py-5 bg-surface border-2 border-ink shadow-[4px_5px_0_0_var(--ink)]"
+                  className="nera-open flex flex-col items-center gap-1 px-8 py-5 bg-surface border-2 border-line shadow-[4px_5px_0_0_var(--line)]"
                   style={{ borderRadius: '22px 14px 24px 12px' }}
                   exit={{ scale: 1.1, opacity: 0 }}
                 >
@@ -394,17 +400,20 @@ export function GameClient({
           </AnimatePresence>
         </div>
 
-        {/* Desktop: a genuine second column holding the tray and boosters. */}
-        <div className="w-full wide:w-60 lg:w-72 wide:flex-none flex flex-col gap-4">
-          <WordList words={wordListProps} />
-          {boosters && <div className="hidden wide:block">{boosters}</div>}
+        <div className="contents wide:flex wide:flex-col wide:gap-4 wide:w-60 lg:w-72 wide:flex-none">
+          <div className="w-full">
+            <WordList words={wordListProps} />
+          </div>
+          {boosters ? (
+            <div className="w-full mt-auto wide:mt-0 sticky wide:static bottom-0 pt-1 wide:pt-0 pb-[max(0.25rem,var(--safe-bottom))] wide:pb-0">
+              {boosters}
+            </div>
+          ) : (
+            // Keeps the board + tray centred when there are no boosters (race).
+            <div className="mt-auto wide:hidden" aria-hidden="true" />
+          )}
         </div>
       </div>
-
-      {/* Phones: boosters pinned at the thumb. */}
-      {boosters && (
-        <div className="wide:hidden w-full sticky bottom-0 pt-1 pb-[max(0.25rem,var(--safe-bottom))]">{boosters}</div>
-      )}
 
       {/* Butterflies in flight to the garland. */}
       {flights.map(f => (

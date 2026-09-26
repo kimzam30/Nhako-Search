@@ -160,7 +160,7 @@ export default function ProfilePage() {
     <div className="flex flex-col w-full max-w-lg md:max-w-2xl mx-auto px-5 pb-6" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
       <header className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="shrink-0 w-14 h-14 rounded-full border-2 border-ink bg-surface overflow-hidden flex items-center justify-center font-display text-2xl text-ink">
+          <span className="shrink-0 w-14 h-14 rounded-full border-2 border-line bg-surface overflow-hidden flex items-center justify-center font-display text-2xl text-ink">
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element -- Google CDN avatar
               <img src={avatar} alt="" width={56} height={56} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
@@ -178,7 +178,7 @@ export default function ProfilePage() {
         <Link
           href="/settings"
           aria-label="Settings"
-          className="press shrink-0 flex items-center justify-center w-12 h-12 rounded-full border-2 border-ink bg-surface text-ink"
+          className="press shrink-0 flex items-center justify-center w-12 h-12 rounded-full border-2 border-line bg-surface text-ink"
         >
           <GearSvg className="w-6 h-6" />
         </Link>
@@ -207,7 +207,7 @@ export default function ProfilePage() {
         <span className="text-sm font-extrabold text-ink-2 tabular">{collection ? `${count} collected` : ''}</span>
       </div>
 
-      <div className="bg-surface p-4 sm:p-6 rounded-3xl border-2 border-ink shadow-[4px_5px_0_0_var(--ink)]">
+      <div className="bg-surface p-4 sm:p-6 rounded-3xl border-2 border-line shadow-[4px_5px_0_0_var(--line)]">
         {collection && count === 0 && (
           <p className="text-center font-body font-bold text-ink-2 mb-4">
             Finish a level or today&rsquo;s puzzle to catch your first butterfly.
@@ -235,12 +235,12 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => setSelected(b)}
                   aria-label={`${b.title}${i === 0 ? ', newest' : ''}`}
-                  className={`press w-full aspect-square ${b.bg} border-2 border-ink shadow-[2px_2px_0_0_var(--ink)] flex items-center justify-center relative`}
+                  className={`press w-full aspect-square ${b.bg} border-2 border-line shadow-[2px_2px_0_0_var(--line)] flex items-center justify-center relative`}
                   style={{ borderRadius: radius }}
                 >
                   <DoodleButterfly className="w-9 sm:w-11" wing={b.wings[0]} wing2={b.wings[1]} />
                   {i === 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-accent border-2 border-ink" aria-hidden="true" />
+                    <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-accent border-2 border-line" aria-hidden="true" />
                   )}
                 </button>
               </li>

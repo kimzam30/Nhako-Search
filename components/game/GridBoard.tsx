@@ -200,7 +200,7 @@ export function GridBoard({
     <div
       // The board is a no-fly zone for the butterfly sky (ButterflySky).
       data-no-fly
-      className={`washi bg-surface p-2 sm:p-3 border-2 border-ink flex flex-col touch-none relative shadow-[4px_5px_0_0_var(--ink)] aspect-square grid-board mx-auto ${
+      className={`washi bg-surface p-2 sm:p-3 border-2 border-line flex flex-col touch-none relative shadow-[4px_5px_0_0_var(--line)] aspect-square grid-board mx-auto ${
         shake ? 'nera-shake' : ''
       }`}
       style={{ borderRadius: '14px 20px 10px 18px' }}
@@ -276,7 +276,7 @@ export function GridBoard({
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
                 transition={{ duration: loop.id === 'selection' ? 0.08 : 0.22, ease: [0.23, 1, 0.32, 1] }}
-                stroke="var(--ink)"
+                stroke="var(--line)"
                 strokeOpacity={0.85}
                 strokeWidth={strokeWidth + 1.6}
                 strokeLinecap="round"

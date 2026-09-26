@@ -87,7 +87,7 @@ export default function SignInPage() {
             autoComplete="nickname"
             autoCapitalize="words"
             aria-describedby="guest-name-help"
-            className="w-full bg-surface border-2 border-ink rounded-xl px-4 py-3 font-bold text-ink outline-none focus:border-accent text-center text-lg min-h-[52px]"
+            className="w-full bg-surface border-2 border-line rounded-xl px-4 py-3 font-bold text-ink outline-none focus:border-accent text-center text-lg min-h-[52px]"
             autoFocus
           />
           <div
@@ -138,7 +138,7 @@ export default function SignInPage() {
             <path 
               d="M 50 60 Q 100 80 150 60" 
               fill="none" 
-              stroke="var(--ink)" 
+              stroke="var(--line)" 
               strokeWidth="2" 
               strokeDasharray="4 4" 
               className="opacity-40"

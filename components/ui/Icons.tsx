@@ -18,7 +18,7 @@ export const StarSvg = ({ className = '', filled = true }: { className?: string,
     fill={filled ? "currentColor" : "none"}
     // Earned stars get an ink outline: gold on the light surface is 1.4:1,
     // so a filled star with a gold stroke all but disappeared.
-    stroke={filled ? "var(--ink)" : "currentColor"} strokeWidth={filled ? 1.5 : 2} strokeLinejoin="round" strokeLinecap="round"
+    stroke={filled ? "var(--line)" : "currentColor"} strokeWidth={filled ? 1.5 : 2} strokeLinejoin="round" strokeLinecap="round"
     className={className}
     aria-hidden="true"
   >
