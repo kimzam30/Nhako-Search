@@ -36,11 +36,13 @@ npm run dev
 Apply the database schema in the Supabase SQL editor, in order:
 
 1. `supabase_schema.sql` — tables and row-level security for a fresh project
-2. `supabase/migrations/002_security.sql` … `005_rewards_friends.sql`
+2. `supabase/migrations/002_security.sql` … `006_friend_live.sql`
 
 005 adds token wallets, friendships, friend codes, the friend leaderboard and
 the one-call `get_player_summary()` RPC. Without it, signed-in players see no
-tokens, no friends page and slower screens.
+tokens, no friends page and slower screens. 006 pushes friend requests and
+accepts live over a private Realtime topic per player (`user:<id>`), so the
+badges and toasts update without a refresh.
 
 | Command | Purpose |
 |---|---|

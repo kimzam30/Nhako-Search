@@ -5,6 +5,7 @@ import { AmbientAudioProvider } from "@/components/sound/AmbientAudioProvider";
 import { PwaRegister } from "@/components/PwaRegister";
 import { MotionConfig } from "framer-motion";
 import { MergeClient } from "@/components/MergeClient";
+import { FriendLive } from "@/components/social/FriendLive";
 import { ButterflySky } from "@/components/ambient/ButterflySky";
 import { Toaster } from "@/components/ui/Toast";
 
@@ -95,6 +96,7 @@ export default function RootLayout({
       <body className="min-h-dvh flex flex-col font-body bg-background text-ink">
         <PwaRegister />
         <MergeClient />
+        <FriendLive />
         <MotionConfig reducedMotion="user">
           <AmbientAudioProvider>
             <ButterflySky />

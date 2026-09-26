@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
 
 /*
@@ -16,6 +17,8 @@ export interface ToastItem {
   body?: string;
   icon?: ReactNode;
   ms?: number;
+  /** Tapping the toast opens this page (otherwise a tap just dismisses). */
+  href?: string;
 }
 
 let items: ToastItem[] = [];
@@ -44,6 +47,7 @@ function subscribe(l: () => void) {
 }
 
 function Item({ item }: { item: ToastItem }) {
+  const router = useRouter();
   useEffect(() => {
     const t = window.setTimeout(() => dismiss(item.id), item.ms ?? 4200);
     return () => window.clearTimeout(t);
@@ -59,7 +63,10 @@ function Item({ item }: { item: ToastItem }) {
     >
       <button
         type="button"
-        onClick={() => dismiss(item.id)}
+        onClick={() => {
+          dismiss(item.id);
+          if (item.href) router.push(item.href);
+        }}
         className="w-full flex items-center gap-3 text-left px-3 py-2.5 bg-surface border-2 border-line shadow-[3px_4px_0_0_var(--line)]"
         style={{ borderRadius: '18px 12px 20px 14px' }}
       >
@@ -68,6 +75,9 @@ function Item({ item }: { item: ToastItem }) {
           <span className="font-display font-bold text-ink leading-tight">{item.title}</span>
           {item.body && <span className="text-sm font-bold text-ink-2 leading-snug">{item.body}</span>}
         </span>
+        {item.href && (
+          <span className="ml-auto shrink-0 text-xs font-extrabold uppercase tracking-wider text-accent-ink">View</span>
+        )}
       </button>
     </motion.li>
   );

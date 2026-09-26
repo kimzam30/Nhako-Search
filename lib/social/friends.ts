@@ -66,7 +66,8 @@ export async function fetchFriendAlbum(friendId: string): Promise<string[]> {
   return ((data ?? []) as { butterfly_style_id: string }[]).map(r => r.butterfly_style_id);
 }
 
-function refreshSocial() {
+/** Marks every friend-related view stale; watched ones refetch at once. */
+export function refreshSocial() {
   invalidate('friends:');
   invalidate('board:');
   refreshSummary();
