@@ -1,7 +1,7 @@
 'use client';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRaceRoom, raceDurationSeconds, TOGETHER, type RoomMode } from '@/lib/multiplayer/useRaceRoom';
+import { useRaceRoom, raceDurationSeconds, TOGETHER, OUT_OF_TIME, type RoomMode } from '@/lib/multiplayer/useRaceRoom';
 import { GameClient } from '@/components/game/GameClient';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
@@ -144,6 +144,7 @@ function RaceRoom({
   const isFinished = raceState.status === 'finished';
   const isCoop = roomMode === 'coop';
   const clearedTogether = isFinished && raceState.winner === TOGETHER;
+  const outOfTime = isFinished && raceState.winner === OUT_OF_TIME;
   const iWon = isFinished && raceState.winner === activeUserId;
 
   const [now, setNow] = useState(() => Date.now());
@@ -201,7 +202,8 @@ function RaceRoom({
   const savedRoundRef = useRef<number | null>(null);
   useEffect(() => {
     if (!isFinished || !opponent || !me.isLeader || !raceState.winner) return;
-    if (raceState.winner === TOGETHER) return; // co-op is not a win/loss record
+    // Co-op is not a win/loss record, cleared or not.
+    if (raceState.winner === TOGETHER || raceState.winner === OUT_OF_TIME) return;
     if (savedRoundRef.current === raceState.round) return;
     savedRoundRef.current = raceState.round;
     import('@/lib/multiplayer/history').then(({ saveRaceHistory }) => {
@@ -366,11 +368,18 @@ function RaceRoom({
         >
           {clearedTogether
             ? 'Cleared together!'
-            : iWon
-              ? 'You won!'
-              : `${opponent?.name ?? 'Your partner'} won!`}
+            : outOfTime
+              ? 'Out of time'
+              : iWon
+                ? 'You won!'
+                : `${opponent?.name ?? 'Your partner'} won!`}
           {(iWon || clearedTogether) && <ButterflySvg className="w-16 h-16 text-accent-ink" />}
         </motion.h1>
+        {outOfTime && (
+          <p className="-mt-4 mb-8 font-body font-bold text-ink-2 text-center tabular">
+            You found {new Set([...me.foundWords, ...(opponent?.foundWords ?? [])]).size} of {me.total} words together.
+          </p>
+        )}
 
         <Card className="w-full mb-8 flex flex-col gap-6">
           <div className="flex flex-col gap-2">
@@ -387,7 +396,7 @@ function RaceRoom({
         </Card>
 
         <div className="flex gap-4 w-full">
-          <Button fullWidth variant="secondary" onClick={() => router.push('/')}>
+          <Button fullWidth variant="secondary" onClick={() => router.replace('/')}>
             Back to Home
           </Button>
           {/* Broadcasts, so both players return to the lobby together. */}

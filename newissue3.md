@@ -267,3 +267,21 @@ Everything below was re-verified by running it against a production build
 **Still not verified:** anything that needs the new code *deployed* with a real
 Google session — merge-on-sign-in, Delete My Data, and a two-account race on
 the live site. The live site still runs the old build until you deploy.
+
+### Live two-account session (2026-09-26, deployed build `79e5fe4`)
+
+Room HYXH8F: leader **namahakim** (driven by Claude in Chrome), guest **kimzam**
+(played by hand). Verified on search.nhako.com:
+- kimzam joined and appeared on the leader's screen; the round started.
+- kimzam's finds reached the leader live (1/10 → 2/10 mid-round).
+- Earlier, namahakim as guest vs a scripted leader: first Ready landed first
+  time, identical 64-cell boards after a last-second switch to easy, reload
+  mid-race rejoined the same board, and "You won!" / "namahakim won!" matched.
+- Profile numbers for namahakim match the database exactly.
+
+**New bug found live, fixed:** a co-op round that ran out of time showed
+"Cleared together!" and awarded both players a Together butterfly (3/10 words
+found; two rows `together-HYXH8F-2026-09-26` written). Co-op timeouts now end as
+"Out of time" with a words-found line and no award (verified locally: 0 awards,
+suite 72/72). **Needs a redeploy.** The two wrongly awarded rows are still in the
+database — not deleted without your say-so.

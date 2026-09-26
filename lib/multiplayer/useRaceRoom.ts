@@ -8,6 +8,12 @@ export type RoomMode = 'race' | 'coop';
 
 /** Sentinel winner id used when a co-op board is cleared together. */
 export const TOGETHER = 'together';
+/**
+ * Sentinel for a co-op round that ran out of time. It used to be declared as
+ * TOGETHER, so an unfinished board read "Cleared together!" and both players
+ * were awarded the Together butterfly (seen live: 3/10 words, two awards).
+ */
+export const OUT_OF_TIME = 'out-of-time';
 
 export type RaceStatus = 'lobby' | 'countdown' | 'playing' | 'finished';
 
@@ -686,7 +692,7 @@ export function useRaceRoom(roomCode: string, userId: string, userName: string) 
       if (me.mode === 'coop') {
         const together = new Set([...me.foundWords, ...(opp?.foundWords ?? [])]);
         if (me.total > 0 && together.size >= me.total) declare(TOGETHER);
-        else if (Date.now() >= endTime && isLeader) declare(TOGETHER);
+        else if (Date.now() >= endTime && isLeader) declare(OUT_OF_TIME);
         return;
       }
 
