@@ -4,7 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { Sheet } from '@/components/ui/Sheet';
+import { Sheet, afterSheetClosed } from '@/components/ui/Sheet';
 import { MixerPanel } from '@/components/sound/MixerPanel';
 import { getUserProfile, updateDisplayName } from '@/lib/auth/profile';
 import { deleteAllUserData } from '@/lib/auth/deleteData';
@@ -96,7 +96,7 @@ export default function SettingsPage() {
       return;
     }
     setConfirmDelete(false);
-    router.replace('/sign-in');
+    afterSheetClosed(() => router.replace('/sign-in'));
   };
 
   const nameChanged = profile && nameDraft.trim() && nameDraft.trim() !== profile.displayName;

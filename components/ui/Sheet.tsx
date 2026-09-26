@@ -13,6 +13,22 @@ interface SheetProps {
   children: ReactNode;
 }
 
+/** History-state key marking the entry an open sheet pushed. */
+const SHEET_KEY = '__nhakoSheet';
+
+/**
+ * Navigate from inside an open sheet. Close the sheet first, then pass the
+ * navigation here: it runs once the sheet's own history entry has been
+ * popped, so the sheet never leaves a dead duplicate step in Back.
+ */
+export function afterSheetClosed(navigate: () => void) {
+  if (typeof window !== 'undefined' && window.history.state?.[SHEET_KEY]) {
+    window.addEventListener('popstate', () => setTimeout(navigate, 0), { once: true });
+  } else {
+    navigate();
+  }
+}
+
 /*
  * A native-style bottom sheet: slides up from the bottom edge, can be dragged
  * down or tapped outside to dismiss, closes on Escape, and keeps its content
@@ -27,6 +43,29 @@ export function Sheet({ open, onClose, title, label, children }: SheetProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Back (Android button, iOS edge swipe, browser Back) closes an open sheet
+  // instead of leaving the screen behind it, like a native sheet. The sheet
+  // pushes one same-URL entry on open; Back pops it. Closing any other way
+  // pops that entry itself, so history is left exactly as it was.
+  useEffect(() => {
+    if (!open) return;
+    window.history.pushState({ ...window.history.state, [SHEET_KEY]: true }, '');
+    let pushed = true;
+    const onPop = () => {
+      pushed = false;
+      onCloseRef.current();
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      if (pushed && window.history.state?.[SHEET_KEY]) window.history.back();
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;

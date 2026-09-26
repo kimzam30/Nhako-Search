@@ -13,6 +13,11 @@
   --color-on-accent: var(--on-accent);
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-wing-garden: var(--wing-garden);
+  --color-wing-rainy: var(--wing-rainy);
+  --color-wing-cozy: var(--wing-cozy);
+  --color-wing-sun: var(--wing-sun);
+  --color-wing-together: var(--wing-together);
   
   --font-display: var(--font-fredoka);
   --font-body: var(--font-nunito);
@@ -36,6 +41,14 @@
   /* Accent as TEXT. Plain accent is 2.45:1 on the light page. */
   --accent-ink: #B02A63;
   --danger: #FB7185;
+  /* Collection butterflies are stroke-only outlines, so their colour is the
+     only thing that separates them from the tile: each clears 3:1 (graphics)
+     on page, card and tinted tiles. The old gold/amber hexes were 1.2-2.0:1. */
+  --wing-garden: #2F7D4F;
+  --wing-rainy: #4A1942;
+  --wing-cozy: #B8456F;
+  --wing-sun: #8F6800;
+  --wing-together: #7A3DB8;
   color-scheme: light;
 }
 
@@ -49,6 +62,11 @@
   --gold: #C77DFF;
   --ink-2: #C2ABBC;
   --accent-ink: #FF8FC0;
+  --wing-garden: #3E9A63;
+  --wing-rainy: #C2ABBC;
+  --wing-cozy: #D9658F;
+  --wing-sun: #FFD166;
+  --wing-together: #C77DFF;
   color-scheme: dark;
 }
 
@@ -156,6 +174,16 @@ body::after {
   /* 720px cap: 450px left a tablet's board using under half the screen. The
      height term keeps board + word list on one screen in landscape. */
   width: max(200px, min(100%, 720px, 100dvh - 300px));
+}
+
+/* Phone in landscape: the word list sits BESIDE the board (md:flex-row), so
+   only what is ABOVE the board needs reserving (game bar, garland, timer —
+   measured 152px), not a word list below. The portrait allowance left an
+   844x390 board at the 200px floor; this gives 230px with no scrolling. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .grid-board {
+    width: max(200px, min(100%, 720px, 100dvh - 160px));
+  }
 }
 
 /*

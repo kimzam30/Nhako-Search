@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { ChatWidget } from '@/components/multiplayer/ChatWidget';
 import { PartnerGridDisplay } from '@/components/game/PartnerGridDisplay';
 import { getUserProfile } from '@/lib/auth/profile';
+import { useSetGameTitle } from '@/lib/nav/gameTitle';
 import { getStableGuestId } from '@/lib/multiplayer/identity';
 import standardPool from '@/lib/words/standard.json';
 import type { Difficulty } from '@/lib/puzzle/generator';
@@ -146,6 +147,10 @@ function RaceRoom({
   const clearedTogether = isFinished && raceState.winner === TOGETHER;
   const outOfTime = isFinished && raceState.winner === OUT_OF_TIME;
   const iWon = isFinished && raceState.winner === activeUserId;
+  // The countdown and the round have no heading of their own (the lobby and
+  // result screens do), so the game bar carries the page's h1 while they run.
+  const inRound = raceState.status === 'countdown' || raceState.status === 'playing';
+  useSetGameTitle(inRound ? (isCoop ? 'Together' : 'Race') : '');
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -418,9 +423,9 @@ function RaceRoom({
       {/* Status bar spans the full width so it does not read as a stray box
           floating in the middle of a desktop screen. */}
       <div className="flex-none w-full z-10 bg-surface border-b-2 border-ink shadow-[0_4px_0_0_var(--ink)]">
-        <div className="w-full max-w-lg lg:max-w-5xl mx-auto p-4 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-8">
+        <div className="w-full max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto p-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-8">
           <div
-            className={`font-display text-2xl lg:text-3xl font-bold tabular-nums lg:w-24 shrink-0 transition-colors ${
+            className={`font-display text-2xl lg:text-3xl font-bold tabular-nums md:w-20 lg:w-24 shrink-0 transition-colors ${
               timeLeft <= 10 ? 'text-accent-ink' : 'text-ink'
             }`}
             role="timer"
@@ -455,8 +460,11 @@ function RaceRoom({
         </div>
       </div>
 
-      <div className="flex-1 w-full max-w-lg lg:max-w-5xl mx-auto pt-4 pb-24 px-2 lg:px-8 flex flex-col lg:flex-row gap-8">
-        <div className="flex-1 w-full">
+      {/* Same column widths as solo play. This used to stay max-w-lg up to
+          1024px while GameClient already put the word list beside the board
+          from 768px, which squeezed a tablet's board to 280px (solo: 552px). */}
+      <div className="flex-1 w-full max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto pt-4 pb-24 px-2 lg:px-8 flex flex-col lg:flex-row gap-8">
+        <div className="flex-1 min-w-0 w-full">
           <GameClient
             key={raceState.seedStr}
             words={racePool}
@@ -474,10 +482,12 @@ function RaceRoom({
 
         {/* Partner's board, desktop race only — co-op already shares one board,
             so building a second, hidden copy there was wasted work. Uses the
-            ROUND difficulty so it reconstructs the grid the partner is solving. */}
+            ROUND difficulty so it reconstructs the grid the partner is solving.
+            A fixed side preview, not an equal half: as a flex-1 twin it left
+            the player's own board at 184px on a 1440px screen. */}
         {!isCoop && raceState.seedStr && (
-          <div className="hidden lg:flex flex-1 w-full flex-col items-center">
-            <h3 className="font-display text-xl text-ink mb-4">{opponent?.name || 'Partner'}</h3>
+          <div className="hidden lg:flex flex-none w-56 xl:w-72 flex-col items-center">
+            <h2 className="font-display text-lg text-ink mb-3 truncate max-w-full">{opponent?.name || 'Partner'}</h2>
             <PartnerGridDisplay
               key={raceState.seedStr}
               words={racePool}

@@ -1,12 +1,13 @@
 'use client';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { CHAPTERS, ALL_LEVEL_IDS, getLevelMeta } from '@/lib/levels/data';
 import { loadLevelProgress } from '@/lib/levels/progress';
 import type { LevelProgressRow } from '@/lib/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StarSvg, LockSvg } from '@/components/ui/Icons';
 import { ButtonLink } from '@/components/ui/Button';
-import { Sheet } from '@/components/ui/Sheet';
+import { Sheet, afterSheetClosed } from '@/components/ui/Sheet';
 
 const CHAPTER_COLORS: Record<string, string> = {
   'garden': 'bg-[#7FCB9C]/20',
@@ -21,6 +22,7 @@ const OFFSETS = [0, 30, 60, 40, -10, -50, -60, -30];
 
 export default function LevelPathPage() {
   const [progress, setProgress] = useState<LevelProgressRow[] | null>(null);
+  const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,7 +103,20 @@ export default function LevelPathPage() {
               ))}
             </div>
             <p className="font-body font-bold text-ink-2">Find every word. Under a minute earns three stars.</p>
-            <ButtonLink href={`/level-path/${selectedLevel}`} fullWidth className="text-xl py-4">
+            <ButtonLink
+              href={`/level-path/${selectedLevel}`}
+              fullWidth
+              className="text-xl py-4"
+              onClick={e => {
+                // Close the sheet (popping its Back entry) before pushing the
+                // level, so Back from the level lands on the map in one step.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                const href = `/level-path/${selectedLevel}`;
+                setSelectedLevel(null);
+                afterSheetClosed(() => router.push(href));
+              }}
+            >
               {getStars(selectedLevel) > 0 ? 'Play again' : 'Play level'}
             </ButtonLink>
           </div>

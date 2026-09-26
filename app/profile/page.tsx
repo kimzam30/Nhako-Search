@@ -36,12 +36,12 @@ interface Styled extends CollectionEntry {
 function styleFor(b: CollectionEntry): Styled {
   const id = b.butterfly_style_id ?? '';
   const chapter = id.match(/level-(c\d+)/)?.[1];
-  if (id.startsWith('together-')) return { ...b, title: 'Together butterfly', color: 'text-gold', bg: 'bg-accent/10' };
-  if (id.startsWith('daily-')) return { ...b, title: `Daily · ${id.slice(6)}`, color: 'text-[#E0A800] dark:text-[#FFD166]', bg: 'bg-background' };
+  if (id.startsWith('together-')) return { ...b, title: 'Together butterfly', color: 'text-wing-together', bg: 'bg-accent/10' };
+  if (id.startsWith('daily-')) return { ...b, title: `Daily · ${id.slice(6)}`, color: 'text-wing-sun', bg: 'bg-background' };
   const byChapter: Record<string, [string, string]> = {
-    c1: ['Garden skimmer', 'text-[#3E9A63]'], c7: ['Garden skimmer', 'text-[#3E9A63]'],
-    c2: ['Rainy blue', 'text-[#4A1942] dark:text-[#C2ABBC]'], c8: ['Rainy blue', 'text-[#4A1942] dark:text-[#C2ABBC]'],
-    c3: ['Cozy moth', 'text-[#D9658F]'], c9: ['Cozy moth', 'text-[#D9658F]'],
+    c1: ['Garden skimmer', 'text-wing-garden'], c7: ['Garden skimmer', 'text-wing-garden'],
+    c2: ['Rainy blue', 'text-wing-rainy'], c8: ['Rainy blue', 'text-wing-rainy'],
+    c3: ['Cozy moth', 'text-wing-cozy'], c9: ['Cozy moth', 'text-wing-cozy'],
     c4: ['Nightwing', 'text-ink'], c10: ['Nightwing', 'text-ink'],
     c5: ['Heartwing', 'text-accent-ink'], c11: ['Heartwing', 'text-accent-ink'],
     c6: ['Swallowtail', 'text-accent-ink'], c12: ['Swallowtail', 'text-accent-ink'],

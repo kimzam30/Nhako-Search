@@ -285,3 +285,84 @@ found; two rows `together-HYXH8F-2026-09-26` written). Co-op timeouts now end as
 "Out of time" with a words-found line and no award (verified locally: 0 awards,
 suite 72/72). **Needs a redeploy.** The two wrongly awarded rows are still in the
 database — not deleted without your say-so.
+
+### Final live checks (2026-09-26, deployed build `79c15e8`)
+
+Confirmed first that the deployed room chunk contains the fix ("Out of time").
+- **Two-account race, room WC62DG (Race, easy).** Leader **namahakim** (Claude
+  in Chrome), guest **kimzam** (played by hand in the second Chrome). kimzam's
+  join and Ready reached the leader; the leader's button went from "Waiting for
+  partner…" to "Start Race"; both boards had the same first row; progress synced
+  live (namahakim 1/6 vs kimzam 4/6 → 5/6); both screens ended "kimzam won!".
+  `race_history` got exactly **one** row: `player_a` = namahakim, `player_b` =
+  kimzam, `winner` = kimzam, `difficulty_a/b` = easy.
+- **Co-op timeout, room 8L7JNY (Together, easy).** Leader namahakim (Chrome) vs
+  a scripted guest (Playwright, live site), nobody found a word. Both screens:
+  "Out of time — You found 0 of 6 words together." **No** `together-8L7JNY-*`
+  butterfly row and **no** `race_history` row were written.
+- **Grid dragging on the live site:** 12/12 words found by scripted drags, including
+  drags sent as one single jump move. A missed drag during the race came from
+  the extension's synthetic drag, not the game.
+
+**Still open:** the two wrongly awarded `together-HYXH8F-2026-09-26` rows are
+still in the database (checked 04:42 UTC) until you run the delete. Also not
+verified: merge-on-sign-in and Delete My Data with a real Google session, and
+real iOS/Android devices (everything was Chromium).
+
+
+### Design re-check on the deployed build (2026-09-26, after `79c15e8`)
+
+Re-ran the phone/tablet/desktop sweeps against search.nhako.com itself:
+axe **0 violations** on 10 routes × light/dark; no horizontal overflow, no tap
+target under 44px, tab bar on screen, across 6 viewports × 11 routes.
+
+**New layout bug found (multiplayer only), fixed locally — needs deploy:**
+the race/co-op screen kept a 512px column up to 1024px while the game already
+put the word list beside the board from 768px, and on desktop the partner's
+board took an equal half. Measured board widths, live → fixed:
+
+| Viewport | Solo | Race (live) | Race (fixed) | Co-op (live) | Co-op (fixed) |
+|---|---|---|---|---|---|
+| iPad 820×1180 | 552 | **280** | 536 | **280** | 536 |
+| iPad landscape 1180×820 | 520 | **184** | 480 | 520 | 520 |
+| Desktop 1440×900 | 600 | **184** | 416 | 600 | 600 |
+| Phone landscape 844×390 | 200 | 200 | 230 | 200 | 230 |
+
+Every board fits the viewport without scrolling (landscape phone: board bottom
+368–382 of 390). Also fixed: the race countdown/round screen had no h1 (axe
+`page-has-heading-one`) — the game bar now titles it "Race"/"Together" — and the
+desktop partner heading skipped a level (`heading-order`). Race round axe after
+the fix: 0 violations at 1440/820/390, light and dark. Suite 72/72, tsc 0, lint 0.
+Files: `app/play/race/[roomCode]/page.tsx`, `app/globals.css`.
+
+### ui-ux-pro-max + appllama re-run (2026-09-26, same session)
+
+Pre-delivery checklist and native laws re-checked mechanically. Passed as-is:
+reduced motion (MotionConfig `reducedMotion="user"` + CSS), no emoji in chrome
+(only chat quick-replies, which is content), one stated radius rule (hand-cut
+radii, `docs/design.md` Rule 1), the one gradient is a functional fade behind
+the pinned CTA, haptics on find/miss/win (Android), micro-interactions ≤300ms
+except the rare win celebration, modal scrims 45%.
+
+**Fixed (local, needs deploy):**
+- *Back didn't close sheets.* The Android back button / iOS edge swipe / browser
+  Back skipped straight past an open sheet — with "Leave this game?" open it
+  left the game without the sheet answering. `Sheet` now pushes one same-URL
+  history entry; Back closes the sheet; closing any other way pops the entry;
+  navigating from a sheet waits for the pop (`afterSheetClosed`), so no dead
+  duplicate steps. Verified (B1–B6): back closes the level, Leave, Sound and
+  Delete sheets without a reload; tap/Escape leave history unchanged; Play level
+  → back → map → back → home; Leave → map in one step; deep-linked Leave
+  replaces to the parent; after Delete, back goes to Profile, not Settings.
+- *Collection butterflies failed contrast in light mode* (stroke-only icons):
+  Together 1.2–1.4:1, Daily 1.8–2.0:1, Garden/Cozy 2.8–2.9:1 on tiles. Now theme
+  tokens `--wing-*` (light ≥4.0:1 on every tile, dark unchanged); rendered and
+  checked in both themes.
+
+After all fixes: suite 72/72, lint 0, tsc 0, axe 0 (10 routes × 2 themes + race
+round at 1440/820/390 × 2 themes), overflow/tap-target sweep clean.
+Files: `components/ui/Sheet.tsx`, `components/nav/GameBar.tsx`,
+`app/level-path/page.tsx`, `app/settings/page.tsx`, `app/profile/page.tsx`,
+`app/globals.css`, `app/play/race/[roomCode]/page.tsx`.
+Not possible here: Appllama reference-screen study (MCP not connected) and a
+real-device motion/60fps recording (no iOS simulator / Android device).

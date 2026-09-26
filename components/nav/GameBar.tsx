@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { CloseSvg, VolumeSvg } from '@/components/ui/Icons';
-import { Sheet } from '@/components/ui/Sheet';
+import { Sheet, afterSheetClosed } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { MixerPanel } from '@/components/sound/MixerPanel';
 import { gameplayParent } from '@/lib/nav/routes';
@@ -41,8 +41,10 @@ export function GameBar() {
 
   const leave = () => {
     setConfirmOpen(false);
-    if (routesSeen > 1) router.back();
-    else router.replace(parent);
+    afterSheetClosed(() => {
+      if (routesSeen > 1) router.back();
+      else router.replace(parent);
+    });
   };
 
   return (
