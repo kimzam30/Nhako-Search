@@ -5,6 +5,25 @@
    gives the board the full width instead of ~460px next to a side column. */
 @custom-variant wide (@media (orientation: landscape) and (min-width: 640px));
 
+/* Where the tab bar becomes a side rail: wide screens, and phones held in
+   landscape, where a bottom bar ate a third of a 390px-tall screen. Keep in
+   step with the @media rules under "Navigation chrome". */
+/* A short phone held upright (iPhone SE/mini, iPhone 15 in Safari with its
+   bars): screens that promise "no scrolling" tighten up here. */
+@custom-variant compact (@media (orientation: portrait) and (max-height: 760px));
+
+/* A phone held in landscape: too short for anything stacked above the board. */
+@custom-variant short (@media (orientation: landscape) and (max-height: 500px));
+
+@custom-variant rail {
+  @media (min-width: 1024px) {
+    @slot;
+  }
+  @media (orientation: landscape) and (max-height: 500px) {
+    @slot;
+  }
+}
+
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--ink);
@@ -175,12 +194,46 @@ nav {
 .press:active {
   transform: scale(0.97);
 }
+/* Pointer devices get a small lift on hover, so a control reads as pressable
+   before it is pressed. Touch never sees a stuck hover state. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .press:not(:disabled):not([aria-disabled='true']):hover {
+    transform: translateY(-2px);
+  }
+  .press:not(:disabled):not([aria-disabled='true']):hover:active {
+    transform: scale(0.97);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .press,
   .press:active {
     transition: none;
     transform: none;
   }
+}
+
+/*
+ * Choosing something answers back: a segmented option, a preset or a toggle
+ * gives one soft pop the moment it becomes the selected one. The rule starts
+ * matching when aria-checked/aria-pressed flips, which is what replays it.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [role='radio'][aria-checked='true'],
+  [aria-pressed='true'] {
+    animation: select-pop 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  /* The focus ring settles in rather than snapping on. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    animation: focus-in 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+}
+@keyframes select-pop {
+  0% { transform: scale(0.94); }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+@keyframes focus-in {
+  from { outline-offset: 6px; outline-color: transparent; }
 }
 
 /* Counters, clocks and scores never jiggle as digits change. */
@@ -239,13 +292,13 @@ body::after {
   width: max(200px, min(100%, 720px, 100dvh - 340px));
 }
 
-/* Phone in landscape: the word list sits BESIDE the board (md:flex-row), so
-   only what is ABOVE the board needs reserving (game bar, garland, timer:
-   measured 152px), not a word list below. The portrait allowance left an
-   844x390 board at the 200px floor; this gives 230px with no scrolling. */
+/* Phone in landscape: the garland, word list and boosters all sit in the
+   column BESIDE the board (GameClient's `short:` layout), so only the slim
+   game bar and the page padding are above it. Reserving the garland and timer
+   too left an 844x390 hard board at 202px with 16px cells. */
 @media (orientation: landscape) and (max-height: 500px) {
   .grid-board {
-    width: max(200px, min(100%, 720px, 100dvh - 160px));
+    width: max(200px, min(100%, 720px, 100dvh - 84px - var(--safe-top) - var(--safe-bottom)));
   }
 }
 
@@ -275,6 +328,49 @@ body::after {
   border: 2px solid var(--accent);
   border-radius: 6px;
   pointer-events: none;
+}
+
+/* A hint lands with two soft gold pulses so the eye finds the letter. */
+.hint-cell {
+  animation: hint-pulse 0.9s cubic-bezier(0.23, 1, 0.32, 1) 2;
+}
+@keyframes hint-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 0 color-mix(in srgb, var(--gold) 70%, transparent); }
+  45% { box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 7px color-mix(in srgb, var(--gold) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint-cell { animation: none; }
+}
+
+/* First-run drag guide (components/game/DragGuide.tsx): the finger presses,
+   drags the word's length while the capsule draws behind it, lifts, fades. */
+.drag-guide-line {
+  stroke: color-mix(in srgb, var(--accent) 45%, transparent);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  animation: drag-guide-line 2.6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+.drag-guide-finger {
+  left: 0;
+  top: 0;
+  animation: drag-guide-finger 2.6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+@keyframes drag-guide-line {
+  0%, 18% { stroke-dashoffset: 1; opacity: 1; }
+  62%, 80% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes drag-guide-finger {
+  0% { transform: translate(var(--x0), var(--y0)) scale(1.15); opacity: 0; }
+  10% { transform: translate(var(--x0), var(--y0)) scale(1.15); opacity: 1; }
+  18% { transform: translate(var(--x0), var(--y0)) scale(0.85); opacity: 1; }
+  62% { transform: translate(var(--x1), var(--y1)) scale(0.85); opacity: 1; }
+  75% { transform: translate(var(--x1), var(--y1)) scale(1.15); opacity: 1; }
+  100% { transform: translate(var(--x1), var(--y1)) scale(1.15); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drag-guide-line { animation: none; stroke-dashoffset: 0; }
+  .drag-guide-finger { animation: none; transform: translate(var(--x0), var(--y0)); }
 }
 
 /*
@@ -321,7 +417,8 @@ body::after {
  * Navigation chrome.
  *
  * Phones and tablets get a real bottom tab bar (icon + label, safe-area
- * aware); from 1024px up it becomes a left rail. The tab bar reserves its own
+ * aware); from 1024px up, and on a phone in landscape, it becomes a left rail
+ * (the `rail:` variant). The tab bar reserves its own
  * space with an in-flow spacer (see TabBar), so pages never hide content
  * behind it and immersive gameplay screens, which hide it, get the room back.
  */
@@ -330,6 +427,7 @@ body::after {
   --rail-w: 88px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 .tabbar {
@@ -345,18 +443,32 @@ body::after {
   flex: none;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px), (orientation: landscape) and (max-height: 500px) {
+  /* The rail clears the notch, which sits on the left in landscape. */
   .tabbar {
     top: 0;
     right: auto;
-    width: var(--rail-w);
+    width: calc(var(--rail-w) + var(--safe-left));
+    padding-left: var(--safe-left);
     padding-bottom: 0;
   }
   .tabbar-spacer {
     display: none;
   }
   body {
-    padding-left: var(--rail-w);
+    padding-left: calc(var(--rail-w) + var(--safe-left));
+  }
+  /* Gameplay hides the rail, so it gets the width back (worth ~90px of
+     board on a phone in landscape). Without :has() it just keeps the gutter. */
+  body:has([data-game-bar]) {
+    padding-left: 0;
+  }
+}
+/* Five tabs in a 390px-tall rail: start near the top, no gaps. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tabbar ul {
+    padding-top: 0.25rem;
+    gap: 0;
   }
 }
 
@@ -377,7 +489,14 @@ body::after {
   box-shadow: 4px 5px 0 0 var(--line);
   transition: transform 100ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-.sticker:active {
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .sticker:hover {
+    transform: translate(-1px, -2px);
+    box-shadow: 5px 7px 0 0 var(--line);
+  }
+}
+.sticker:active,
+.sticker:hover:active {
   transform: translate(3px, 4px);
   box-shadow: 0 0 0 0 var(--line);
 }
@@ -401,7 +520,7 @@ body::after {
 .bottom-cta {
   bottom: calc(var(--tabbar-h) + var(--safe-bottom));
 }
-@media (min-width: 1024px) {
+@media (min-width: 1024px), (orientation: landscape) and (max-height: 500px) {
   .bottom-cta {
     bottom: 0;
   }
@@ -547,6 +666,14 @@ body::after {
   to { transform: scaleX(0.35); }
 }
 
+/* Level-map nodes landing on the trail, one after another. */
+.node-in {
+  animation: node-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes node-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.6); }
+}
+
 /* --- Game chrome --------------------------------------------------------- */
 /* A pill that reads the same everywhere: timer, counts, streaks. */
 .hud-pill {
@@ -647,7 +774,7 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nera-open, .nera-pop, .nera-shake, .route-enter, .stagger-in, .idle-float, .play-glow,
+  .nera-open, .nera-pop, .nera-shake, .route-enter, .stagger-in, .node-in, .idle-float, .play-glow,
   .sky-fly svg, .token-bump, .skeleton::after, .typing-dot {
     animation: none !important;
   }

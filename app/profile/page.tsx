@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { supabase } from '@/lib/multiplayer/supabase';
-import { ChevronRightSvg, GearSvg, TrophySvg } from '@/components/ui/Icons';
+import { ChevronRightSvg, HelpSvg, GearSvg, TrophySvg } from '@/components/ui/Icons';
 import { Card } from '@/components/ui/Card';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
@@ -163,6 +163,21 @@ export default function ProfilePage() {
                     ? `${summary.friends} friend${summary.friends > 1 ? 's' : ''}`
                     : 'Add friends with a code'}
           </span>
+        </span>
+        <ChevronRightSvg className="w-6 h-6 text-ink" />
+      </Link>
+
+      <Link
+        href="/how-to-play"
+        className="press flex items-center gap-3 p-4 bg-surface border-2 border-line shadow-[4px_5px_0_0_var(--line)]"
+        style={{ borderRadius: '22px 16px 20px 14px' }}
+      >
+        <span className="shrink-0 w-12 h-12 flex items-center justify-center rounded-full border-2 border-line bg-accent-soft">
+          <HelpSvg className="w-7 h-7 text-ink" />
+        </span>
+        <span className="flex-1 flex flex-col min-w-0">
+          <span className="font-display font-bold text-ink text-xl">How to play</span>
+          <span className="text-sm font-bold text-ink-2 truncate">Directions, hints, multiplayer, installing</span>
         </span>
         <ChevronRightSvg className="w-6 h-6 text-ink" />
       </Link>

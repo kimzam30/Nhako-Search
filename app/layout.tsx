@@ -8,6 +8,10 @@ import { MergeClient } from "@/components/MergeClient";
 import { FriendLive } from "@/components/social/FriendLive";
 import { ButterflySky } from "@/components/ambient/ButterflySky";
 import { Toaster } from "@/components/ui/Toast";
+import { TabBar } from "@/components/nav/TabBar";
+import { GameBar } from "@/components/nav/GameBar";
+import { SignatureFooter } from "@/components/footer/SignatureFooter";
+import { SITE_URL, SITE_DESCRIPTION } from "@/lib/site";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -25,8 +29,39 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "NhakoSearch",
-  description: "A cozy, hand-drawn word-search game.",
+  // Absolute URLs for canonicals, Open Graph and the sitemap.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "NhakoSearch: Free Cozy Word Search Game for Two",
+    template: "%s | NhakoSearch",
+  },
+  description: SITE_DESCRIPTION,
+  keywords: [
+    "word search",
+    "word search game",
+    "multiplayer word search",
+    "word search with friends",
+    "daily word search",
+    "free word puzzle",
+    "cozy game",
+    "online word game",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "NhakoSearch",
+    title: "NhakoSearch: Free Cozy Word Search Game for Two",
+    description: SITE_DESCRIPTION,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NhakoSearch: Free Cozy Word Search Game for Two",
+    description: SITE_DESCRIPTION,
+  },
+  category: "games",
+  formatDetection: { telephone: false, email: false, address: false },
   manifest: "/manifest.json",
   applicationName: "NhakoSearch",
   appleWebApp: {
@@ -37,10 +72,12 @@ export const metadata: Metadata = {
   icons: {
     // Smallest first: browsers pick the closest match for the tab, so listing
     // only 192/512 made them downscale a large image on every page load.
+    // Pixel art from scripts/logo-art.mjs (npm run icons). The SVG is the
+    // pixel grid itself, so it stays sharp at any tab size.
     icon: [
-      { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
+      { url: "/favicon.ico", sizes: "16x16 32x32 64x64" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/favicon-48.png", sizes: "48x48", type: "image/png" },
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
@@ -62,10 +99,6 @@ export const viewport: Viewport = {
   // env(safe-area-inset-*) instead of leaving white bars.
   viewportFit: "cover",
 };
-
-import { TabBar } from "@/components/nav/TabBar";
-import { GameBar } from "@/components/nav/GameBar";
-import { SignatureFooter } from "@/components/footer/SignatureFooter";
 
 export default function RootLayout({
   children,

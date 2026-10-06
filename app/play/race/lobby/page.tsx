@@ -43,7 +43,10 @@ export default function RaceLobbyPage() {
 
   return (
     <div className="flex flex-col flex-1 px-5 pb-6 bg-transparent items-center justify-center w-full max-w-sm mx-auto relative" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
-      <h1 className="text-4xl font-display text-ink mb-4">Race a friend</h1>
+      {/* Not "Race a friend": co-op (Together) lives here too, and players
+          who want to play WITH someone never looked under a Race tab. */}
+      <h1 className="text-4xl font-display text-ink text-center">Play with a friend</h1>
+      <p className="font-accent text-2xl text-ink-2 -rotate-1 mb-4 text-center">race, or solve one board together</p>
 
       {/* Versus card: two butterflies squaring up, like a PvP lobby. */}
       <div

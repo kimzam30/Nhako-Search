@@ -8,9 +8,14 @@ import { Button } from '@/components/ui/Button';
 import { MixerPanel } from '@/components/sound/MixerPanel';
 import { gameplayParent } from '@/lib/nav/routes';
 import { useGameTitle } from '@/lib/nav/gameTitle';
+import { useLeaveGuardArmed } from '@/lib/nav/leaveGuard';
 
 /** Distinct routes seen this session; >1 means there is in-app history to go back to. */
 let routesSeen = 0;
+
+/** History-state key marking the same-URL entry that catches Back mid-game. */
+const GUARD_KEY = '__nhakoGuard';
+const isGuard = () => Boolean(window.history.state?.[GUARD_KEY]);
 
 /*
  * The immersive gameplay header: Close on the left, Sound on the right, and
@@ -20,6 +25,11 @@ let routesSeen = 0;
  * the player arrived from inside the app (so the level map keeps its scroll
  * position), or replaces to the parent screen after a deep link, so Back can
  * never land on a stale finished game.
+ *
+ * While a page has armed the leave guard (something to lose), Back asks the
+ * same question: the bar pushes one same-URL entry, and when Back pops it the
+ * entry goes straight back and the Leave sheet opens. Once the board is won
+ * the guard disarms and removes its entry, so Back never needs two presses.
  */
 export function GameBar() {
   const pathname = usePathname();
@@ -28,32 +38,64 @@ export function GameBar() {
   const [mixerOpen, setMixerOpen] = useState(false);
   const lastPath = useRef<string | null>(null);
   const title = useGameTitle();
+  const armed = useLeaveGuardArmed();
+  /** Set while Leave is navigating away, so the guard lets it through. */
+  const leavingRef = useRef(false);
 
   useEffect(() => {
     if (pathname && pathname !== lastPath.current) {
       lastPath.current = pathname;
+      leavingRef.current = false;
       routesSeen++;
     }
   }, [pathname]);
+
+  useEffect(() => {
+    if (!armed) return;
+    if (!isGuard()) window.history.pushState({ ...window.history.state, [GUARD_KEY]: true }, '');
+    const onPop = () => {
+      // Still on (or back to) the guard entry: a sheet above it closed.
+      if (leavingRef.current || isGuard()) return;
+      window.history.pushState({ ...window.history.state, [GUARD_KEY]: true }, '');
+      setConfirmOpen(true);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // Disarmed in place (the board was won): drop the now-pointless entry.
+      if (!leavingRef.current && isGuard()) window.history.back();
+    };
+  }, [armed]);
 
   const parent = gameplayParent(pathname);
   if (!parent) return null;
 
   const leave = () => {
+    leavingRef.current = true;
     setConfirmOpen(false);
     afterSheetClosed(() => {
-      if (routesSeen > 1) router.back();
-      else router.replace(parent);
+      const guarded = isGuard();
+      if (routesSeen > 1) {
+        // Past the guard entry too, back to the screen the game came from.
+        if (guarded) window.history.go(-2);
+        else router.back();
+      } else if (guarded) {
+        window.addEventListener('popstate', () => setTimeout(() => router.replace(parent), 0), { once: true });
+        window.history.back();
+      } else {
+        router.replace(parent);
+      }
     });
   };
 
   return (
     <>
       <header
+        data-game-bar
         className="sticky top-0 z-30 w-full bg-background/90 backdrop-blur-sm"
         style={{ paddingTop: 'var(--safe-top)' }}
       >
-        <div className="flex items-center justify-between h-14 px-2 max-w-5xl mx-auto">
+        <div className="flex items-center justify-between h-14 short:h-11 px-2 max-w-5xl mx-auto">
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}

@@ -78,6 +78,25 @@ test.describe('Solo gameplay', () => {
     expect(clock!.startsWith('0:0') || clock!.startsWith('0:1')).toBe(true);
   });
 
+  test('every paid hint lights a new letter, even past the first letters', async ({ page }) => {
+    // Regression: once every word's first letter was shown, the next hint
+    // re-picked an already lit cell, so tokens were spent and nothing changed.
+    await page.clock.install();
+    await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('nhako_wallet', JSON.stringify({ tokens: 200, lifetime: 200 }));
+      Object.keys(localStorage).filter(k => k.startsWith('nhako_cache')).forEach(k => localStorage.removeItem(k));
+    });
+    await page.goto('/play/standard/standard/easy');
+    const words = await page.locator('ul[aria-label="Words to find"] > li').count();
+    for (let i = 1; i <= words + 2; i++) {
+      await page.getByRole('button', { name: 'Hint for 4 tokens' }).click();
+      await expect(page.locator('.hint-cell')).toHaveCount(i);
+      await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('nhako_wallet') || '{}').tokens)).toBe(200 - 4 * i);
+      await page.clock.fastForward(9000);
+    }
+  });
+
   test('the words-remaining counter tracks the grid, not the requested list', async ({ page }) => {
     await page.goto('/play/standard/standard/easy');
     await page.locator('[data-x="0"][data-y="0"]').waitFor({ state: 'visible' });

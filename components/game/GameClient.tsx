@@ -5,6 +5,7 @@ import { GridBoard, wordColor } from '@/components/game/GridBoard';
 import { WordList } from '@/components/game/WordList';
 import { ButterflyGarland } from '@/components/game/ButterflyGarland';
 import { WinCelebration } from '@/components/game/WinCelebration';
+import { DragGuide, dragGuideDone, markDragGuideDone } from '@/components/game/DragGuide';
 import { Difficulty } from '@/lib/puzzle/generator';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -13,12 +14,14 @@ import { ClockSvg, TokenSvg, WandSvg } from '@/components/ui/Icons';
 import { DoodleButterfly } from '@/components/ui/Doodles';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 import { useGameTitle } from '@/lib/nav/gameTitle';
+import { useArmLeaveGuard } from '@/lib/nav/leaveGuard';
 import { haptic } from '@/lib/audio/sfx';
 import { usePlayer } from '@/lib/data/player';
 import { freeHintPenaltySeconds, HINT_COOLDOWN_MS, HINT_COST, starsFor, type RewardLine } from '@/lib/rewards/economy';
 import { spendTokens } from '@/lib/rewards/wallet';
 import { recordCombo } from '@/lib/rewards/journal';
 import { TokenPill } from '@/components/rewards/TokenPill';
+import { useHeldRewardToasts } from '@/components/ui/Toast';
 
 interface Props {
   words: string[];
@@ -171,6 +174,18 @@ export function GameClient({
   }, []);
   const endIntro = useCallback(() => setIntro(false), []);
 
+  // ------------------------------------------------------------ drag guide
+  // A first-time player's first solo board shows how to drag. It hides on the
+  // first touch of the board and never comes back once a word is found.
+  const [guide, setGuide] = useState(false);
+  useEffect(() => {
+    if (hideWinOverlay || initialFoundWords?.length || dragGuideDone()) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is client-only
+    setGuide(true);
+    // Once per board.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [elapsed, setElapsed] = useState(0);
   const [win, setWin] = useState<{ stars: number; seconds: number } | null>(null);
   const isWon = win !== null;
@@ -214,18 +229,27 @@ export function GameClient({
     return () => window.clearTimeout(t);
   }, [penaltyFlash]);
 
+  // The latest game state, for use after the token spend's await: the `game`
+  // captured at click time can be stale by then.
+  const gameRef = useRef(game);
+  useEffect(() => {
+    gameRef.current = game;
+  });
+
   const handleHint = async () => {
-    if (Date.now() < hintReadyAt || game.remainingCount === 0) return;
+    // Nothing new to light means nothing is charged.
+    if (Date.now() < hintReadyAt || !game.nextHint()) return;
     setHintReadyAt(Date.now() + HINT_COOLDOWN_MS);
-    if (canPay && (await spendTokens(HINT_COST))) {
-      if (game.useHint()) playSfx('hint');
-      return;
+    if (!(canPay && (await spendTokens(HINT_COST)))) {
+      const secs = nextPenalty;
+      setPenalty(p => p + secs);
+      setFreeHints(n => n + 1);
+      setPenaltyFlash({ id: Date.now(), secs });
     }
-    const secs = nextPenalty;
-    setPenalty(p => p + secs);
-    setFreeHints(n => n + 1);
-    setPenaltyFlash({ id: Date.now(), secs });
-    if (game.useHint()) playSfx('hint');
+    if (gameRef.current.revealHint()) {
+      playSfx('hint');
+      haptic(15);
+    }
   };
 
   // In co-op the board is shared, so completion is the union of both players'
@@ -251,6 +275,20 @@ export function GameClient({
   }));
 
   const totalWords = game.grid.placedWords.length;
+
+  // The guide traces a real word, preferring one that reads left to right.
+  const guideWord = useMemo(() => {
+    const pws = game.grid.placedWords;
+    return pws.find(p => p.startY === p.endY && p.endX > p.startX) ?? pws.find(p => p.startX === p.endX && p.endY > p.startY) ?? pws[0];
+  }, [game.grid.placedWords]);
+  const foundAny = game.foundWords.length > 0;
+  // Any find means they have got it, even if a touch already hid the guide.
+  useEffect(() => {
+    if (!foundAny) return;
+    markDragGuideDone();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGuide(false);
+  }, [foundAny]);
 
   // Report the real total once the grid exists, so a caller starting at 0/0
   // (race mode) knows how many words are actually findable.
@@ -326,6 +364,8 @@ export function GameClient({
    * state write; the sound, haptic and onComplete fire exactly once.
    */
   const complete = totalWords > 0 && allFound.length >= totalWords;
+  // From the first find until the board is cleared, Back asks before leaving.
+  useArmLeaveGuard(allFound.length > 0 && !complete);
   const [rewards, setRewards] = useState<RewardLine[] | null>(null);
   useEffect(() => {
     if (!complete || win) return;
@@ -345,6 +385,10 @@ export function GameClient({
       .catch(err => console.error('Saving the result failed:', err));
     return () => window.clearTimeout(t);
   }, [complete, win, startTime, onComplete, playSfx, penalty, difficulty, game.hintsUsed, totalWords]);
+
+  // Butterflies this win catches are listed on the win sheet, not toasted
+  // over it. Race mode has its own result screen and keeps the toasts.
+  const caught = useHeldRewardToasts(isWon && !hideWinOverlay);
 
   // The celebration waits for the final flight, so the last find is seen.
   const [showWin, setShowWin] = useState(false);
@@ -394,7 +438,7 @@ export function GameClient({
         <button
           type="button"
           onClick={handleHint}
-          disabled={game.remainingCount === 0 || hintCooling}
+          disabled={!game.nextHint() || hintCooling}
           aria-label={
             hintCooling
               ? 'Hint recharging'
@@ -409,7 +453,16 @@ export function GameClient({
           {hintCooling && (
             <span className="cooldown-ring absolute inset-0" style={{ ['--p' as string]: cooldown }} aria-hidden="true" />
           )}
-          <WandSvg className="relative w-6 h-6" />
+          {/* The wand flicks each time a hint lands. */}
+          <motion.span
+            key={game.hintsUsed}
+            className="relative flex"
+            initial={game.hintsUsed ? { rotate: -35, scale: 1.25 } : false}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 12 }}
+          >
+            <WandSvg className="w-6 h-6" />
+          </motion.span>
           <span className="relative flex flex-col items-start leading-none">
             Hint
             <span className="flex items-center gap-0.5 text-[11px] font-extrabold mt-0.5">
@@ -426,9 +479,15 @@ export function GameClient({
             </span>
           </span>
           {game.hintsUsed > 0 && (
-            <span className="absolute -top-2.5 -right-2.5 min-w-6 h-6 px-1 flex items-center justify-center rounded-full border-2 border-line bg-accent text-on-accent text-xs tabular">
+            <motion.span
+              key={game.hintsUsed}
+              initial={{ scale: 0.4 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 700, damping: 15 }}
+              className="absolute -top-2.5 -right-2.5 min-w-6 h-6 px-1 flex items-center justify-center rounded-full border-2 border-line bg-accent text-on-accent text-xs tabular"
+            >
               {game.hintsUsed}
-            </span>
+            </motion.span>
           )}
         </button>
       ) : (
@@ -438,9 +497,9 @@ export function GameClient({
   );
 
   return (
-    <div className="flex-1 flex flex-col items-center w-full max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto relative gap-2 sm:gap-3">
+    <div className="flex-1 flex flex-col items-center w-full max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto relative gap-2 sm:gap-3 short:max-w-none short:grid short:grid-cols-[minmax(0,1fr)_min(24rem,45vw)] short:grid-rows-[auto_minmax(0,1fr)] short:content-center short:gap-x-6">
       {!hideGarland && (
-        <div className="flex-none w-full flex justify-center">
+        <div className="flex-none w-full flex justify-center short:col-start-2 short:row-start-1">
           <ButterflyGarland ref={garlandRef} count={landed} total={totalWords} colors={garlandColors} />
         </div>
       )}
@@ -451,13 +510,26 @@ export function GameClient({
         the boosters sit at the bottom by the thumb. The side column is
         `display: contents` there, so the boosters are rendered once and just
         placed differently. Landscape (`wide`): tray + boosters form a real
-        column beside the board.
+        column beside the board. A phone in landscape (`short`) is too short for
+        the garland above the board, so the whole page becomes a two-column
+        grid: the board spans the left, garland then tray then boosters on the
+        right.
       */}
-      <div className="w-full flex-1 flex flex-col wide:flex-row items-center wide:justify-center gap-3 wide:gap-6">
-        <div className="relative w-full mt-auto wide:mt-0 wide:flex-1 wide:min-w-0 flex justify-center" onPointerDownCapture={intro ? endIntro : undefined}>
+      <div className="w-full flex-1 flex flex-col wide:flex-row items-center wide:justify-center gap-3 wide:gap-6 short:contents">
+        <div className="relative w-full mt-auto wide:mt-0 wide:flex-1 wide:min-w-0 flex justify-center short:col-start-1 short:row-start-1 short:row-span-2" onPointerDownCapture={intro || guide ? () => { endIntro(); setGuide(false); } : undefined}>
           {/* foundWords overrides the hook's own list so a partner's finds
               appear on this board too. */}
           <GridBoard {...game} foundWords={allFound} gridRef={gridRef} shake={shake} />
+
+          {guide && !intro && guideWord && (
+            <DragGuide
+              gridRef={gridRef}
+              from={{ x: guideWord.startX, y: guideWord.startY }}
+              to={{ x: guideWord.endX, y: guideWord.endY }}
+              cols={game.grid.width}
+              rows={game.grid.height}
+            />
+          )}
 
           {/* Combo callout over the board. */}
           <AnimatePresence>
@@ -500,7 +572,7 @@ export function GameClient({
           </AnimatePresence>
         </div>
 
-        <div className="contents wide:flex wide:flex-col wide:gap-4 wide:w-60 lg:w-72 wide:flex-none">
+        <div className="contents wide:flex wide:flex-col wide:gap-4 wide:w-60 lg:w-72 wide:flex-none short:w-auto! short:gap-3 short:col-start-2 short:row-start-2 short:self-start">
           <div className="w-full">
             <WordList words={wordListProps} />
           </div>
@@ -543,6 +615,7 @@ export function GameClient({
           words={totalWords}
           hints={game.hintsUsed}
           rewards={rewards}
+          caught={caught}
           penalty={penalty}
         >
           {nextLevelHref ? (

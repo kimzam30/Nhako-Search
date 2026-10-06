@@ -148,27 +148,34 @@ export function useGameLogic(
   }, []);
 
   /**
-   * Reveals the first letter of an unfound word and moves the cursor there.
-   * Deliberately only the first letter: enough to break a deadlock without
-   * solving the puzzle.
+   * The cell the next hint would reveal, or null if there is nothing new to
+   * show. First letters of unfound words come first; once each has been shown,
+   * the second letters, and so on. A hint must always light a cell that is not
+   * lit yet, or the player pays and sees nothing.
    */
-  const useHint = useCallback(() => {
+  const nextHint = useCallback((): { x: number; y: number; word: string } | null => {
     const remaining = grid.placedWords.filter(pw => !foundWords.includes(pw.word));
-    if (remaining.length === 0) return null;
-
-    // Prefer a word that has not already been hinted.
-    const target =
-      remaining.find(pw => !hintedCells.has(`${pw.startX},${pw.startY}`)) ?? remaining[0];
-
-    setHintedCells(prev => {
-      const next = new Set(prev);
-      next.add(`${target.startX},${target.startY}`);
-      return next;
-    });
-    setHintsUsed(n => n + 1);
-    setFocus({ x: target.startX, y: target.startY });
-    return target.word;
+    const longest = Math.max(0, ...remaining.map(pw => pw.word.length));
+    for (let i = 0; i < longest; i++) {
+      for (const pw of remaining) {
+        if (i >= pw.word.length) continue;
+        const x = pw.startX + Math.sign(pw.endX - pw.startX) * i;
+        const y = pw.startY + Math.sign(pw.endY - pw.startY) * i;
+        if (!hintedCells.has(`${x},${y}`)) return { x, y, word: pw.word };
+      }
+    }
+    return null;
   }, [grid.placedWords, foundWords, hintedCells]);
+
+  /** Lights the next hint cell and moves the cursor there. Null if none left. */
+  const revealHint = useCallback(() => {
+    const hint = nextHint();
+    if (!hint) return null;
+    setHintedCells(prev => new Set(prev).add(`${hint.x},${hint.y}`));
+    setHintsUsed(n => n + 1);
+    setFocus({ x: hint.x, y: hint.y });
+    return hint;
+  }, [nextHint]);
 
   return {
     grid,
@@ -187,7 +194,8 @@ export function useGameLogic(
     // Hints
     hintedCells,
     hintsUsed,
-    useHint,
+    nextHint,
+    revealHint,
     remainingCount: grid.placedWords.length - foundWords.length,
   };
 }

@@ -19,6 +19,7 @@ export function Button({
   fullWidth = false,
   className = '',
   disabled,
+  style,
   ...props
 }: ButtonProps) {
   const baseClasses =
@@ -37,15 +38,19 @@ export function Button({
 
   return (
     <motion.button
+      // Hover is mouse-only in Motion, so touch never gets a stuck lift.
+      whileHover={disabled ? undefined : { y: -2, x: -1, boxShadow: '5px 7px 0 0 var(--line)' }}
       whileTap={disabled ? undefined : { y: 4, x: 3, boxShadow: '0px 0px 0 0 var(--line)' }}
       transition={PRESS}
       disabled={disabled}
       className={`${baseClasses} ${radiusClass} ${widthClass} ${colorClasses} ${className}`}
+      {...props}
+      // Merged after the spread: a caller's `style` used to replace this
+      // object outright and take the sticker shadow with it.
       style={{
         boxShadow: disabled ? '2px 2px 0 0 var(--line)' : '4px 5px 0 0 var(--line)',
-        ...props.style,
+        ...style,
       }}
-      {...props}
     >
       {children}
     </motion.button>

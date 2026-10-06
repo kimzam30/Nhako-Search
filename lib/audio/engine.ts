@@ -50,11 +50,17 @@ function noise(ctx: Ctx, color: NoiseColor, seconds = 6): AudioBuffer {
   if (hit) return hit;
 
   const length = Math.floor(ctx.sampleRate * seconds);
+  // Generated `fade` samples longer than the buffer; the extra tail is then
+  // crossfaded into the head, so the last sample flows straight into the
+  // first. (The old version blended the end toward sample fade-1 and then
+  // jumped to sample 0: a click on every loop of pink or brown noise.)
+  const fade = Math.floor(ctx.sampleRate * 0.05);
   const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+  const raw = new Float32Array(length + fade);
   for (let ch = 0; ch < 2; ch++) {
-    const d = buffer.getChannelData(ch);
+    const d = raw;
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < length + fade; i++) {
       const w = Math.random() * 2 - 1;
       if (color === 'white') d[i] = w * 0.5;
       else if (color === 'pink') {
@@ -72,12 +78,12 @@ function noise(ctx: Ctx, color: NoiseColor, seconds = 6): AudioBuffer {
         d[i] = last * 3.5;
       }
     }
-    // Crossfade the ends so the loop point has no click.
-    const fade = Math.floor(ctx.sampleRate * 0.05);
+    // Equal-power crossfade of the overflow tail into the head.
     for (let i = 0; i < fade; i++) {
-      const g = i / fade;
-      d[length - fade + i] = d[length - fade + i] * (1 - g) + d[i] * g;
+      const g = (i / fade) * (Math.PI / 2);
+      d[i] = d[i] * Math.sin(g) + d[length + i] * Math.cos(g);
     }
+    buffer.copyToChannel(d.subarray(0, length), ch);
   }
   byCtx.set(key, buffer);
   return buffer;
@@ -182,9 +188,10 @@ function createRain(ctx: Ctx, out: AudioNode): Voice {
       while (t < to) {
         const src = ctx.createBufferSource();
         src.buffer = dropBuf;
-        const bp = biquad(ctx, 'bandpass', rand(1800, 7200), rand(2, 9));
+        // Softer and lower than v2: the 7 kHz, Q 9 drops read as ticking.
+        const bp = biquad(ctx, 'bandpass', rand(1400, 5200), rand(1.5, 5));
         const g = ctx.createGain();
-        env(g.gain, t, rand(0.05, 0.22), 0.0015, rand(0.012, 0.05));
+        env(g.gain, t, rand(0.05, 0.18), 0.002, rand(0.015, 0.05));
         src.connect(bp).connect(g).connect(panner(ctx, rand(-0.95, 0.95))).connect(drops);
         src.start(t, rand(0, 0.9), 0.08);
         t += -Math.log(1 - Math.random()) / rate;
@@ -194,11 +201,11 @@ function createRain(ctx: Ctx, out: AudioNode): Voice {
       while (nextPlink < to) {
         const p = nextPlink;
         const osc = ctx.createOscillator();
-        const f0 = rand(1300, 2700);
+        const f0 = rand(900, 1900);
         osc.frequency.setValueAtTime(f0, p);
         osc.frequency.exponentialRampToValueAtTime(f0 * 0.62, p + 0.045);
         const g = ctx.createGain();
-        env(g.gain, p, rand(0.015, 0.05), 0.002, 0.05);
+        env(g.gain, p, rand(0.012, 0.035), 0.004, 0.06);
         osc.connect(g).connect(panner(ctx, rand(-0.8, 0.8))).connect(drops);
         osc.start(p);
         osc.stop(p + 0.07);
@@ -623,8 +630,8 @@ function hat(ctx: Ctx, out: AudioNode, t: number, v: number) {
   const n = ctx.createBufferSource();
   n.buffer = noise(ctx, 'white', 1);
   const g = ctx.createGain();
-  env(g.gain, t, 0.13 * v, 0.002, rand(0.025, 0.05));
-  n.connect(biquad(ctx, 'highpass', 7200)).connect(g).connect(out);
+  env(g.gain, t, 0.11 * v, 0.002, rand(0.025, 0.05));
+  n.connect(biquad(ctx, 'highpass', 5800)).connect(g).connect(out);
   n.start(t, rand(0, 0.8), 0.08);
 }
 
@@ -767,8 +774,8 @@ function createLofi(ctx: Ctx, out: AudioNode, sample: AudioBuffer | null, getTra
       if (track.kick[s]) {
         kick(ctx, drums, t, track.kick[s]);
         // Keys duck under the kick: the lofi "pump".
-        keys.gain.setTargetAtTime(0.68, t, 0.01);
-        keys.gain.setTargetAtTime(1, t + 0.06, 0.12);
+        keys.gain.setTargetAtTime(0.72, t, 0.03);
+        keys.gain.setTargetAtTime(1, t + 0.09, 0.14);
       }
       if (track.snare[s]) snare(ctx, drums, t, track.snare[s] * rand(0.85, 1));
       if (track.hat[s] && Math.random() > 0.06) hat(ctx, drums, t, track.hat[s] * rand(0.7, 1));
@@ -794,12 +801,16 @@ function createLofi(ctx: Ctx, out: AudioNode, sample: AudioBuffer | null, getTra
     // Vinyl crackle.
     const crackles = Math.floor(rand(3, 9));
     for (let i = 0; i < crackles; i++) {
+      // One time for both the envelope and the start. They used to be drawn
+      // separately, so a crackle that began before its envelope played at the
+      // GainNode default of 1.0: the sharp tick heard over the lofi.
+      const at = t0 + rand(0, beat * 4);
       const c = ctx.createBufferSource();
       c.buffer = noise(ctx, 'white', 1);
-      const g = ctx.createGain();
-      env(g.gain, t0 + rand(0, beat * 4), rand(0.02, 0.08), 0.0005, 0.004);
-      c.connect(biquad(ctx, 'highpass', 2500)).connect(g).connect(bus);
-      c.start(t0 + rand(0, beat * 4), rand(0, 0.9), 0.01);
+      const g = gainNode(ctx, 0);
+      env(g.gain, at, rand(0.012, 0.035), 0.001, 0.012);
+      c.connect(biquad(ctx, 'bandpass', rand(2200, 4200), 0.8)).connect(g).connect(bus);
+      c.start(at, rand(0, 0.9), 0.03);
     }
     bar++;
     return beat * 4;

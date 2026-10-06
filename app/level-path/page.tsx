@@ -1,27 +1,18 @@
 'use client';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { CHAPTERS, ALL_LEVEL_IDS, getLevelMeta } from '@/lib/levels/data';
+import { CHAPTERS, ALL_LEVEL_IDS, getLevelMeta, type Chapter, type ChapterTheme } from '@/lib/levels/data';
 import { usePlayer } from '@/lib/data/player';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StarSvg, LockSvg } from '@/components/ui/Icons';
 import { ButtonLink } from '@/components/ui/Button';
 import { Sheet, afterSheetClosed } from '@/components/ui/Sheet';
 import { DoodleButterfly, ChapterArt } from '@/components/ui/Doodles';
-
-/*
- * Chapter colour, from the capsule palette so it works in both themes. The
- * old fixed hexes at 10-20% alpha turned a muddy grey on the dark page.
- */
-function chapterHue(name: string): string {
-  const c = name.toLowerCase();
-  if (c.startsWith('garden')) return 'var(--word-3)';
-  if (c.startsWith('rainy')) return 'var(--word-5)';
-  if (c.startsWith('cozy')) return 'var(--word-6)';
-  if (c.startsWith('night')) return 'var(--word-2)';
-  if (c.startsWith('date')) return 'var(--word-1)';
-  return 'var(--word-4)';
-}
+import { ChapterScenes } from '@/components/levels/ChapterScenes';
+import { STAR_TIMES } from '@/lib/rewards/economy';
+import { toast } from '@/components/ui/Toast';
+import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
+import { haptic } from '@/lib/audio/sfx';
 
 // Winding offset pattern, scaled per breakpoint by --level-wind.
 const OFFSETS = [0, 30, 60, 40, -10, -50, -60, -30];
@@ -50,21 +41,29 @@ export default function LevelPathPage() {
   const totalStars = useMemo(() => (progress ?? []).reduce((n, p) => n + (p.stars ?? 0), 0), [progress]);
   const selectedMeta = selectedLevel ? getLevelMeta(selectedLevel) : undefined;
 
+  // The scene behind the map follows the chapter crossing the middle of the
+  // screen. Every chapter section keeps its height while unrendered, so this
+  // works for chapters far off-screen too.
+  const [scene, setScene] = useState<ChapterTheme>(CHAPTERS[0].theme);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        const hit = entries.find(e => e.isIntersecting);
+        const theme = hit?.target.getAttribute('data-theme') as ChapterTheme | null;
+        if (theme) setScene(theme);
+      },
+      { rootMargin: '-50% 0px -50% 0px' }
+    );
+    document.querySelectorAll('section[data-theme]').forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     // overflow-x-clip: each level row is shifted sideways by its winding offset,
     // which widened the page on phones and pushed the fixed tab bar's labels
     // below the screen. `clip` (not `hidden`) keeps the sticky header working.
     <div className="flex flex-col items-center flex-1 w-full relative overflow-x-clip">
-      {/* Background zones */}
-      <div className="absolute inset-0 w-full h-full -z-10 flex flex-col" aria-hidden="true">
-        {CHAPTERS.map(chapter => (
-          <div
-            key={chapter.id}
-            className="flex-1 w-full"
-            style={{ background: `color-mix(in srgb, ${chapterHue(chapter.name)} calc(14% * var(--tint-boost)), var(--bg))` }}
-          />
-        ))}
-      </div>
+      <ChapterScenes theme={scene} />
 
       <div className="flex flex-col items-center w-full max-w-lg mx-auto px-4" style={{ paddingTop: 'max(1rem, var(--safe-top))' }}>
         {/* HUD: title + total stars, pinned while the map scrolls. */}
@@ -110,7 +109,9 @@ export default function LevelPathPage() {
                 />
               ))}
             </div>
-            <p className="font-body font-bold text-ink-2">Find every word. Under a minute earns three stars.</p>
+            <p className="font-body font-bold text-ink-2">
+              Find every word. Under {STAR_TIMES[selectedMeta.difficulty][0]} seconds earns three stars.
+            </p>
             <ButtonLink
               href={`/level-path/${selectedLevel}`}
               fullWidth
@@ -125,7 +126,7 @@ export default function LevelPathPage() {
                 afterSheetClosed(() => router.push(href));
               }}
             >
-              {getStars(selectedLevel) > 0 ? 'Play again' : 'Play level'}
+              {getStars(selectedLevel) > 0 ? 'Play again' : 'Play'}
             </ButtonLink>
           </div>
         )}
@@ -135,15 +136,38 @@ export default function LevelPathPage() {
 }
 
 interface ChapterViewProps {
-  chapter: { id: string; name: string; levels: string[] };
+  chapter: Chapter;
   highestUnlockedIndex: number;
   currentId: string | null;
   getStars: (levelId: string) => number;
   onSelectLevel: (levelId: string) => void;
 }
 
+/*
+ * A locked level answers a tap instead of ignoring it: the node shakes with a
+ * soft miss, and a toast names the level that opens the path.
+ */
+function useLockedTap(currentId: string | null) {
+  const { playSfx } = useAmbientAudio();
+  return (button: HTMLElement, number: string) => {
+    button.classList.remove('nera-shake');
+    void button.offsetWidth; // restart the animation on a repeat tap
+    button.classList.add('nera-shake');
+    button.addEventListener('animationend', () => button.classList.remove('nera-shake'), { once: true });
+    playSfx('miss');
+    haptic([12, 40, 12]);
+    const next = currentId ? getLevelMeta(currentId) : null;
+    toast({
+      title: `Level ${number} is locked`,
+      body: next ? `Finish ${next.chapter} ${next.numberInChapter} to open the path.` : 'Finish the level before it first.',
+      ms: 2600,
+    });
+  };
+}
+
 function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSelectLevel }: ChapterViewProps) {
   const ref = useRef<HTMLElement>(null);
+  const onLockedTap = useLockedTap(currentId);
   const currentRef = useRef<HTMLButtonElement>(null);
   const containsCurrent = currentId ? chapter.levels.includes(currentId) : false;
   const [isVisible, setIsVisible] = useState(false);
@@ -165,17 +189,17 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
     }
   }, [containsCurrent]);
 
-  const hue = chapterHue(chapter.name);
+  const hue = chapter.hue;
 
   // Approximate height: header (~90px) + levels * gap (112px) + padding
   const estimatedHeight = 90 + chapter.levels.length * 112 + 60;
 
   return (
-    <section ref={ref} aria-label={chapter.name} className="flex flex-col w-full relative mb-12" style={{ minHeight: `${estimatedHeight}px` }}>
+    <section ref={ref} data-theme={chapter.theme} aria-label={chapter.name} className="flex flex-col w-full relative mb-12" style={{ minHeight: `${estimatedHeight}px` }}>
       {visible ? (
         <>
           <div
-            className="self-center z-10 mb-8 flex items-center gap-3 bg-surface py-2 pl-2 pr-5 border-2 border-line shadow-[4px_5px_0_0_var(--line)] -rotate-1"
+            className="nera-open self-center z-10 mb-8 flex items-center gap-3 bg-surface py-2 pl-2 pr-5 border-2 border-line shadow-[4px_5px_0_0_var(--line)] -rotate-1"
             style={{ borderRadius: '20px 12px 22px 14px' }}
           >
             <span
@@ -196,9 +220,10 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
           </div>
 
           <ol className="flex flex-col items-center gap-12 py-4 relative">
-            {chapter.levels.map(levelId => {
-              const levelIndex = ALL_LEVEL_IDS.indexOf(levelId);
-              const number = (getLevelMeta(levelId)?.numberInChapter ?? 0).toString();
+            {chapter.levels.map((levelId, i) => {
+              const meta = getLevelMeta(levelId);
+              const levelIndex = meta?.index ?? -1;
+              const number = (meta?.numberInChapter ?? 0).toString();
               const stars = getStars(levelId);
               const isUnlocked = levelIndex <= highestUnlockedIndex;
               const isCurrent = levelId === currentId;
@@ -207,8 +232,9 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
               return (
                 <li
                   key={levelId}
-                  className="relative flex justify-center items-center w-full"
-                  style={{ left: `calc(${offset}px * var(--level-wind, 1))` }}
+                  // Nodes pop in down the trail as their chapter comes into view.
+                  className="node-in relative flex justify-center items-center w-full"
+                  style={{ left: `calc(${offset}px * var(--level-wind, 1))`, animationDelay: `${Math.min(i, 8) * 45}ms` }}
                 >
                   {isCurrent && (
                     <>
@@ -227,7 +253,7 @@ function ChapterView({ chapter, highestUnlockedIndex, currentId, getStars, onSel
                   <button
                     ref={isCurrent ? currentRef : undefined}
                     type="button"
-                    onClick={() => isUnlocked && onSelectLevel(levelId)}
+                    onClick={e => (isUnlocked ? onSelectLevel(levelId) : onLockedTap(e.currentTarget, number))}
                     aria-disabled={!isUnlocked}
                     aria-current={isCurrent ? 'step' : undefined}
                     aria-label={

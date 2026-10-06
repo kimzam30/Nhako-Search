@@ -19,9 +19,16 @@ export interface ToastItem {
   ms?: number;
   /** Tapping the toast opens this page (otherwise a tap just dismisses). */
   href?: string;
+  /**
+   * A reward (a butterfly caught). While a win screen is up these are held
+   * and listed on it instead of stacking over the celebration.
+   */
+  reward?: boolean;
 }
 
 let items: ToastItem[] = [];
+let held: ToastItem[] = [];
+let holders = 0;
 const listeners = new Set<() => void>();
 let nextId = 1;
 
@@ -31,10 +38,33 @@ function emit() {
 
 export function toast(t: Omit<ToastItem, 'id'>) {
   const item = { ...t, id: nextId++ };
-  items = [...items.slice(-1), item];
+  if (item.reward && holders > 0) held = [...held, item];
+  else items = [...items.slice(-1), item];
   emit();
   return item.id;
 }
+
+/**
+ * While `active`, reward toasts are held back and returned here for the
+ * caller to show in place (the win sheet). They are not replayed afterwards:
+ * the player has already seen them.
+ */
+export function useHeldRewardToasts(active: boolean): ToastItem[] {
+  useEffect(() => {
+    if (!active) return;
+    holders++;
+    return () => {
+      holders--;
+      if (holders === 0 && held.length) {
+        held = [];
+        emit();
+      }
+    };
+  }, [active]);
+  const list = useSyncExternalStore(subscribe, () => held, () => held);
+  return active ? list : EMPTY;
+}
+const EMPTY: ToastItem[] = [];
 
 function dismiss(id: number) {
   items = items.filter(i => i.id !== id);
@@ -67,7 +97,7 @@ function Item({ item }: { item: ToastItem }) {
           dismiss(item.id);
           if (item.href) router.push(item.href);
         }}
-        className="w-full flex items-center gap-3 text-left px-3 py-2.5 bg-surface border-2 border-line shadow-[3px_4px_0_0_var(--line)]"
+        className="press w-full flex items-center gap-3 text-left px-3 py-2.5 bg-surface border-2 border-line shadow-[3px_4px_0_0_var(--line)]"
         style={{ borderRadius: '18px 12px 20px 14px' }}
       >
         {item.icon && <span className="shrink-0 w-10 h-10 flex items-center justify-center">{item.icon}</span>}

@@ -64,6 +64,7 @@ export function MergeClient() {
           title: `New butterfly: ${a.species}`,
           body: `${a.title} · +15 tokens`,
           icon: <Species spec={a.spec} className="w-10" />,
+          reward: true,
         })
       );
     });

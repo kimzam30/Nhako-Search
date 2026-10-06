@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- Source of app/opengraph-image.png (and twitter-image.png). Render at 1200x630, e.g. with Playwright, after the fonts load. -->
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#4A1942; --line:#4A1942; --bg:#FFF6F8; --surface:#FFE3ED; --accent:#FF6FA5; --lawn:#8fcf9e; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; background: var(--bg); font-family: Nunito, sans-serif; color: var(--ink); position: relative; }
+  .paper { position:absolute; inset:0; background-image: linear-gradient(rgb(74 25 66 / .06) 1px, transparent 1px), linear-gradient(90deg, rgb(74 25 66 / .06) 1px, transparent 1px); background-size: 40px 40px; }
+  .lawn { position:absolute; right:0; top:0; bottom:0; width:430px; background: var(--lawn);
+    background-image: radial-gradient(#6bb784 2px, transparent 2.5px), radial-gradient(#b5e3be 2px, transparent 2.5px);
+    background-size: 48px 48px, 64px 64px; background-position: 0 0, 24px 30px; border-left: 4px solid var(--line); }
+  .left { position:absolute; left:72px; top:64px; width:660px; display:flex; flex-direction:column; gap:22px; }
+  .brand { display:flex; align-items:center; gap:24px; }
+  .brand img { width:132px; height:132px; image-rendering: pixelated; filter: drop-shadow(5px 6px 0 var(--line)); transform: rotate(-4deg); }
+  h1 { font-family: Fredoka, sans-serif; font-weight:700; font-size: 92px; line-height: .95; letter-spacing: -1px; }
+  .tag { font-size: 40px; font-weight: 900; line-height: 1.1; }
+  .tag em { font-style: normal; background: #f7a1c4; border: 3px solid var(--line); border-radius: 999px; padding: 0 16px; box-shadow: 3px 4px 0 var(--line); }
+  .chips { display:flex; flex-wrap:wrap; gap:12px; margin-top: 6px; }
+  .chip { font-weight:800; font-size: 24px; padding: 8px 18px; border:3px solid var(--line); border-radius: 999px; background: #fff; box-shadow: 3px 4px 0 var(--line); }
+  .url { position:absolute; left:72px; bottom:44px; font-weight:800; font-size:24px; opacity:.75; }
+  .phone { position:absolute; right:70px; top:40px; width:300px; height:650px; border-radius:44px; border:10px solid var(--line); background:#fff; overflow:hidden; transform: rotate(4deg); box-shadow: 10px 12px 0 rgb(74 25 66 / .35); }
+  .phone img { width:100%; display:block; }
+</style></head>
+<body>
+  <div class="paper"></div>
+  <div class="lawn"></div>
+  <div class="left">
+    <div class="brand"><img src="../../../public/icons/icon-512.png" alt=""><h1>Nhako<br>Search</h1></div>
+    <p class="tag">Cozy word search <em>for two</em></p>
+    <div class="chips">
+      <span class="chip">Race a friend live</span>
+      <span class="chip">Solve together</span>
+      <span class="chip">Daily puzzle</span>
+      <span class="chip">360 levels</span>
+      <span class="chip">Free, no download</span>
+    </div>
+  </div>
+  <div class="url">search.nhako.com</div>
+  <div class="phone"><img src="board-light.jpg" alt=""></div>
+</body></html>

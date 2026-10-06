@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { StarSvg, ClockSvg, WandSvg, TokenSvg } from '@/components/ui/Icons';
 import type { RewardLine } from '@/lib/rewards/economy';
+import type { ToastItem } from '@/components/ui/Toast';
 import { DoodleButterfly } from '@/components/ui/Doodles';
 import { Petals } from '@/components/game/Petals';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
@@ -16,6 +17,8 @@ interface Props {
   hints: number;
   /** Tokens earned, line by line; null while the result is still saving. */
   rewards?: RewardLine[] | null;
+  /** Butterflies caught by this win, held back from the toasts (see Toast). */
+  caught?: ToastItem[];
   /** Seconds added by free hints (already included in `seconds`). */
   penalty?: number;
   children: React.ReactNode;
@@ -27,7 +30,7 @@ interface Props {
  * bigger) with a rising bell each, a stats strip, petals falling, and the next
  * action as a big button. The window opens in NeraOS's three stepped frames.
  */
-export function WinCelebration({ title, stars, seconds, words, hints, rewards, penalty = 0, children }: Props) {
+export function WinCelebration({ title, stars, seconds, words, hints, rewards, caught = [], penalty = 0, children }: Props) {
   const { playSfx } = useAmbientAudio();
 
   // Each earned star rings as it lands; timed to the pop delays below.
@@ -126,21 +129,68 @@ export function WinCelebration({ title, stars, seconds, words, hints, rewards, p
               className="flex items-center justify-between gap-3 w-full px-3 py-2 rounded-2xl border-2 border-line bg-accent-soft"
             >
               <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-left text-xs font-extrabold text-ink-2">
-                {rewards.map(r => (
-                  <li key={r.label} className="tabular">
+                {rewards.map((r, i) => (
+                  <motion.li
+                    key={r.label}
+                    className="tabular"
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1 + i * 0.12, duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                  >
                     {r.label} +{r.amount}
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
               <span className="shrink-0 flex items-center gap-1 font-display font-bold text-2xl text-ink tabular">
-                <TokenSvg className="w-7 h-7 token-bump" />+{rewards.reduce((n, r) => n + r.amount, 0)}
+                <TokenSvg className="w-7 h-7 token-bump" />+<CountUp to={rewards.reduce((n, r) => n + r.amount, 0)} delay={1} />
               </span>
             </motion.div>
           )}
         </div>
 
+        {/* New butterflies land here, not as toasts piled over the board. One
+            row however many there are, so the sheet still fits a short phone. */}
+        {caught.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 1.3, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            className="w-full -mt-2 flex items-center gap-2 px-2.5 py-1.5 rounded-2xl border-2 border-line bg-lav-soft text-left"
+            aria-live="polite"
+          >
+            <span className="shrink-0 flex -space-x-3" aria-hidden="true">
+              {caught.slice(0, 4).map(c => (
+                <span key={c.id} className="w-9 h-9 flex items-center justify-center [&>*]:!w-9">
+                  {c.icon}
+                </span>
+              ))}
+            </span>
+            <span className="min-w-0 flex flex-col leading-tight">
+              <span className="font-display font-bold text-sm text-ink truncate">
+                {caught.length === 1 ? caught[0].title : `${caught.length} new butterflies`}
+              </span>
+              {caught.length > 1 && (
+                <span className="text-xs font-extrabold text-ink-2 truncate">
+                  {caught.map(c => c.title.replace(/^New butterfly: /, '')).join(', ')}
+                </span>
+              )}
+            </span>
+          </motion.div>
+        )}
+
         <div className="flex flex-col gap-3 w-full mt-1">{children}</div>
       </div>
     </div>
   );
+}
+
+/** The token total counts up as the reward lines land, then settles. */
+function CountUp({ to, delay }: { to: number; delay: number }) {
+  const value = useMotionValue(0);
+  const text = useTransform(value, v => String(Math.round(v)));
+  useEffect(() => {
+    const controls = animate(value, to, { delay, duration: 0.7, ease: [0.23, 1, 0.32, 1] });
+    return () => controls.stop();
+  }, [to, delay, value]);
+  return <motion.span>{text}</motion.span>;
 }

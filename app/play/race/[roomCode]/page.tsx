@@ -24,6 +24,7 @@ import { Petals } from '@/components/game/Petals';
 import { useAmbientAudio } from '@/components/sound/AmbientAudioProvider';
 import { getUserProfile } from '@/lib/auth/profile';
 import { useSetGameTitle } from '@/lib/nav/gameTitle';
+import { useArmLeaveGuard } from '@/lib/nav/leaveGuard';
 import { getStableGuestId } from '@/lib/multiplayer/identity';
 import type { Difficulty } from '@/lib/puzzle/generator';
 
@@ -176,6 +177,8 @@ function RaceRoom({
   // result screens do), so the game bar carries the page's h1 while they run.
   const inRound = raceState.status === 'countdown' || raceState.status === 'playing';
   useSetGameTitle(inRound ? (isCoop ? 'Together' : 'Race') : '');
+  // Back mid-round would forfeit it, so it asks first, like Close.
+  useArmLeaveGuard(inRound);
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -350,6 +353,19 @@ function RaceRoom({
         <Button variant="primary" fullWidth onClick={() => router.push('/play/race/lobby')}>
           Back to Lobby
         </Button>
+      </div>
+    );
+  }
+
+  // A guest has not heard from a host yet. Showing the lobby here offered a
+  // Ready button for a room that may not exist; a mistyped code now reads as
+  // a search that ends in "No room", not as waiting for a partner.
+  if (connection === 'connecting' && !me.isLeader) {
+    return (
+      <div role="status" className="flex flex-col flex-1 p-6 bg-background items-center justify-center w-full max-w-sm mx-auto gap-4 text-center">
+        <ButterflySvg className="w-12 h-12 text-accent-ink idle-float" />
+        <h1 className="text-3xl font-display text-ink">Finding room {roomCode}…</h1>
+        <p className="font-body text-ink-2 font-bold">Checking with the host. This takes a few seconds.</p>
       </div>
     );
   }

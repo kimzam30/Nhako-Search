@@ -34,7 +34,7 @@ test.describe('UI Regressions', () => {
     await levelButton.click();
     
     // Wait for the modal and Play Level button
-    const playLevelBtn = page.getByRole('link', { name: /Play (level|again)/ });
+    const playLevelBtn = page.getByRole('link', { name: /^Play( again)?$/ });
     await playLevelBtn.waitFor({ state: 'visible' });
     await page.waitForTimeout(1000); // Wait for framer-motion slide-up animation
     

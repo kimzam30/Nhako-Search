@@ -11,7 +11,7 @@ import {
   type AmbienceEngine,
   type ChannelId,
 } from '@/lib/audio/engine';
-import { playEffect, type EffectName } from '@/lib/audio/sfx';
+import { playEffect, renderEffects, type EffectName } from '@/lib/audio/sfx';
 
 /** `sfx` is a mixer channel but not an ambience layer, so it sits outside ChannelId. */
 export type AudioVolumes = Record<ChannelId | 'master' | 'sfx', number>;
@@ -172,7 +172,7 @@ export function AmbientAudioProvider({ children }: { children: React.ReactNode }
     } catch {
       /* private mode */
     }
-    if (debug) (window as unknown as { __nhakoAudio?: unknown }).__nhakoAudio = { renderAmbience, LOFI_TRACKS };
+    if (debug) (window as unknown as { __nhakoAudio?: unknown }).__nhakoAudio = { renderAmbience, renderEffects, LOFI_TRACKS };
   }, []);
 
   const setLofiTrack = useCallback((id: string) => {

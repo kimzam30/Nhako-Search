@@ -23,21 +23,44 @@ export interface LevelMeta {
   difficulty: LevelDifficulty;
   /** 1-based position inside its chapter, for display. */
   numberInChapter: number;
+  /** 0-based position on the whole path (index into ALL_LEVEL_IDS). */
+  index: number;
 }
 
-const THEME_DATA = [
-  { id: 'c1', name: 'Garden', words: gardenWords },
-  { id: 'c2', name: 'Rainy Day', words: rainyDayWords },
-  { id: 'c3', name: 'Cozy Cottage', words: cozyCottageWords },
-  { id: 'c4', name: 'Night Sky', words: nightSkyWords },
-  { id: 'c5', name: 'Date Night', words: dateNightWords },
-  { id: 'c6', name: 'Standard', words: standardWords },
-  { id: 'c7', name: 'Garden II', words: gardenWords },
-  { id: 'c8', name: 'Rainy Day II', words: rainyDayWords },
-  { id: 'c9', name: 'Cozy Cottage II', words: cozyCottageWords },
-  { id: 'c10', name: 'Night Sky II', words: nightSkyWords },
-  { id: 'c11', name: 'Date Night II', words: dateNightWords },
-  { id: 'c12', name: 'Standard II', words: standardWords },
+/** The look of a chapter: its map scene and colour. */
+export type ChapterTheme = 'garden' | 'rainy' | 'cottage' | 'night' | 'date' | 'notebook';
+
+export interface Chapter {
+  id: string;
+  name: string;
+  theme: ChapterTheme;
+  /** Capsule colour token, works in both light and dark. */
+  hue: string;
+  levels: string[];
+}
+
+const THEME_LOOK: Record<ChapterTheme, string> = {
+  garden: 'var(--word-3)',
+  rainy: 'var(--word-5)',
+  cottage: 'var(--word-6)',
+  night: 'var(--word-2)',
+  date: 'var(--word-1)',
+  notebook: 'var(--word-4)',
+};
+
+const THEME_DATA: { id: string; name: string; theme: ChapterTheme; words: unknown }[] = [
+  { id: 'c1', name: 'Garden', theme: 'garden', words: gardenWords },
+  { id: 'c2', name: 'Rainy Day', theme: 'rainy', words: rainyDayWords },
+  { id: 'c3', name: 'Cozy Cottage', theme: 'cottage', words: cozyCottageWords },
+  { id: 'c4', name: 'Night Sky', theme: 'night', words: nightSkyWords },
+  { id: 'c5', name: 'Date Night', theme: 'date', words: dateNightWords },
+  { id: 'c6', name: 'Standard', theme: 'notebook', words: standardWords },
+  { id: 'c7', name: 'Garden II', theme: 'garden', words: gardenWords },
+  { id: 'c8', name: 'Rainy Day II', theme: 'rainy', words: rainyDayWords },
+  { id: 'c9', name: 'Cozy Cottage II', theme: 'cottage', words: cozyCottageWords },
+  { id: 'c10', name: 'Night Sky II', theme: 'night', words: nightSkyWords },
+  { id: 'c11', name: 'Date Night II', theme: 'date', words: dateNightWords },
+  { id: 'c12', name: 'Standard II', theme: 'notebook', words: standardWords },
 ];
 
 const LEVELS_PER_CHAPTER = 30;
@@ -65,7 +88,7 @@ function difficultyForIndex(i: number): LevelDifficulty {
 // 360 shuffles of a ~130-word pool before it could render.
 // ---------------------------------------------------------------------------
 
-export const CHAPTERS: { id: string; name: string; levels: string[] }[] = [];
+export const CHAPTERS: Chapter[] = [];
 export const ALL_LEVEL_IDS: string[] = [];
 
 const META = new Map<string, LevelMeta & { themeIndex: number; indexInChapter: number }>();
@@ -83,12 +106,13 @@ const META = new Map<string, LevelMeta & { themeIndex: number; indexInChapter: n
         chapter: theme.name,
         difficulty: difficultyForIndex(i),
         numberInChapter: i + 1,
+        index: levelCounter - 1,
         themeIndex,
         indexInChapter: i,
       });
       levelCounter++;
     }
-    CHAPTERS.push({ id: theme.id, name: theme.name, levels });
+    CHAPTERS.push({ id: theme.id, name: theme.name, theme: theme.theme, hue: THEME_LOOK[theme.theme], levels });
   });
 }
 

@@ -11,7 +11,7 @@ Play free at **[search.nhako.com](https://search.nhako.com)**: no download,
 and it installs to your Home Screen like any app.
 
 <p align="center">
-  <img src="docs/launch/launch-poster.jpg" alt="NhakoSearch launch poster: two iPhones showing a word-search board and the home screen" width="560">
+  <img src="launch/posters/1-hero.png" alt="NhakoSearch poster: the pixel book logo, Cozy word search for two, and a phone showing a board with found words" width="360">
 </p>
 
 ---
@@ -31,6 +31,8 @@ and it installs to your Home Screen like any app.
   all synthesised in the browser.
 - **Light and dark**: "Meadow Journal" by day, "Night Garden" by night.
 - **Installable PWA**: works as a Home Screen app on iOS and Android.
+- **How to play**: `/how-to-play` explains directions per difficulty, hints,
+  tokens, multiplayer and installing, with every number read from the code.
 
 ---
 
@@ -107,7 +109,9 @@ lib/
   audio/                 Procedural ambience + sound effects
   puzzle/  levels/  daily/  multiplayer/
 docs/                    Design spec (design.md) and game-feel notes
-  launch/                Launch poster and its HTML source
+  launch/source/         Source of the link-preview image (app/opengraph-image.png)
+launch/                  Launch video and TikTok posters (see "Launch video")
+scripts/                 logo-art.mjs (the pixel icon) + icons.mjs (npm run icons)
 supabase/migrations/     SQL migrations
 tests/                   Playwright suites
 ```
@@ -239,12 +243,24 @@ a public issue.
 
 ---
 
-## Launch poster
+## Launch video and posters
 
-`docs/launch/launch-poster.jpg` is rendered from `docs/launch/poster.html`
-(real screenshots of the live app in CSS iPhone frames, set in SF Pro
-Display). To re-render, open the HTML in Chromium at 1200×1640 and take a
-2× screenshot.
+`launch/nhakosearch-launch.mp4` (1080×1920, 60 s, for TikTok / Reels /
+Shorts) and the five carousel posters in `launch/posters/` are rendered from
+the live app:
+
+```bash
+npx next dev -p 3003                      # in another terminal
+node launch/video/capture.mjs             # app screenshots, incl. a real two-player room
+node launch/video/audio.mjs               # the synthesised soundtrack
+node launch/video/render.mjs --stills     # spot-check frames in launch/video/out/
+node launch/video/render.mjs              # the video
+node launch/video/render.mjs --posters    # the posters
+```
+
+`launch/video/timeline.mjs` is the one source of timing for picture and
+sound. Every frame is drawn by `renderFrame(t)` and screenshotted, so a render
+is identical on any machine. The pipeline follows Nhako Tools' launch film.
 
 ---
 

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NhakoSearch posters</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800;900&display=block" rel="stylesheet">
+<style>
+  /* Vertical posters for a TikTok / Reels photo carousel, 1080x1920. Same
+     tokens and devices as scene.html. Content stays out of TikTok's overlays:
+     nothing important in the top 200px, the bottom 330px or the right 130px. */
+  :root { --ink:#4A1942; --ink-2:#7A4A70; --line:#4A1942; --bg:#FFF6F8; --accent:#FF6FA5; --on-accent:#2A0F26; --gold:#FFD166; --lawn:#8fcf9e;
+    --w1:#FF9AC4; --w2:#C3A6F0; --w3:#8EDDB0; --w4:#FFD27A; --w5:#9FD3F7; --w6:#FFB08A; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; }
+  body { position: relative; background: var(--bg); color: var(--ink); font-family: Nunito, sans-serif; }
+  body::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgb(74 25 66 / .055) 2px, transparent 2px), linear-gradient(90deg, rgb(74 25 66 / .055) 2px, transparent 2px); background-size: 60px 60px; }
+  body.lawn { background: var(--lawn); }
+  body.lawn::before { background-image: radial-gradient(#6bb784 5px, transparent 6px), radial-gradient(#b5e3be 5px, transparent 6px); background-size: 96px 96px, 128px 128px; background-position: 0 0, 48px 60px; }
+  body.night { background: radial-gradient(120% 80% at 50% 10%, #2A1F58, #140E2C 70%); color: #FFF3FA; }
+  body.night::before { background-image: radial-gradient(#FFE9A8 2px, transparent 3px); background-size: 140px 170px; opacity: .6; }
+  section { position: absolute; inset: 0; display: none; }
+  section.on { display: block; }
+  .top { position: absolute; left: 60px; right: 60px; top: 220px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 24px; }
+  .eyebrow { display: inline-block; padding: 10px 28px; border: 4px solid var(--line); border-radius: 999px; background: var(--gold); color: var(--ink); font-weight: 900; font-size: 34px; box-shadow: 5px 6px 0 var(--line); }
+  h1 { font-family: Fredoka, sans-serif; font-weight: 700; font-size: 104px; line-height: .98; letter-spacing: -2px; }
+  h1 em { font-style: normal; display: inline-block; padding: 0 24px; border: 6px solid var(--line); border-radius: 999px; background: var(--w1); box-shadow: 6px 8px 0 var(--line); color: var(--ink); }
+  .sub { font-weight: 800; font-size: 42px; line-height: 1.25; color: var(--ink-2); max-width: 900px; }
+  body.night .sub { color: #D9C7EE; }
+  .phone { position: absolute; border: 16px solid var(--line); border-radius: 76px; background: var(--line); overflow: hidden; box-shadow: 14px 18px 0 rgb(74 25 66 / .28); }
+  .phone .screen { position: absolute; inset: 0; border-radius: 60px; overflow: hidden; background: #fff; }
+  .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .phone .notch { position: absolute; left: 50%; top: 14px; width: 140px; height: 38px; margin-left: -70px; border-radius: 22px; background: var(--line); }
+  .tag { position: absolute; top: -78px; left: 50%; transform: translateX(-50%); padding: 8px 26px; border: 4px solid var(--line); border-radius: 999px; font-weight: 900; font-size: 32px; background: #fff; color: var(--ink); box-shadow: 4px 5px 0 var(--line); white-space: nowrap; }
+  .duo { overflow: visible; }
+  .vs { position: absolute; width: 170px; height: 170px; border-radius: 50%; border: 6px solid var(--line); background: var(--accent); display: flex; align-items: center; justify-content: center; font-family: Fredoka, sans-serif; font-weight: 700; font-size: 80px; color: #fff; -webkit-text-stroke: 3px var(--line); paint-order: stroke fill; box-shadow: 7px 9px 0 var(--line); transform: rotate(-8deg); }
+  .url { position: absolute; left: 50%; bottom: 360px; transform: translateX(-50%); padding: 16px 40px; border: 5px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font-weight: 900; font-size: 46px; box-shadow: 6px 8px 0 var(--line); white-space: nowrap; }
+  .pixel { image-rendering: pixelated; }
+  .chip { display: inline-flex; align-items: center; gap: 12px; padding: 12px 26px; border: 4px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font-weight: 900; font-size: 36px; box-shadow: 5px 6px 0 var(--line); }
+  .chip b { width: 52px; height: 52px; border-radius: 50%; border: 4px solid var(--line); background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-family: Fredoka, sans-serif; font-size: 30px; }
+  /* Feature grid */
+  .grid { position: absolute; left: 60px; right: 60px; top: 560px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .card { border: 5px solid var(--line); border-radius: 34px; background: #fff; box-shadow: 7px 9px 0 var(--line); overflow: hidden; }
+  .card .shot { height: 380px; overflow: hidden; border-bottom: 5px solid var(--line); }
+  .card .shot img { width: 100%; display: block; }
+  .card p { padding: 16px 22px 20px; font-family: Fredoka, sans-serif; font-weight: 700; font-size: 38px; line-height: 1.05; }
+  .card p small { display: block; font-family: Nunito, sans-serif; font-weight: 800; font-size: 26px; color: var(--ink-2); margin-top: 6px; }
+  /* Compass */
+  .compass { display: grid; grid-template-columns: repeat(3, 96px); grid-template-rows: repeat(3, 96px); gap: 10px; }
+  .compass span { display: flex; align-items: center; justify-content: center; border-radius: 26px; font-size: 54px; font-weight: 900; border: 4px solid var(--line); background: var(--accent); color: var(--on-accent); box-shadow: 4px 5px 0 var(--line); }
+  .compass span.c { background: #fff; }
+</style>
+</head>
+<body>
+  <!-- 1. hero -->
+  <section id="hero" data-body="lawn">
+    <div class="top" style="top:230px">
+      <img class="pixel" src="/public/icons/icon-512.png" alt="" style="width:240px;height:240px;filter:drop-shadow(8px 10px 0 var(--line));transform:rotate(-4deg)">
+      <h1>NhakoSearch</h1>
+      <h1 style="font-size:72px">Cozy word search <em>for two</em></h1>
+    </div>
+    <div class="phone" style="left:250px;top:930px;width:580px;height:1256px;transform:rotate(-3deg)"><div class="screen"><img src="/launch/video/shots/board-3.png" alt=""></div><div class="notch"></div></div>
+    <div class="url" style="bottom:330px">Free · search.nhako.com</div>
+  </section>
+
+  <!-- 2. multiplayer -->
+  <section id="multiplayer">
+    <div class="top">
+      <span class="eyebrow">Multiplayer</span>
+      <h1>Race your <em>friend</em></h1>
+      <p class="sub">Same board, live. First to find every word wins. Or team up and solve it together, with chat.</p>
+    </div>
+    <div class="phone duo" style="left:60px;top:860px;width:470px;height:1018px;transform:rotate(-4deg)"><div class="screen"><img src="/launch/video/shots/race-leader.png" alt=""></div><div class="notch"></div><span class="tag">You</span></div>
+    <div class="phone duo" style="left:550px;top:860px;width:470px;height:1018px;transform:rotate(4deg)"><div class="screen"><img src="/launch/video/shots/race-guest.png" alt=""></div><div class="notch"></div><span class="tag" style="background:var(--w2)">Your friend</span></div>
+    <div class="vs" style="left:455px;top:1260px">VS</div>
+  </section>
+
+  <!-- 3. how to play -->
+  <section id="howto">
+    <div class="top">
+      <span class="eyebrow">How to play</span>
+      <h1>Drag across <em>a word</em></h1>
+      <p class="sub">Words hide in a straight line: across, down, diagonal, and on hard, backwards too.</p>
+    </div>
+    <div style="position:absolute;left:70px;top:820px" class="compass">
+      <span>↖</span><span>↑</span><span>↗</span><span>←</span><span class="c"><img class="pixel" src="/public/icons/icon-192.png" alt="" style="width:70px"></span><span>→</span><span>↙</span><span>↓</span><span>↘</span>
+    </div>
+    <div style="position:absolute;left:70px;top:1180px;width:330px;display:flex;flex-direction:column;gap:18px">
+      <span class="chip">Stuck? Hint</span>
+      <span class="chip">Earn stars</span>
+      <span class="chip">Collect butterflies</span>
+    </div>
+    <div class="phone" style="left:470px;top:790px;width:520px;height:1126px;transform:rotate(3deg)"><div class="screen"><img src="/launch/video/shots/board-hint.png" alt=""></div><div class="notch"></div></div>
+  </section>
+
+  <!-- 4. everything else -->
+  <section id="features">
+    <div class="top">
+      <span class="eyebrow">All free</span>
+      <h1>So much to <em>play</em></h1>
+    </div>
+    <div class="grid" style="top:600px">
+      <div class="card"><div class="shot"><img src="/launch/video/shots/daily.png" alt=""></div><p>Daily puzzle<small>A new board every day</small></p></div>
+      <div class="card"><div class="shot"><img src="/launch/video/shots/map-garden.png" alt="" style="margin-top:-120px"></div><p>360 levels<small>12 themed chapters</small></p></div>
+      <div class="card"><div class="shot"><img src="/launch/video/shots/album.png" alt=""></div><p>37 butterflies<small>Every achievement, a species</small></p></div>
+      <div class="card"><div class="shot"><img src="/launch/video/shots/sound.png" alt="" style="margin-top:-200px"></div><p>Lofi &amp; rain<small>Ambience built in</small></p></div>
+    </div>
+  </section>
+
+  <!-- 5. install + every device -->
+  <section id="install" data-body="night">
+    <div class="top">
+      <span class="eyebrow">No app store</span>
+      <h1>Install it in <em>seconds</em></h1>
+      <p class="sub">Works on iPhone, Android, tablets and computers. Play together across any of them.</p>
+    </div>
+    <div style="position:absolute;left:0;right:0;top:770px;display:flex;flex-direction:column;align-items:center;gap:18px">
+      <span class="chip"><b>1</b>Open search.nhako.com</span>
+      <span class="chip"><b>2</b>Tap Share or Install</span>
+      <span class="chip"><b>3</b>Add to Home Screen</span>
+    </div>
+    <div style="position:absolute;left:90px;top:1110px;width:900px">
+      <div style="height:540px;border:18px solid #07040F;border-radius:30px 30px 8px 8px;overflow:hidden;background:#fff"><img src="/launch/video/shots/laptop.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top"></div>
+      <div style="height:30px;margin:0 -50px;background:#07040F;border-radius:0 0 40px 40px"></div>
+    </div>
+    <div class="phone" style="left:60px;top:1290px;width:300px;height:430px;border-width:12px;border-radius:34px;border-color:#07040F;transform:rotate(-5deg)"><div class="screen" style="border-radius:24px"><img src="/launch/video/shots/tablet.png" alt=""></div></div>
+    <div class="phone" style="left:760px;top:1260px;width:230px;height:498px;border-width:10px;border-radius:40px;border-color:#07040F;transform:rotate(6deg)"><div class="screen" style="border-radius:32px"><img src="/launch/video/shots/home-dark.png" alt=""></div></div>
+  </section>
+
+<script type="module">
+  import { POSTERS } from './posters.js';
+  const name = new URLSearchParams(location.search).get('p') ?? 'hero';
+  if (!POSTERS[name]) throw new Error(`no poster ${name}`);
+  const sec = document.getElementById(name);
+  sec.classList.add('on');
+  if (sec.dataset.body) document.body.classList.add(sec.dataset.body);
+  await document.fonts.ready;
+  await Promise.all([...sec.querySelectorAll('img')].map(i => i.decode().catch(() => {})));
+  window.sceneReady = true;
+</script>
+</body>
+</html>

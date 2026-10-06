@@ -5,7 +5,6 @@ import { refreshSummary } from '@/lib/data/player';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { ButterflySvg } from '@/components/ui/Icons';
 import { motion } from 'framer-motion';
 
 export default function SignInPage() {
@@ -136,33 +135,16 @@ export default function SignInPage() {
     <div className="flex flex-col items-center justify-center flex-1 p-6 bg-transparent w-full max-w-sm mx-auto min-h-dvh relative" style={{ paddingTop: 'max(1.5rem, var(--safe-top))', paddingBottom: 'max(1.5rem, var(--safe-bottom))' }}>
       <div className="flex flex-col items-center justify-center text-center z-10 w-full mb-16">
         
-        {/* Doodle Illustration: Two butterflies meeting */}
-        <div className="relative w-48 h-32 mb-8 flex items-center justify-center">
-          <svg aria-hidden="true" className="absolute inset-0 w-full h-full" viewBox="0 0 200 100">
-            <path 
-              d="M 50 60 Q 100 80 150 60" 
-              fill="none" 
-              stroke="var(--line)" 
-              strokeWidth="2" 
-              strokeDasharray="4 4" 
-              className="opacity-40"
-            />
-          </svg>
-          <motion.div 
-            animate={{ y: [0, -4, 0], rotate: 5 }} 
-            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-            className="absolute left-[30px] top-[40px] text-accent"
-          >
-            <ButterflySvg className="w-10 h-10 -scale-x-100" />
-          </motion.div>
-          <motion.div 
-            animate={{ y: [0, 4, 0], rotate: -15 }} 
-            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-            className="absolute right-[30px] top-[20px] text-gold"
-          >
-            <ButterflySvg className="w-12 h-12" />
-          </motion.div>
-        </div>
+        {/* The app icon: pixel art from scripts/logo-art.mjs, drawn on its
+            own pixel grid so it stays crisp at any size. */}
+        <motion.div
+          animate={{ y: [0, -5, 0], rotate: [-2, 1, -2] }}
+          transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+          className="mb-8 drop-shadow-[4px_5px_0_var(--line)]"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- a 2 KB local SVG; next/image would rasterise the pixel grid. */}
+          <img src="/favicon.svg" alt="NhakoSearch" width={112} height={112} className="w-28 h-28 [image-rendering:pixelated]" />
+        </motion.div>
 
         <h1 className="text-3xl font-display text-ink mb-2">Welcome</h1>
         <p className="text-ink-2 mb-8 font-body font-bold text-lg leading-snug">

@@ -132,6 +132,14 @@ export const ShareSvg = ({ className = '' }: { className?: string }) => (
   </svg>
 );
 
+export const HelpSvg = ({ className = '' }: { className?: string }) => (
+  <svg {...iconProps} className={className}>
+    <path d="M12 21C17 21 21 17 21 12C21 7 17 3 12 3C7 3 3 7 3 12C3 17 7 21 12 21Z" />
+    <path d="M9.4 9.3C9.6 8 10.7 7.1 12.1 7.1C13.6 7.1 14.8 8.1 14.8 9.5C14.8 11.4 12.2 11.6 12.2 13.6" />
+    <path d="M12.2 16.8V16.9" />
+  </svg>
+);
+
 export const ChevronRightSvg = ({ className = '' }: { className?: string }) => (
   <svg {...iconProps} className={className}>
     <path d="M9.5 5.5L15.5 12L9.5 18.5" />

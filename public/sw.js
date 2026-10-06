@@ -1,8 +1,8 @@
 // Bump on any change to the caching rules or cached assets (v6: rewards, album,
-// friends, chat, new ambience):
+// friends, chat, new ambience; v7: the pixel book icon):
 // `activate` deletes every other
 // cache, which also clears the RSC payloads v3 accumulated.
-const CACHE_NAME = 'nhakosearch-v6';
+const CACHE_NAME = 'nhakosearch-v7';
 
 // The app shell: enough to open the app offline and play a free puzzle.
 const ASSETS_TO_CACHE = [

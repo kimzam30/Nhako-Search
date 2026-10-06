@@ -40,7 +40,7 @@ export default function StandardSetupPage() {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-lg md:max-w-2xl mx-auto px-5 pb-28" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
+    <div className="flex flex-col w-full max-w-lg md:max-w-2xl mx-auto px-5 pb-48 short:pb-28" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
       <h1 className="text-4xl font-display text-ink mb-1">Free play</h1>
       <p className="font-accent text-2xl text-ink-2 -rotate-1 mb-5">pick a page to fill</p>
 
@@ -49,7 +49,7 @@ export default function StandardSetupPage() {
       <h2 id="theme-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2 mb-3">
         Theme
       </h2>
-      <div role="radiogroup" aria-labelledby="theme-label" className="grid grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3 mb-8">
+      <div role="radiogroup" aria-labelledby="theme-label" className="grid grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
         {THEMES.map((t, i) => {
           const selected = theme === t.id;
           const Art = THEME_ART[t.id];
@@ -84,44 +84,44 @@ export default function StandardSetupPage() {
         })}
       </div>
 
-      <h2 id="difficulty-label" className="text-xs font-extrabold uppercase tracking-widest text-ink-2 mb-3">
-        Difficulty
-      </h2>
+      {/* Difficulty and the primary action pinned above the tab bar, where the
+          thumb already is. Difficulty used to sit at the end of the scroll,
+          below the fold on a phone, so most players never saw the choice. */}
       <div
-        role="radiogroup"
-        aria-labelledby="difficulty-label"
-        className="grid grid-cols-3 gap-1 p-1 bg-surface border-2 border-line rounded-[20px] shadow-[4px_5px_0_0_var(--line)]"
+        className="bottom-cta fixed left-0 right-0 rail:left-[calc(var(--rail-w)+var(--safe-left))] z-30 px-5 pb-3 pt-6 bg-gradient-to-t from-background via-background via-85% to-transparent"
       >
-        {DIFFICULTIES.map(d => (
-          <button
-            key={d.id}
-            type="button"
-            role="radio"
-            aria-checked={diff === d.id}
-            onClick={() => setDiff(d.id)}
-            className={`press min-h-[56px] flex flex-col items-center justify-center rounded-2xl transition-colors ${
-              diff === d.id ? 'bg-accent text-on-accent' : 'text-ink'
-            }`}
+        <div className="max-w-lg md:max-w-2xl mx-auto flex flex-col short:flex-row gap-3">
+          <div
+            role="radiogroup"
+            aria-label="Difficulty"
+            className="short:flex-1 grid grid-cols-3 gap-1 p-1 bg-surface border-2 border-line rounded-[20px] shadow-[3px_4px_0_0_var(--line)]"
           >
-            <span className="flex gap-0.5 mb-0.5" aria-hidden="true">
-              {[0, 1, 2].map(n => (
-                <span key={n} className={`w-1.5 h-1.5 rounded-full ${n < d.dots ? (diff === d.id ? 'bg-on-accent' : 'bg-accent-ink') : 'bg-ink/15'}`} />
-              ))}
-            </span>
-            <span className="font-body font-extrabold">{d.label}</span>
-            <span className={`text-[11px] font-bold tabular ${diff === d.id ? 'text-on-accent' : 'text-ink-2'}`}>{d.detail}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Primary action pinned above the tab bar, where the thumb already is. */}
-      <div
-        className="bottom-cta fixed left-0 right-0 lg:left-[var(--rail-w)] z-30 px-5 pb-3 pt-3 bg-gradient-to-t from-background via-background to-transparent"
-      >
-        <div className="max-w-lg md:max-w-2xl mx-auto">
-          <ButtonLink href={`/play/standard/${theme}/${diff}`} onClick={remember} fullWidth className="text-xl py-4">
+            {DIFFICULTIES.map(d => (
+              <button
+                key={d.id}
+                type="button"
+                role="radio"
+                aria-checked={diff === d.id}
+                onClick={() => setDiff(d.id)}
+                className={`press min-h-[52px] flex flex-col items-center justify-center rounded-2xl transition-colors ${
+                  diff === d.id ? 'bg-accent text-on-accent' : 'text-ink'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className="flex gap-0.5" aria-hidden="true">
+                    {[0, 1, 2].map(n => (
+                      <span key={n} className={`w-1.5 h-1.5 rounded-full ${n < d.dots ? (diff === d.id ? 'bg-on-accent' : 'bg-accent-ink') : 'bg-ink/15'}`} />
+                    ))}
+                  </span>
+                  <span className="font-body font-extrabold">{d.label}</span>
+                </span>
+                <span className={`text-[11px] font-bold tabular ${diff === d.id ? 'text-on-accent' : 'text-ink-2'}`}>{d.detail}</span>
+              </button>
+            ))}
+          </div>
+          <ButtonLink href={`/play/standard/${theme}/${diff}`} onClick={remember} fullWidth className="text-xl py-4 short:w-auto short:shrink-0 short:px-8">
             <PlaySvg className="w-6 h-6" />
-            Start puzzle
+            Play
           </ButtonLink>
         </div>
       </div>

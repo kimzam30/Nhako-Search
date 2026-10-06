@@ -57,7 +57,11 @@ export function LetterCell({
       data-focused={isFocused || undefined}
       className={`letter-cell w-full h-full min-w-0 min-h-0 flex items-center justify-center leading-none rounded-lg font-display font-bold select-none cursor-pointer touch-none ${
         isSelected || onCapsule ? 'text-on-accent' : isHinted ? 'text-accent-ink' : 'text-ink'
-      } ${isFocused ? 'cell-cursor' : ''} ${isHinted && !onCapsule && !isSelected ? 'bg-gold/40 ring-2 ring-gold ring-inset' : ''}`}
+      } ${isFocused ? 'cell-cursor' : ''} ${
+        // A hinted letter stays visible on a found word's capsule too: words
+        // cross, and hiding it there made a paid hint look like nothing.
+        isHinted && !isSelected ? `hint-cell ring-2 ring-gold ring-inset ${onCapsule ? '' : 'bg-gold/40'}` : ''
+      }`}
     >
       {cell.letter}
     </motion.div>

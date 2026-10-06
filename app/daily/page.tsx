@@ -93,7 +93,7 @@ export default function DailyChallengePage() {
 
   return (
     <div
-      className="flex flex-col w-full max-w-lg md:max-w-2xl mx-auto px-4 gap-4 pb-4 min-h-[calc(100dvh-var(--tabbar-h)-var(--safe-bottom))] lg:min-h-dvh"
+      className="flex flex-col w-full max-w-lg md:max-w-2xl mx-auto px-4 gap-4 pb-4 min-h-[calc(100dvh-var(--tabbar-h)-var(--safe-bottom))] rail:min-h-dvh"
       style={{ paddingTop: 'max(1rem, var(--safe-top))' }}
     >
       <header className="flex items-end justify-between gap-3">
@@ -201,13 +201,13 @@ export default function DailyChallengePage() {
           <>
             <p className="text-center text-ink-2 font-body font-bold">Done for today. A new puzzle arrives in {countdown}.</p>
             <ButtonLink href="/daily/play" variant="secondary" fullWidth>
-              Play it again
+              Play again
             </ButtonLink>
           </>
         ) : (
           <ButtonLink href="/daily/play" fullWidth className="py-4 text-xl play-glow">
             <PlaySvg className="w-6 h-6" />
-            Play today&rsquo;s puzzle
+            Play
           </ButtonLink>
         )}
       </div>
