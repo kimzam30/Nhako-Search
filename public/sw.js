@@ -46,6 +46,9 @@ self.addEventListener('fetch', (event) => {
   // Same-origin only: Supabase and fonts are never cached here.
   if (url.origin !== self.location.origin) return;
 
+  // Vercel Analytics script and beacon: always network, never cached.
+  if (url.pathname.startsWith('/_vercel/')) return;
+
   // Race rooms are live; never serve them from cache.
   if (url.pathname.startsWith('/play/race/')) return;
 

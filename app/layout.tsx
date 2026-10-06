@@ -4,6 +4,7 @@ import "./globals.css";
 import { AmbientAudioProvider } from "@/components/sound/AmbientAudioProvider";
 import { PwaRegister } from "@/components/PwaRegister";
 import { MotionConfig } from "framer-motion";
+import { Analytics } from "@vercel/analytics/next";
 import { MergeClient } from "@/components/MergeClient";
 import { FriendLive } from "@/components/social/FriendLive";
 import { ButterflySky } from "@/components/ambient/ButterflySky";
@@ -142,6 +143,11 @@ export default function RootLayout({
             <Toaster />
           </AmbientAudioProvider>
         </MotionConfig>
+        {/* Vercel Web Analytics. Loads /_vercel/insights/script.js (same
+            origin, so the CSP needs no change). That path only exists on
+            Vercel, so the component is rendered only in Vercel builds
+            (VERCEL=1); elsewhere the script 404s and logs a console error. */}
+        {process.env.VERCEL && <Analytics />}
       </body>
     </html>
   );
