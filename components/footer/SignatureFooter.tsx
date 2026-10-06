@@ -14,7 +14,7 @@ export function SignatureFooter() {
 
   return (
     <div 
-      className="w-full py-6 flex justify-center items-center mt-auto" aria-hidden="true"
+      className="w-full pt-6 pb-12 rail:pb-6 flex justify-center items-center mt-auto" aria-hidden="true"
     >
       <span 
         className="font-accent text-xl text-ink-2"

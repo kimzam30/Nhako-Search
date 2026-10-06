@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { softBounce } from '@/components/motion/springs';
@@ -18,6 +18,20 @@ export default function RaceLobbyPage() {
   const router = useRouter();
 
   const [errorMsg, setErrorMsg] = useState('');
+  // Codes leave out letters and digits that are easy to mix up aloud, so the
+  // field drops them. Say so, or a player copying a "B" thinks it is broken.
+  const [droppedKey, setDroppedKey] = useState(0);
+  useEffect(() => {
+    if (!droppedKey) return;
+    const t = window.setTimeout(() => setDroppedKey(0), 2600);
+    return () => window.clearTimeout(t);
+  }, [droppedKey]);
+  const onCodeInput = (raw: string) => {
+    const next = normaliseRoomCode(raw);
+    const typed = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (typed.length > next.length && next.length < ROOM_CODE_LENGTH) setDroppedKey(Date.now());
+    setRoomCode(next);
+  };
 
   const handleCreate = () => {
     const lastCreated = localStorage.getItem('nhako_last_room_created');
@@ -110,10 +124,14 @@ export default function RaceLobbyPage() {
               enterKeyHint="go"
               placeholder="CODE"
               value={roomCode}
-              onChange={e => setRoomCode(normaliseRoomCode(e.target.value))}
+              onChange={e => onCodeInput(e.target.value)}
+              aria-describedby="code-rule"
               className="w-full max-w-[280px] bg-surface border-4 border-line p-4 rounded-2xl font-display text-center text-3xl tracking-[0.3em] text-ink outline-none focus:border-accent shadow-[4px_5px_0_0_var(--line)] transition-colors"
               maxLength={ROOM_CODE_LENGTH}
             />
+            <p id="code-rule" role="status" className={`-mt-3 min-h-5 text-sm font-extrabold text-accent-ink transition-opacity duration-200 ${droppedKey ? 'opacity-100' : 'opacity-0'}`}>
+              {droppedKey ? 'Codes never use B, I, O, S, 0, 1 or 5' : ''}
+            </p>
             <Button
               type="submit"
               disabled={!isValidRoomCode(roomCode)}

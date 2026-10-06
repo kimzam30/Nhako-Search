@@ -12,9 +12,11 @@ export default function NotFound() {
       <span className="idle-float">
         <DoodleButterfly className="w-24" wing="var(--word-5)" wing2="var(--word-2)" />
       </span>
-      <p className="font-accent text-3xl text-ink-2 -rotate-2">this page flew away</p>
-      <h1 className="font-display font-bold text-4xl text-ink">Page not found</h1>
-      <p className="max-w-xs font-bold text-ink-2">The link may be old or mistyped. Everything else is right where you left it.</p>
+      <div data-no-fly="text" className="flex flex-col items-center gap-5">
+        <p className="font-accent text-3xl text-ink-2 -rotate-2">this page flew away</p>
+        <h1 className="font-display font-bold text-4xl text-ink">Page not found</h1>
+        <p className="max-w-xs font-bold text-ink-2">The link may be old or mistyped. Everything else is right where you left it.</p>
+      </div>
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <Link
           href="/"

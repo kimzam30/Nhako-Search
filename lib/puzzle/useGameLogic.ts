@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Grid, generateGrid, Difficulty, GridCell } from './generator';
 
 export interface FocusPosition {
@@ -27,8 +27,14 @@ export function useGameLogic(
   );
   const [startCell, setStartCell] = useState<GridCell | null>(null);
   const [currentCell, setCurrentCell] = useState<GridCell | null>(null);
-  /** Letters revealed by hints, keyed "x,y". */
-  const [hintedCells, setHintedCells] = useState<Set<string>>(() => new Set());
+  /** Letters revealed by hints: "x,y" -> the word the hint was for. */
+  const [hints, setHints] = useState<Map<string, string>>(() => new Map());
+  // A hint is help toward one word, so its ring goes once that word is found.
+  // Left on, it sat on finished capsules and read as a stuck highlight.
+  const hintedCells = useMemo(
+    () => new Set([...hints].filter(([, word]) => !foundWords.includes(word)).map(([cell]) => cell)),
+    [hints, foundWords]
+  );
   const [hintsUsed, setHintsUsed] = useState(0);
 
   // Held in a ref so changing the callback never invalidates the commit path.
@@ -171,7 +177,7 @@ export function useGameLogic(
   const revealHint = useCallback(() => {
     const hint = nextHint();
     if (!hint) return null;
-    setHintedCells(prev => new Set(prev).add(`${hint.x},${hint.y}`));
+    setHints(prev => new Map(prev).set(`${hint.x},${hint.y}`, hint.word));
     setHintsUsed(n => n + 1);
     setFocus({ x: hint.x, y: hint.y });
     return hint;

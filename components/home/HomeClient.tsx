@@ -5,7 +5,7 @@ import { FlameSvg, RaceSvg, GearSvg, HelpSvg, StarSvg, MapSvg, PlaySvg, TrophySv
 import { DoodleButterfly, StageScene, ChapterArt, MixedArt } from '@/components/ui/Doodles';
 import { TokenPill } from '@/components/rewards/TokenPill';
 import { ALL_LEVEL_IDS, CHAPTERS, getLevelMeta } from '@/lib/levels/data';
-import { GAME_DAY_UTC_OFFSET_MINUTES } from '@/lib/daily/logic';
+import { GAME_DAY_UTC_OFFSET_MINUTES, gameDateString } from '@/lib/daily/logic';
 import { usePlayer } from '@/lib/data/player';
 import { ACHIEVEMENTS, unlockedIds } from '@/lib/rewards/achievements';
 
@@ -42,6 +42,9 @@ function formatReset(ms: number) {
 export function HomeClient() {
   const { summary } = usePlayer();
   const [resetIn, setResetIn] = useState<string>('');
+  // The last seven game days, oldest first. Set after mount: Home is
+  // prerendered, so a render-time date would be the build's.
+  const [week, setWeek] = useState<string[]>([]);
 
   // Everything on this screen is derived from the shared summary, so it is on
   // screen the instant the tab opens (cached), then refreshes behind.
@@ -69,7 +72,11 @@ export function HomeClient() {
 
   // The daily tile counts down to the next game day, like an event timer.
   useEffect(() => {
-    const update = () => setResetIn(formatReset(msUntilReset()));
+    const update = () => {
+      setResetIn(formatReset(msUntilReset()));
+      const today = Date.parse(`${gameDateString()}T00:00:00Z`);
+      setWeek(Array.from({ length: 7 }, (_, i) => new Date(today - (6 - i) * 86_400_000).toISOString().slice(0, 10)));
+    };
     update();
     const id = window.setInterval(update, 30_000);
     return () => window.clearInterval(id);
@@ -145,7 +152,7 @@ export function HomeClient() {
             </span>
             <Link
               href="/level-path"
-              className="press flex items-center gap-1.5 h-10 px-3 rounded-full border-2 border-line bg-surface text-ink font-body font-extrabold text-sm shadow-[2px_3px_0_0_var(--line)]"
+              className="press relative flex items-center gap-1.5 h-10 px-3 rounded-full border-2 border-line bg-surface text-ink font-body font-extrabold text-sm shadow-[2px_3px_0_0_var(--line)] after:absolute after:-inset-y-1 after:inset-x-0 after:content-['']"
             >
               <MapSvg className="w-4 h-4" />
               Map
@@ -217,6 +224,25 @@ export function HomeClient() {
                 {stats?.streak ?? 0}
               </span>
             </span>
+            {/* The week at a glance, in the room a phone's card has spare (the
+                streak strip from /daily, in miniature). Short phones skip it. */}
+            {summary && week.length > 0 && (
+              <span className="flex gap-1.5 compact:hidden" aria-hidden="true">
+                {week.map((d, i) => {
+                  const played = summary.dailyDates.includes(d);
+                  return (
+                    <span
+                      key={d}
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        played ? 'bg-accent border-line text-on-accent' : i === 6 ? 'bg-tile border-line border-dashed' : 'bg-tile/60 border-ink/20'
+                      }`}
+                    >
+                      {played && <FlameSvg className="w-3.5 h-3.5" />}
+                    </span>
+                  );
+                })}
+              </span>
+            )}
             <span className="flex items-center justify-between gap-2">
               <span className="text-xs font-extrabold text-ink-2 tabular">{resetIn ? `New puzzle in ${resetIn}` : ' '}</span>
               <span className="flex items-center gap-1 h-9 compact:h-8 px-3 rounded-full border-2 border-line bg-accent text-on-accent font-display font-bold text-sm">

@@ -1,4 +1,5 @@
 import { test, expect, Browser, Page } from '@playwright/test';
+import { findOneWord } from './helpers';
 
 /**
  * Gameplay feature suite (Phase 7): timer, hints, and co-op mode.
@@ -95,6 +96,52 @@ test.describe('Solo gameplay', () => {
       await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('nhako_wallet') || '{}').tokens)).toBe(200 - 4 * i);
       await page.clock.fastForward(9000);
     }
+  });
+
+  test('the hint button keeps one wand and its count badge after many hints', async ({ page }) => {
+    // Regression (seen on a phone, Garden 27): the wand and the count badge
+    // shared a React key, so every hint left an old wand behind. They piled
+    // up across a stretched button that covered the timer and tokens.
+    await page.setViewportSize({ width: 393, height: 852 });
+    await page.clock.install();
+    await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('nhako_wallet', JSON.stringify({ tokens: 200, lifetime: 200 }));
+      Object.keys(localStorage).filter(k => k.startsWith('nhako_cache')).forEach(k => localStorage.removeItem(k));
+    });
+    await page.goto('/play/standard/garden/hard');
+    const hint = page.getByRole('button', { name: 'Hint for 4 tokens' });
+    // The wand plus the token in the price.
+    await expect(hint.locator('svg')).toHaveCount(2);
+    for (let i = 1; i <= 7; i++) {
+      await hint.click();
+      await expect(page.locator('.hint-cell')).toHaveCount(i);
+      await page.clock.fastForward(9000);
+    }
+    await expect(hint.locator('svg')).toHaveCount(2);
+    await expect(hint.getByText('7', { exact: true })).toBeInViewport({ ratio: 1 });
+    const button = (await hint.boundingBox())!;
+    const timer = (await page.getByRole('timer').boundingBox())!;
+    expect(button.x).toBeGreaterThanOrEqual(timer.x + timer.width);
+    expect(button.x + button.width).toBeLessThanOrEqual(393);
+  });
+
+  test("a hint's ring goes once its word is found", async ({ page }) => {
+    // Regression: rings stayed on finished capsules for the rest of the board.
+    await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('nhako_wallet', JSON.stringify({ tokens: 10, lifetime: 10 }));
+      Object.keys(localStorage).filter(k => k.startsWith('nhako_cache')).forEach(k => localStorage.removeItem(k));
+    });
+    await page.goto('/play/standard/standard/easy');
+    await page.getByRole('button', { name: 'Hint for 4 tokens' }).click();
+    await expect(page.locator('.hint-cell')).toHaveCount(1);
+    // Find words until the hinted one is among them (at worst, all of them).
+    for (let found = 1; (await page.locator('.hint-cell').count()) > 0; found++) {
+      expect(await findOneWord(page)).toBe(true);
+      await expect(page.locator('li[data-found]')).toHaveCount(found);
+    }
+    await expect(page.locator('.hint-cell')).toHaveCount(0);
   });
 
   test('the words-remaining counter tracks the grid, not the requested list', async ({ page }) => {

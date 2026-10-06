@@ -447,15 +447,17 @@ export function GameClient({
                 : `Free hint, adds ${nextPenalty} seconds`
           }
           data-sfx="none"
-          className="press relative overflow-hidden flex items-center gap-2 h-14 pl-3 pr-3 border-2 border-line bg-gold text-on-accent font-display font-bold text-lg shadow-[3px_4px_0_0_var(--line)] disabled:opacity-60"
+          className="press relative shrink-0 flex items-center gap-2 h-14 pl-3 pr-3 border-2 border-line bg-gold text-on-accent font-display font-bold text-lg shadow-[3px_4px_0_0_var(--line)] disabled:opacity-60"
           style={{ borderRadius: '18px 12px 16px 10px' }}
         >
           {hintCooling && (
-            <span className="cooldown-ring absolute inset-0" style={{ ['--p' as string]: cooldown }} aria-hidden="true" />
+            <span className="cooldown-ring absolute inset-0" style={{ ['--p' as string]: cooldown, borderRadius: 'inherit' }} aria-hidden="true" />
           )}
-          {/* The wand flicks each time a hint lands. */}
+          {/* The wand flicks each time a hint lands. Its key and the count
+              badge's must differ: the two are siblings, and a shared key made
+              React keep every old wand, so they piled up across the button. */}
           <motion.span
-            key={game.hintsUsed}
+            key={`wand-${game.hintsUsed}`}
             className="relative flex"
             initial={game.hintsUsed ? { rotate: -35, scale: 1.25 } : false}
             animate={{ rotate: 0, scale: 1 }}
@@ -480,7 +482,7 @@ export function GameClient({
           </span>
           {game.hintsUsed > 0 && (
             <motion.span
-              key={game.hintsUsed}
+              key={`count-${game.hintsUsed}`}
               initial={{ scale: 0.4 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 700, damping: 15 }}
@@ -572,7 +574,7 @@ export function GameClient({
           </AnimatePresence>
         </div>
 
-        <div className="contents wide:flex wide:flex-col wide:gap-4 wide:w-60 lg:w-72 wide:flex-none short:w-auto! short:gap-3 short:col-start-2 short:row-start-2 short:self-start">
+        <div className="contents wide:flex wide:flex-col wide:gap-4 wide:w-60 lg:wide:w-72 wide:flex-none short:w-auto! short:gap-3 short:col-start-2 short:row-start-2 short:self-start">
           <div className="w-full">
             <WordList words={wordListProps} />
           </div>

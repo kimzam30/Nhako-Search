@@ -181,6 +181,16 @@ function wordsBefore(themeIndex: number, indexInChapter: number, difficulty: Lev
   return n;
 }
 
+/** Words the whole path deals from a theme's deck (every chapter sharing it). */
+function wordsDealt(themeIndex: number, difficulty: LevelDifficulty): number {
+  const chapters = THEME_DATA.filter(t => t.words === THEME_DATA[themeIndex].words).length;
+  let perChapter = 0;
+  for (let i = 0; i < LEVELS_PER_CHAPTER; i++) {
+    if (difficultyForIndex(i) === difficulty) perChapter += wordCountForDifficulty(difficulty);
+  }
+  return perChapter * chapters;
+}
+
 export function getLevel(levelId: string): LevelData | undefined {
   const cached = wordCache.get(levelId);
   if (cached) return cached;
@@ -208,12 +218,24 @@ export function getLevel(levelId: string): LevelData | undefined {
   const take = (start: number, n: number) =>
     Array.from({ length: Math.min(n, deck.length) }, (_, i) => deck[(start + i) % deck.length]);
 
+  // Backfill (a word that clashes or will not fit) comes from the spare words
+  // past the end of the path first: taking the next level's words put that
+  // word on two boards. Only a deck with no spares falls back to them.
+  // Each level starts at its own place in the spares, so two levels that both
+  // need a backfill don't reach for the same word.
+  const spares = deck.slice(Math.min(wordsDealt(meta.themeIndex, difficulty), deck.length));
+  const turn = spares.length ? (offset / wordCount) % spares.length : 0;
+  const spare = [...spares.slice(turn), ...spares.slice(0, turn)];
+  const reserve = [...spare, ...take(offset + wordCount, Math.max(0, deck.length - wordCount))]
+    .filter((w, i, all) => all.indexOf(w) === i)
+    .slice(0, 30);
+
   const level: LevelData = {
     id: levelId,
     chapter: meta.chapter,
     difficulty,
     words: take(offset, wordCount),
-    reserve: take(offset + wordCount, Math.min(30, Math.max(0, deck.length - wordCount))),
+    reserve,
   };
   wordCache.set(levelId, level);
   return level;

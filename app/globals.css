@@ -292,6 +292,16 @@ body::after {
   width: max(200px, min(100%, 720px, 100dvh - 340px));
 }
 
+/* Landscape tablet or desktop (GameClient's `wide:` layout): the word list
+   and boosters sit beside the board, so only the game bar and the garland
+   (~130px) are above it. Reserving the phone's 340px left a 1440x900 hard
+   board at 532px in a mostly empty screen. */
+@media (orientation: landscape) and (min-width: 640px) {
+  .grid-board {
+    width: max(200px, min(100%, 720px, 100dvh - 180px));
+  }
+}
+
 /* Phone in landscape: the garland, word list and boosters all sit in the
    column BESIDE the board (GameClient's `short:` layout), so only the slim
    game bar and the page padding are above it. Reserving the garland and timer
@@ -648,6 +658,7 @@ body::after {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+  transition: opacity 0.4s ease-out;
   contain: strict;
 }
 .sky-fly {

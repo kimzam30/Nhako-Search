@@ -9,6 +9,7 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { TokenPill } from '@/components/rewards/TokenPill';
 import { Species } from '@/components/butterfly/Species';
+import { DoodleButterfly } from '@/components/ui/Doodles';
 import { usePlayer } from '@/lib/data/player';
 import { clearCache } from '@/lib/data/cache';
 import { readJournal } from '@/lib/rewards/journal';
@@ -62,12 +63,13 @@ export default function ProfilePage() {
     <div className="flex flex-col w-full max-w-lg md:max-w-2xl mx-auto px-5 pb-6 gap-6" style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}>
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="shrink-0 w-14 h-14 rounded-full border-2 border-line bg-surface overflow-hidden flex items-center justify-center font-display text-2xl text-ink shadow-[2px_3px_0_0_var(--line)]">
+          <span className="shrink-0 w-14 h-14 rounded-full border-2 border-line bg-accent-soft overflow-hidden flex items-center justify-center shadow-[2px_3px_0_0_var(--line)]">
             {summary?.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element -- Google CDN avatar
               <img src={summary.avatar} alt="" width={56} height={56} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
             ) : (
-              summary?.name.charAt(0).toUpperCase() || ' '
+              // The same butterfly as Home's avatar, so a guest is one person everywhere.
+              <DoodleButterfly className="w-10" />
             )}
           </span>
           <div className="min-w-0">

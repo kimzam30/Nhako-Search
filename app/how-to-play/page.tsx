@@ -148,6 +148,7 @@ export default function HowToPlayPage() {
   const cooldown = HINT_COOLDOWN_MS / 1000;
   return (
     <div
+      data-no-fly="text"
       className="flex flex-col w-full max-w-2xl mx-auto px-4 md:px-8 gap-10 pb-12"
       style={{ paddingTop: 'max(1.25rem, var(--safe-top))' }}
     >
@@ -171,9 +172,9 @@ export default function HowToPlayPage() {
       </header>
 
       {/* Jump list: the page is long on a phone. */}
-      <nav aria-label="On this page" className="flex flex-wrap gap-2 -mt-4">
+      <nav aria-label="On this page" className="flex flex-wrap gap-x-2 gap-y-3 -mt-4">
         {SECTIONS.map(([id, label]) => (
-          <a key={id} href={`#${id}`} className="press px-3 h-9 flex items-center rounded-full border-2 border-line bg-tile text-ink text-sm font-extrabold">
+          <a key={id} href={`#${id}`} className="press relative px-3 h-9 flex items-center rounded-full border-2 border-line bg-tile text-ink text-sm font-extrabold after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-['']">
             {label}
           </a>
         ))}

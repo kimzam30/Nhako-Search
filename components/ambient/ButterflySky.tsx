@@ -18,8 +18,14 @@ import { isGameplayRoute } from '@/lib/nav/routes';
  *  - it is painted BEHIND every page (.sky, z-index -1) with no pointer events;
  *  - on gameplay routes the flock thins to 3 and fades to 35%;
  *  - any element marked [data-no-fly] (the board, the word tray) is a no-fly
- *    zone: a butterfly that drifts toward one is turned back out of it.
+ *    zone: a butterfly that drifts toward one is turned back out of it;
+ *  - a reading column is marked [data-no-fly="text"]: the flock keeps to the
+ *    side margins, and where the column leaves no margin (a phone) it fades
+ *    out, so nothing ever flutters behind a paragraph being read.
  */
+
+/** A reading column narrower than this on either side leaves no room to fly. */
+const MARGIN_TO_FLY = 72;
 
 const MAX = 7;
 const PALETTE: [string, string][] = [
@@ -47,6 +53,7 @@ export function ButterflySky() {
   const pathname = usePathname();
   const [enabled, setEnabled] = useState(false);
   const els = useRef<(HTMLDivElement | null)[]>([]);
+  const skyRef = useRef<HTMLDivElement>(null);
   const modeRef = useRef({ count: MAX, opacity: 0.8 });
 
   // Client-only: positions are random and motion preference is a media query.
@@ -91,7 +98,13 @@ export function ButterflySky() {
     // getBoundingClientRect on every frame would force layout 60 times a second.
     let zones: DOMRect[] = [];
     const measure = () => {
-      zones = Array.from(document.querySelectorAll('[data-no-fly]')).map(el => el.getBoundingClientRect());
+      const marked = Array.from(document.querySelectorAll<HTMLElement>('[data-no-fly]'));
+      zones = marked.map(el => el.getBoundingClientRect());
+      const cramped = marked.some((el, i) => {
+        const z = zones[i];
+        return el.dataset.noFly === 'text' && z.bottom > 0 && z.top < H && (z.left < MARGIN_TO_FLY || W - z.right < MARGIN_TO_FLY);
+      });
+      if (skyRef.current) skyRef.current.style.opacity = cramped ? '0' : '';
     };
     measure();
     const measureId = window.setInterval(measure, 400);
@@ -149,7 +162,7 @@ export function ButterflySky() {
   if (!enabled) return null;
 
   return (
-    <div className="sky" aria-hidden="true">
+    <div ref={skyRef} className="sky" aria-hidden="true">
       {PALETTE.map(([wing, wing2], i) => (
         <div
           key={i}

@@ -74,7 +74,7 @@ export function MixerPanel({ compact = false }: { compact?: boolean }) {
                 className="mixer-range w-full"
               />
               {track.id === 'lofi' && (
-                <div role="radiogroup" aria-label="Lofi track" className="flex flex-wrap gap-1.5 mt-1.5">
+                <div role="radiogroup" aria-label="Lofi track" className="flex flex-wrap gap-x-1.5 gap-y-3 mt-2">
                   {lofiTracks.map(t => (
                     <button
                       key={t.id}
@@ -86,7 +86,7 @@ export function MixerPanel({ compact = false }: { compact?: boolean }) {
                         if (volumes.lofi === 0) setVolume('lofi', 60);
                         if (!isPlaying) void startAmbience();
                       }}
-                      className={`press min-h-[36px] px-3 rounded-full border-2 text-xs font-extrabold ${
+                      className={`press relative min-h-[36px] px-3 rounded-full border-2 text-xs font-extrabold after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] ${
                         lofiTrack === t.id ? 'bg-accent text-on-accent border-line' : 'bg-background text-ink-2 border-line/30'
                       }`}
                     >
